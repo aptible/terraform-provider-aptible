@@ -1,8 +1,12 @@
 # Hello World Provider 
 
-## Run `go build -o terraform-provider-example` to build the plugin and `terraform init` whenever a change is made. 
+Whenever a change is made:
+- Build the plugin: `go build -o terraform-provider-example`
+- Initialized the plugin:   `terraform init`
 
-## Run `terraform plan` to see what changes will be made and run `terraform apply` to apply the changes.
+To see what changes will be made: `terraform plan` 
 
-## Run `terraform output msg` to output "hello, world!".
+To apply the changes: `terraform apply`
+
+To output "hello, world!": `terraform output msg`
 
