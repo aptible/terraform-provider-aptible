@@ -1,13 +1,16 @@
 package main
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
-			"example_server": resourceServer(),
+			"aptible_app": resourceApp(),
+		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"aptible_account": dataSourceAccount(),
 		},
 	}
 }

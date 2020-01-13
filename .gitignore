@@ -1,5 +1,7 @@
-.terraform
-terraform.tfstate*
+.terraform/*
+*tfstate*
 .vscode
 .DS_Store
-terraform-provider-example
+terraform-provider-aptible
+logs/*
+vendor/*

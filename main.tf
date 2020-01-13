@@ -1,7 +1,5 @@
-resource "example_server" "hello_world" {
-    name = "hello_world"
-}
-
-output "msg" {
-  value = "hello, world!"
+resource "aptible_app" "log-test" {
+    account_id = "2"
+    handle = "log-test"
+    data = {}
 }
