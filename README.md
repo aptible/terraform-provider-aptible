@@ -8,7 +8,7 @@ To create an app:
 - Create a file named `main.tf`
 - Add the app's metadata:
 ```
-resource "apptible_app" "<name_of_app>" {
+resource "aptible_app" "<name_of_app>" {
     account_id = "<your_account_id>"
     handle = "<name of app>"
     data = {}

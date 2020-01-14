@@ -11,6 +11,7 @@ import (
 
 func main() {
 	initLogger()
+	CreateLogger.Println("INFO - Starting...")
 
 	plugin.Serve(&plugin.ServeOpts{
 		ProviderFunc: func() terraform.ResourceProvider {
@@ -19,7 +20,7 @@ func main() {
 	})
 }
 
-// ErrorLogger exported
+// CreateLogger
 var CreateLogger *log.Logger
 
 func initLogger() {

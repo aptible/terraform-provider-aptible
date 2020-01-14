@@ -48,13 +48,13 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 		CreateLogger.Println("Error while marshalling JSON.\n[ERROR] -", err)
 		return err
 	}
-	CreateLogger.Println("This is the JSON: ", requestBody.(string))
+	CreateLogger.Println("This is the JSON.\n[INFO] -", requestBody)
 
 	url := fmt.Sprintf("https://api-rachel.aptible-sandbox.com/accounts/%s/apps", account_id)
 
 	// Append access token
-	var token = "Authorization: " + os.Getenv("AUTH_TOKEN")
-	CreateLogger.Println("This is the access token: \n", token)
+	var token = os.Getenv("AUTH_TOKEN")
+	CreateLogger.Println("This is the access token.\n[INFO] -", token)
 
 	// Create a new request using http
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
@@ -62,10 +62,10 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 		CreateLogger.Println("Error while creating request.\n[ERROR] -", err)
 	}
 
-	// add content type and authorization header to the req
+	// Add content type and authorization header to the req
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Authorization", token)
-	CreateLogger.Println("This is the request sent: ", req)
+	CreateLogger.Println("This is the request sent. \n[INFO] -", req)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -78,7 +78,7 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	json.NewDecoder(resp.Body).Decode(&result)
 
 	d.Set("data", result)
-	CreateLogger.Println("This is the data retrieved: ", result)
+	CreateLogger.Println("This is the data retrieved. \n[INFO] -", result)
 	d.SetId(handle)
 	return resourceAppRead(d, m)
 }
