@@ -100,7 +100,8 @@ func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 
 	for _, app := range resp.Payload.Embedded.Apps {
 		if app.Handle == handle {
-			d.Set("app_id", app.ID)
+			app_id := strconv.Itoa(int(app.ID))
+			d.Set("app_id", app_id)
 			d.Set("git_repo", app.GitRepo)
 			d.Set("created_at", app.CreatedAt)
 			break
