@@ -1,13 +1,15 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"net/http"
 	"os"
-	"time"
+	"strconv"
 
+	deploy "github.com/aptible/go-deploy/client"
+	"github.com/aptible/go-deploy/client/operations"
+	"github.com/aptible/go-deploy/models"
+	"github.com/go-openapi/runtime"
+	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -27,8 +29,16 @@ func resourceApp() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"data": &schema.Schema{
-				Type:     schema.TypeMap,
+			"app_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"git_repo": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"created_at": &schema.Schema{
+				Type:     schema.TypeString,
 				Required: true,
 			},
 		},
@@ -36,54 +46,66 @@ func resourceApp() *schema.Resource {
 }
 
 func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
-	// TODO: maybe use "id" instead?
-	var client = &http.Client{Timeout: 10 * time.Second}
-	account_id := d.Get("account_id").(string)
+	account_id_str := d.Get("account_id").(string)
+	account_id, err := strconv.ParseInt(account_id_str, 10, 64) // WithAccountID takes in an int64
 	handle := d.Get("handle").(string)
 
-	requestBody, err := json.Marshal(map[string]string{
-		"handle": handle,
-	})
+	rt := httptransport.New(
+		"api-rachel.aptible-sandbox.com",
+		deploy.DefaultBasePath,
+		deploy.DefaultSchemes)
+	rt.Consumers["application/hal+json"] = runtime.JSONConsumer()
+	rt.Producers["application/hal+json"] = runtime.JSONProducer()
+	client := deploy.New(rt, strfmt.Default)
+
+	var token = os.Getenv("APTIBLE_ACCESS_TOKEN")
+	bearerTokenAuth := httptransport.BearerToken(token)
+
+	appreq := models.AppRequest3{Handle: &handle}
+	params := operations.NewPostAccountsAccountIDAppsParams().WithAccountID(account_id).WithAppRequest(&appreq)
+	resp, err := client.Operations.PostAccountsAccountIDApps(params, bearerTokenAuth)
 	if err != nil {
-		CreateLogger.Println("Error while marshalling JSON.\n[ERROR] -", err)
+		CreateLogger.Println("There was an error when completing the request.\n[ERROR] -", resp)
 		return err
 	}
-	CreateLogger.Println("This is the JSON.\n[INFO] -", requestBody)
+	CreateLogger.Println("This is the response.\n[INFO] -", resp)
 
-	url := fmt.Sprintf("https://api-rachel.aptible-sandbox.com/accounts/%s/apps", account_id)
-
-	// Append access token
-	var token = os.Getenv("AUTH_TOKEN")
-	CreateLogger.Println("This is the access token.\n[INFO] -", token)
-
-	// Create a new request using http
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
-	if err != nil {
-		CreateLogger.Println("Error while creating request.\n[ERROR] -", err)
-	}
-
-	// Add content type and authorization header to the req
-	req.Header.Add("accept", "application/json")
-	req.Header.Add("Authorization", token)
-	CreateLogger.Println("This is the request sent. \n[INFO] -", req)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		CreateLogger.Println("Error on response.\n[ERROR] -", err)
-	}
-
-	defer resp.Body.Close()
-
-	var result map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&result)
-
-	d.Set("data", result)
-	CreateLogger.Println("This is the data retrieved. \n[INFO] -", result)
 	d.SetId(handle)
 	return resourceAppRead(d, m)
 }
 
 func resourceAppRead(d *schema.ResourceData, m interface{}) error {
+	account_id_str := d.Get("account_id").(string)
+	account_id, err := strconv.ParseInt(account_id_str, 10, 64) // WithAccountID takes in an int64
+	handle := d.Get("handle").(string)
+
+	rt := httptransport.New(
+		"api-rachel.aptible-sandbox.com",
+		deploy.DefaultBasePath,
+		deploy.DefaultSchemes)
+	rt.Consumers["application/hal+json"] = runtime.JSONConsumer()
+	rt.Producers["application/hal+json"] = runtime.JSONProducer()
+	client := deploy.New(rt, strfmt.Default)
+
+	var token = os.Getenv("APTIBLE_ACCESS_TOKEN")
+	bearerTokenAuth := httptransport.BearerToken(token)
+
+	page := int64(1)
+	params := operations.NewGetAccountsAccountIDAppsParams().WithAccountID(account_id).WithPage(&page)
+	resp, err := client.Operations.GetAccountsAccountIDApps(params, bearerTokenAuth)
+	if err != nil {
+		CreateLogger.Println("There was an error when completing the request.\n[ERROR] -", resp)
+		return err
+	}
+
+	for _, app := range resp.Payload.Embedded.Apps {
+		if app.Handle == handle {
+			d.Set("app_id", app.ID)
+			d.Set("git_repo", app.GitRepo)
+			d.Set("created_at", app.CreatedAt)
+			break
+		}
+	}
 	return nil
 }
 

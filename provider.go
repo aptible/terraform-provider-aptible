@@ -9,9 +9,5 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"aptible_app": resourceApp(),
 		},
-		DataSourcesMap: map[string]*schema.Resource{
-			"aptible_accounts":   dataSourceAccounts(),
-			"aptible_operations": dataSourceOperations(),
-		},
 	}
 }

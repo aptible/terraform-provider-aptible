@@ -10,10 +10,13 @@ To create an app:
 ```
 resource "aptible_app" "<name_of_app>" {
     account_id = "<your_account_id>"
-    handle = "<name of app>"
-    data = {}
+    handle = "<name_of_app>"
+    app_id = ""
+    git_repo = ""
+    created_at = ""
 }
 ```
+- The last three attributes will be set after the app is created.
 
 To see what changes will be made: `terraform plan` 
 
