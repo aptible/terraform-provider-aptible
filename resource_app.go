@@ -31,15 +31,19 @@ func resourceApp() *schema.Resource {
 			},
 			"app_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Computed: true,
 			},
 			"git_repo": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Computed: true,
 			},
 			"created_at": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Computed: true,
+			},
+			"docker_image": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -69,15 +73,19 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 	CreateLogger.Println("This is the response.\n[INFO] -", resp)
+	app := resp.Payload
+	app_id := strconv.Itoa(int(*app.ID))
+	d.Set("app_id", app_id)
+	d.Set("git_repo", app.GitRepo)
+	d.Set("created_at", app.CreatedAt)
 
 	d.SetId(handle)
 	return resourceAppRead(d, m)
 }
 
 func resourceAppRead(d *schema.ResourceData, m interface{}) error {
-	account_id_str := d.Get("account_id").(string)
-	account_id, err := strconv.ParseInt(account_id_str, 10, 64) // WithAccountID takes in an int64
-	handle := d.Get("handle").(string)
+	app_id_str := d.Get("app_id").(string)
+	app_id, err := strconv.ParseInt(app_id_str, 10, 64) // WithID takes in an int64
 
 	rt := httptransport.New(
 		"api-rachel.aptible-sandbox.com",
@@ -90,24 +98,29 @@ func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 	var token = os.Getenv("APTIBLE_ACCESS_TOKEN")
 	bearerTokenAuth := httptransport.BearerToken(token)
 
-	page := int64(1)
-	params := operations.NewGetAccountsAccountIDAppsParams().WithAccountID(account_id).WithPage(&page)
-	resp, err := client.Operations.GetAccountsAccountIDApps(params, bearerTokenAuth)
+	params := operations.NewGetAppsIDParams().WithID(app_id)
+	resp, err := client.Operations.GetAppsID(params, bearerTokenAuth)
 	if err != nil {
 		CreateLogger.Println("There was an error when completing the request.\n[ERROR] -", resp)
 		return err
 	}
 
-	for _, app := range resp.Payload.Embedded.Apps {
-		if app.Handle == handle {
-			app_id := strconv.Itoa(int(app.ID))
-			d.Set("app_id", app_id)
-			d.Set("git_repo", app.GitRepo)
-			d.Set("created_at", app.CreatedAt)
-			break
-		}
-	}
 	return nil
+
+	// This is a nice outline for what to do in Read()
+	//   // Attempt to read from an upstream API
+	//   obj, ok := client.Get(d.Id())
+
+	//   // If the resource does not exist, inform Terraform. We want to immediately
+	//   // return here to prevent further processing.
+	//   if !ok {
+	//     d.SetId("")
+	//     return nil
+	//   }
+
+	//   d.Set("address", obj.Address)
+	//   return nil
+
 }
 
 func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
