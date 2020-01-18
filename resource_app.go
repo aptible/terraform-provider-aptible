@@ -104,23 +104,9 @@ func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 		CreateLogger.Println("There was an error when completing the request.\n[ERROR] -", resp)
 		return err
 	}
+	CreateLogger.Println("This is the response.\n[INFO] -", resp)
 
 	return nil
-
-	// This is a nice outline for what to do in Read()
-	//   // Attempt to read from an upstream API
-	//   obj, ok := client.Get(d.Id())
-
-	//   // If the resource does not exist, inform Terraform. We want to immediately
-	//   // return here to prevent further processing.
-	//   if !ok {
-	//     d.SetId("")
-	//     return nil
-	//   }
-
-	//   d.Set("address", obj.Address)
-	//   return nil
-
 }
 
 func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
