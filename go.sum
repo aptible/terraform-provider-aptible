@@ -360,6 +360,8 @@ github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d/go.mod h1:c3At6R
 github.com/prometheus/procfs v0.0.0-20190117184657-bf6a532e95b1/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
 github.com/reggregory/go-deploy v0.0.0-20200117203405-01e8e3e42719 h1:xG8q+c9nBnmE/XZSmnVcEcs735WnrIhitU8DlAmQ1UM=
 github.com/reggregory/go-deploy v0.0.0-20200117203405-01e8e3e42719/go.mod h1:Cew5LOE0KCAy33b+/7ejSxOGGz2Rm6IYVE/h9U7PBkg=
+github.com/reggregory/go-deploy v0.0.0-20200117234324-a9ed08cfefed h1:Y3cp7OtYN5fiXqh5BcBEKH+fGF448o2ENN12euBmDts=
+github.com/reggregory/go-deploy v0.0.0-20200117234324-a9ed08cfefed/go.mod h1:5TynNdqXWp4rG5enfXg2YYYJO3OxySoda+F4OOVomVA=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=

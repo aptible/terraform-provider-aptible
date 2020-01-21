@@ -50,6 +50,7 @@ func resourceApp() *schema.Resource {
 }
 
 func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
+	// Setting up params and client
 	account_id_str := d.Get("account_id").(string)
 	account_id, err := strconv.ParseInt(account_id_str, 10, 64) // WithAccountID takes in an int64
 	handle := d.Get("handle").(string)
@@ -65,6 +66,7 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	var token = os.Getenv("APTIBLE_ACCESS_TOKEN")
 	bearerTokenAuth := httptransport.BearerToken(token)
 
+	// Creating app
 	appreq := models.AppRequest3{Handle: &handle}
 	params := operations.NewPostAccountsAccountIDAppsParams().WithAccountID(account_id).WithAppRequest(&appreq)
 	resp, err := client.Operations.PostAccountsAccountIDApps(params, bearerTokenAuth)
@@ -78,8 +80,21 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	d.Set("app_id", app_id)
 	d.Set("git_repo", app.GitRepo)
 	d.Set("created_at", app.CreatedAt)
-
 	d.SetId(handle)
+
+	// Deploying app
+	req_type := "deploy"
+	app_req := models.AppRequest21{Type: &req_type, GitRef: "httpd:2.4", ContainerCount: 1, ContainerSize: 1024}
+	app_id_str := d.Get("app_id").(string)
+	id, err := strconv.ParseInt(app_id_str, 10, 64) // WithAppID takes in an int64
+	app_params := operations.NewPostAppsAppIDOperationsParams().WithAppID(id).WithAppRequest(&app_req)
+	app_resp, err := client.Operations.PostAppsAppIDOperations(app_params, bearerTokenAuth)
+	if err != nil {
+		CreateLogger.Println("There was an error when completing the request.\n[ERROR] -", app_resp)
+		return err
+	}
+	CreateLogger.Println("This is the response.\n[INFO] -", app_resp.Payload)
+
 	return resourceAppRead(d, m)
 }
 
