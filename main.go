@@ -11,7 +11,7 @@ import (
 
 func main() {
 	initLogger()
-	CreateLogger.Println("INFO - Starting...")
+	AppLogger.Println("INFO - Starting...")
 
 	plugin.Serve(&plugin.ServeOpts{
 		ProviderFunc: func() terraform.ResourceProvider {
@@ -21,7 +21,7 @@ func main() {
 }
 
 // CreateLogger
-var CreateLogger *log.Logger
+var AppLogger *log.Logger
 
 func initLogger() {
 	f, err := os.OpenFile("logs/create-app.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
@@ -30,5 +30,5 @@ func initLogger() {
 		os.Exit(1)
 	}
 
-	CreateLogger = log.New(f, "Logger:\t", log.Ldate|log.Ltime|log.Lshortfile)
+	AppLogger = log.New(f, "Logger:\t", log.Ldate|log.Ltime|log.Lshortfile)
 }

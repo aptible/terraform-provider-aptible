@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 
@@ -24,10 +25,12 @@ func resourceApp() *schema.Resource {
 			"account_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"handle": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"env": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -70,10 +73,10 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	params := operations.NewPostAccountsAccountIDAppsParams().WithAccountID(account_id).WithAppRequest(&appreq)
 	resp, err := client.Operations.PostAccountsAccountIDApps(params, bearerTokenAuth)
 	if err != nil {
-		CreateLogger.Println("There was an error when completing the request to create the app.\n[ERROR] -", resp)
+		AppLogger.Println("There was an error when completing the request to create the app.\n[ERROR] -", resp)
 		return err
 	}
-	CreateLogger.Println("This is the response.\n[INFO] -", resp)
+	AppLogger.Println("This is the response.\n[INFO] -", resp)
 	app := resp.Payload
 	app_id := strconv.Itoa(int(*app.ID))
 	d.Set("app_id", app_id)
@@ -91,14 +94,15 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	app_params := operations.NewPostAppsAppIDOperationsParams().WithAppID(id).WithAppRequest(&app_req)
 	app_resp, err := client.Operations.PostAppsAppIDOperations(app_params, bearerTokenAuth)
 	if err != nil {
-		CreateLogger.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", app_resp)
+		AppLogger.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", app_resp)
 		return err
 	}
 
-	CreateLogger.Println("This is the response.\n[INFO] -", app_resp)
+	AppLogger.Println("This is the response.\n[INFO] -", app_resp)
 	return resourceAppRead(d, m)
 }
 
+// syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
 	app_id_str := d.Get("app_id").(string)
@@ -114,14 +118,24 @@ func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 	params := operations.NewGetAppsIDParams().WithID(app_id)
 	resp, err := client.Operations.GetAppsID(params, bearerTokenAuth)
 	if err != nil {
-		CreateLogger.Println("There was an error when completing the request to get the app.\n[ERROR] -", err)
-		CreateLogger.Println("The app id was: ", app_id)
-		return err
+		err_struct := err.(*operations.GetAppsIDDefault)
+		switch err_struct.Code() {
+		case 404:
+			d.SetId("")
+			return nil
+		case 401:
+			AppLogger.Println("Make sure you have the correct auth token.")
+			return err
+		default:
+			AppLogger.Println(fmt.Sprintf("There was an error when completing the request to get the app: %s.\n[ERROR] - %s", app_id_str, err))
+			return err
+		}
 	}
-	CreateLogger.Println("This is the response.\n[INFO] -", resp)
+	AppLogger.Println("This is the response.\n[INFO] -", resp)
 	return nil
 }
 
+// changes state of actual resource based on changes made in a Terraform config file
 func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
 	app_id_str := d.Get("app_id").(string)
@@ -162,7 +176,7 @@ func resourceAppDelete(d *schema.ResourceData, m interface{}) error {
 		app_params := operations.NewPostAppsAppIDOperationsParams().WithAppID(app_id).WithAppRequest(&app_req)
 		app_resp, err := client.Operations.PostAppsAppIDOperations(app_params, bearerTokenAuth)
 		if err != nil {
-			CreateLogger.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", app_resp)
+			AppLogger.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", app_resp)
 			return err
 		}
 	}
@@ -199,7 +213,7 @@ func updateEnv(d *schema.ResourceData, m interface{}, client *deploy.DeployAPIV1
 	app_params := operations.NewPostAppsAppIDOperationsParams().WithAppID(app_id).WithAppRequest(&app_req)
 	app_resp, err := client.Operations.PostAppsAppIDOperations(app_params, bearerTokenAuth)
 	if err != nil {
-		CreateLogger.Println("There was an error when completing the request.\n[ERROR] -", app_resp)
+		AppLogger.Println("There was an error when completing the request.\n[ERROR] -", app_resp)
 		return err
 	}
 	return nil
