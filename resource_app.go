@@ -48,10 +48,6 @@ func resourceApp() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"status": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }
@@ -82,7 +78,6 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	d.Set("app_id", app_id)
 	d.Set("git_repo", app.GitRepo)
 	d.Set("created_at", app.CreatedAt)
-	d.Set("status", app.Status)
 	d.SetId(handle)
 
 	// Deploying app
@@ -114,7 +109,6 @@ func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 	bearerTokenAuth := httptransport.BearerToken(token)
 	client := setupClient()
 
-	// TODO: Probably should handle this differently for different error codes
 	params := operations.NewGetAppsIDParams().WithID(app_id)
 	resp, err := client.Operations.GetAppsID(params, bearerTokenAuth)
 	if err != nil {
@@ -159,8 +153,6 @@ func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceAppDelete(d *schema.ResourceData, m interface{}) error {
 	read_err := resourceAppRead(d, m)
-	// TODO: it could error for many reasons: bad token, 404, etc. so this isn't accurate
-	// if the app exists
 	if read_err == nil {
 		app_id_str := d.Get("app_id").(string)
 		app_id, err := strconv.ParseInt(app_id_str, 10, 64) // WithID takes in an int64

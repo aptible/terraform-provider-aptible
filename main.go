@@ -20,7 +20,7 @@ func main() {
 	})
 }
 
-// CreateLogger
+// AppLogger
 var AppLogger *log.Logger
 
 func initLogger() {
