@@ -56,7 +56,7 @@ func resourceApp() *schema.Resource {
 
 func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
-	account_id := d.Get("account_id").(int64)
+	account_id := int64(d.Get("account_id").(int))
 	handle := d.Get("handle").(string)
 	var token = os.Getenv("APTIBLE_ACCESS_TOKEN")
 	bearerTokenAuth := httptransport.BearerToken(token)
@@ -72,7 +72,7 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	}
 	AppLogger.Println("This is the response.\n[INFO] -", resp)
 	app := resp.Payload
-	d.Set("app_id", app.ID)
+	d.Set("app_id", int(*app.ID))
 	d.Set("git_repo", app.GitRepo)
 	d.Set("created_at", app.CreatedAt)
 	d.SetId(handle)
@@ -81,7 +81,7 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	env := d.Get("env")
 	req_type := "deploy"
 	app_req := models.AppRequest21{Type: &req_type, Env: env, ContainerCount: 1, ContainerSize: 1024}
-	app_id := d.Get("app_id").(int64)
+	app_id := int64(d.Get("app_id").(int))
 	app_params := operations.NewPostAppsAppIDOperationsParams().WithAppID(app_id).WithAppRequest(&app_req)
 	app_resp, err := client.Operations.PostAppsAppIDOperations(app_params, bearerTokenAuth)
 	if err != nil {
@@ -96,7 +96,7 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
-	app_id := d.Get("app_id").(int64)
+	app_id := int64(d.Get("app_id").(int))
 	var token = os.Getenv("APTIBLE_ACCESS_TOKEN")
 	bearerTokenAuth := httptransport.BearerToken(token)
 	client := setupClient()
@@ -113,7 +113,7 @@ func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 			AppLogger.Println("Make sure you have the correct auth token.")
 			return err
 		default:
-			AppLogger.Println(fmt.Sprintf("There was an error when completing the request to get the app: %s.\n[ERROR] - %s", app_id_str, err))
+			AppLogger.Println(fmt.Sprintf("There was an error when completing the request to get the app with handle: %s.\n[ERROR] - %s", d.Get("handle").(string), err))
 			return err
 		}
 	}
@@ -124,7 +124,7 @@ func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
-	app_id := d.Get("app_id").(int64)
+	app_id := int64(d.Get("app_id").(int))
 	var token = os.Getenv("APTIBLE_ACCESS_TOKEN")
 	bearerTokenAuth := httptransport.BearerToken(token)
 	client := setupClient()
@@ -142,7 +142,7 @@ func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceAppDelete(d *schema.ResourceData, m interface{}) error {
 	read_err := resourceAppRead(d, m)
 	if read_err == nil {
-		app_id := d.Get("app_id").(int64)
+		app_id := int64(d.Get("app_id").(int))
 		var token = os.Getenv("APTIBLE_ACCESS_TOKEN")
 		bearerTokenAuth := httptransport.BearerToken(token)
 		client := setupClient()
@@ -152,7 +152,7 @@ func resourceAppDelete(d *schema.ResourceData, m interface{}) error {
 		app_params := operations.NewPostAppsAppIDOperationsParams().WithAppID(app_id).WithAppRequest(&app_req)
 		app_resp, err := client.Operations.PostAppsAppIDOperations(app_params, bearerTokenAuth)
 		if err != nil {
-			AppLogger.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", app_resp)
+			AppLogger.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", app_resp)
 			return err
 		}
 	}
@@ -175,7 +175,7 @@ func setupClient() *deploy.DeployAPIV1 {
 // Updates the `env` based on changes made in the config file
 func updateEnv(d *schema.ResourceData, m interface{}, client *deploy.DeployAPIV1, app_id int64, bearerTokenAuth runtime.ClientAuthInfoWriter) error {
 	app_req := models.AppRequest21{}
-	env := d.Get("env").(map[string]string)
+	env := d.Get("env").(map[string]interface{})
 	if _, ok := env["APTIBLE_DOCKER_IMAGE"]; ok {
 		// Deploying app
 		req_type := "deploy"
