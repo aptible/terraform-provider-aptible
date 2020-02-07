@@ -2,14 +2,12 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/go-openapi/runtime"
-	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	deploy "github.com/reggregory/go-deploy/client"
 	"github.com/reggregory/go-deploy/client/operations"
+	"github.com/reggregory/go-deploy/helpers"
 	"github.com/reggregory/go-deploy/models"
 )
 
@@ -56,11 +54,9 @@ func resourceApp() *schema.Resource {
 
 func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
+	client, bearerTokenAuth := helpers.SetUpClient()
 	account_id := int64(d.Get("account_id").(int))
 	handle := d.Get("handle").(string)
-	var token = os.Getenv("APTIBLE_ACCESS_TOKEN")
-	bearerTokenAuth := httptransport.BearerToken(token)
-	client := setupClient()
 
 	// Creating app
 	appreq := models.AppRequest3{Handle: &handle}
@@ -96,11 +92,9 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
-	app_id := int64(d.Get("app_id").(int))
-	var token = os.Getenv("APTIBLE_ACCESS_TOKEN")
-	bearerTokenAuth := httptransport.BearerToken(token)
-	client := setupClient()
+	client, bearerTokenAuth := helpers.SetUpClient()
 
+	app_id := int64(d.Get("app_id").(int))
 	params := operations.NewGetAppsIDParams().WithID(app_id)
 	resp, err := client.Operations.GetAppsID(params, bearerTokenAuth)
 	if err != nil {
@@ -124,14 +118,13 @@ func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
+	client, bearerTokenAuth := helpers.SetUpClient()
 	app_id := int64(d.Get("app_id").(int))
-	var token = os.Getenv("APTIBLE_ACCESS_TOKEN")
-	bearerTokenAuth := httptransport.BearerToken(token)
-	client := setupClient()
 
 	// Handling env changes
 	if d.HasChange("env") {
-		err := updateEnv(d, m, client, app_id, bearerTokenAuth)
+		env := d.Get("env").(map[string]interface{})
+		err := updateEnv(env, client, app_id, bearerTokenAuth)
 		if err != nil {
 			return err
 		}
@@ -143,9 +136,7 @@ func resourceAppDelete(d *schema.ResourceData, m interface{}) error {
 	read_err := resourceAppRead(d, m)
 	if read_err == nil {
 		app_id := int64(d.Get("app_id").(int))
-		var token = os.Getenv("APTIBLE_ACCESS_TOKEN")
-		bearerTokenAuth := httptransport.BearerToken(token)
-		client := setupClient()
+		client, bearerTokenAuth := helpers.SetUpClient()
 
 		req_type := "deprovision"
 		app_req := models.AppRequest21{Type: &req_type}
@@ -160,22 +151,9 @@ func resourceAppDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-// sets up client used for all API requests
-func setupClient() *deploy.DeployAPIV1 {
-	rt := httptransport.New(
-		"api-rachel.aptible-sandbox.com",
-		deploy.DefaultBasePath,
-		deploy.DefaultSchemes)
-	rt.Consumers["application/hal+json"] = runtime.JSONConsumer()
-	rt.Producers["application/hal+json"] = runtime.JSONProducer()
-	client := deploy.New(rt, strfmt.Default)
-	return client
-}
-
 // Updates the `env` based on changes made in the config file
-func updateEnv(d *schema.ResourceData, m interface{}, client *deploy.DeployAPIV1, app_id int64, bearerTokenAuth runtime.ClientAuthInfoWriter) error {
+func updateEnv(env map[string]interface{}, client *deploy.DeployAPIV1, app_id int64, bearerTokenAuth runtime.ClientAuthInfoWriter) error {
 	app_req := models.AppRequest21{}
-	env := d.Get("env").(map[string]interface{})
 	if _, ok := env["APTIBLE_DOCKER_IMAGE"]; ok {
 		// Deploying app
 		req_type := "deploy"
