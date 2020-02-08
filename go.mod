@@ -3,8 +3,6 @@ module github.com/reggregory/terraform-provider-aptible
 go 1.13
 
 require (
-	github.com/go-openapi/runtime v0.19.9
-	github.com/go-openapi/strfmt v0.19.4
 	github.com/hashicorp/terraform v0.12.19
-	github.com/reggregory/go-deploy v0.0.0-20200123223348-12ea175efb11
+	github.com/reggregory/go-deploy v0.0.0-20200208065538-e66455fcf627
 )

@@ -3,9 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/go-openapi/runtime"
 	"github.com/hashicorp/terraform/helper/schema"
-	deploy "github.com/reggregory/go-deploy/client"
 	"github.com/reggregory/go-deploy/client/operations"
 	"github.com/reggregory/go-deploy/helpers"
 	"github.com/reggregory/go-deploy/models"
@@ -124,8 +122,9 @@ func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
 	// Handling env changes
 	if d.HasChange("env") {
 		env := d.Get("env").(map[string]interface{})
-		err := updateEnv(env, client, app_id, bearerTokenAuth)
+		err := helpers.UpdateEnv(env, client, app_id, bearerTokenAuth)
 		if err != nil {
+			AppLogger.Println("There was an error when completing the request.\n[ERROR] -", err)
 			return err
 		}
 	}
@@ -148,27 +147,5 @@ func resourceAppDelete(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 	d.SetId("")
-	return nil
-}
-
-// Updates the `env` based on changes made in the config file
-func updateEnv(env map[string]interface{}, client *deploy.DeployAPIV1, app_id int64, bearerTokenAuth runtime.ClientAuthInfoWriter) error {
-	app_req := models.AppRequest21{}
-	if _, ok := env["APTIBLE_DOCKER_IMAGE"]; ok {
-		// Deploying app
-		req_type := "deploy"
-		app_req = models.AppRequest21{Type: &req_type, Env: env, ContainerCount: 1, ContainerSize: 1024}
-	} else {
-		// Configuring app
-		req_type := "configure"
-		app_req = models.AppRequest21{Type: &req_type, Env: env}
-	}
-
-	app_params := operations.NewPostAppsAppIDOperationsParams().WithAppID(app_id).WithAppRequest(&app_req)
-	app_resp, err := client.Operations.PostAppsAppIDOperations(app_params, bearerTokenAuth)
-	if err != nil {
-		AppLogger.Println("There was an error when completing the request.\n[ERROR] -", app_resp)
-		return err
-	}
 	return nil
 }
