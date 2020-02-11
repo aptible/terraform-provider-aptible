@@ -59,10 +59,9 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	// Creating app
 	app, err := helpers.CreateApp(client, token, handle, account_id)
 	if err != nil {
-		AppLogger.Println("There was an error when completing the request to create the app.\n[ERROR] -", app)
+		AppLogger.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
 		return err
 	}
-	AppLogger.Println("This is the response.\n[INFO] -", app)
 
 	// Set computed attributes
 	d.Set("app_id", int(*app.ID))
@@ -71,18 +70,14 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetId(handle)
 
 	// Deploying app
-	env := d.Get("env")
-	req_type := "deploy"
-	app_req := models.AppRequest21{Type: &req_type, Env: env, ContainerCount: 1, ContainerSize: 1024}
+	env := d.Get("env").(map[string]interface{})
 	app_id := int64(d.Get("app_id").(int))
-	app_params := operations.NewPostAppsAppIDOperationsParams().WithAppID(app_id).WithAppRequest(&app_req)
-	app_resp, err := client.Operations.PostAppsAppIDOperations(app_params, token)
+	err = helpers.DeployApp(client, token, app_id, env)
 	if err != nil {
-		AppLogger.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", app_resp)
+		AppLogger.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", err)
 		return err
 	}
 
-	AppLogger.Println("This is the response.\n[INFO] -", app_resp)
 	return resourceAppRead(d, m)
 }
 
