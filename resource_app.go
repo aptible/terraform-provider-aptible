@@ -52,20 +52,19 @@ func resourceApp() *schema.Resource {
 
 func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
-	client, bearerTokenAuth := helpers.SetUpClient()
+	client, token := helpers.SetUpClient()
 	account_id := int64(d.Get("account_id").(int))
 	handle := d.Get("handle").(string)
 
 	// Creating app
-	appreq := models.AppRequest3{Handle: &handle}
-	params := operations.NewPostAccountsAccountIDAppsParams().WithAccountID(account_id).WithAppRequest(&appreq)
-	resp, err := client.Operations.PostAccountsAccountIDApps(params, bearerTokenAuth)
+	app, err := helpers.CreateApp(client, token, handle, account_id)
 	if err != nil {
-		AppLogger.Println("There was an error when completing the request to create the app.\n[ERROR] -", resp)
+		AppLogger.Println("There was an error when completing the request to create the app.\n[ERROR] -", app)
 		return err
 	}
-	AppLogger.Println("This is the response.\n[INFO] -", resp)
-	app := resp.Payload
+	AppLogger.Println("This is the response.\n[INFO] -", app)
+
+	// Set computed attributes
 	d.Set("app_id", int(*app.ID))
 	d.Set("git_repo", app.GitRepo)
 	d.Set("created_at", app.CreatedAt)
@@ -77,7 +76,7 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	app_req := models.AppRequest21{Type: &req_type, Env: env, ContainerCount: 1, ContainerSize: 1024}
 	app_id := int64(d.Get("app_id").(int))
 	app_params := operations.NewPostAppsAppIDOperationsParams().WithAppID(app_id).WithAppRequest(&app_req)
-	app_resp, err := client.Operations.PostAppsAppIDOperations(app_params, bearerTokenAuth)
+	app_resp, err := client.Operations.PostAppsAppIDOperations(app_params, token)
 	if err != nil {
 		AppLogger.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", app_resp)
 		return err
@@ -90,11 +89,11 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
-	client, bearerTokenAuth := helpers.SetUpClient()
+	client, token := helpers.SetUpClient()
 
 	app_id := int64(d.Get("app_id").(int))
 	params := operations.NewGetAppsIDParams().WithID(app_id)
-	resp, err := client.Operations.GetAppsID(params, bearerTokenAuth)
+	resp, err := client.Operations.GetAppsID(params, token)
 	if err != nil {
 		err_struct := err.(*operations.GetAppsIDDefault)
 		switch err_struct.Code() {
@@ -116,13 +115,13 @@ func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
-	client, bearerTokenAuth := helpers.SetUpClient()
+	client, token := helpers.SetUpClient()
 	app_id := int64(d.Get("app_id").(int))
 
 	// Handling env changes
 	if d.HasChange("env") {
 		env := d.Get("env").(map[string]interface{})
-		err := helpers.UpdateEnv(env, client, app_id, bearerTokenAuth)
+		err := helpers.UpdateEnv(env, client, app_id, token)
 		if err != nil {
 			AppLogger.Println("There was an error when completing the request.\n[ERROR] -", err)
 			return err
@@ -135,12 +134,12 @@ func resourceAppDelete(d *schema.ResourceData, m interface{}) error {
 	read_err := resourceAppRead(d, m)
 	if read_err == nil {
 		app_id := int64(d.Get("app_id").(int))
-		client, bearerTokenAuth := helpers.SetUpClient()
+		client, token := helpers.SetUpClient()
 
 		req_type := "deprovision"
 		app_req := models.AppRequest21{Type: &req_type}
 		app_params := operations.NewPostAppsAppIDOperationsParams().WithAppID(app_id).WithAppRequest(&app_req)
-		app_resp, err := client.Operations.PostAppsAppIDOperations(app_params, bearerTokenAuth)
+		app_resp, err := client.Operations.PostAppsAppIDOperations(app_params, token)
 		if err != nil {
 			AppLogger.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", app_resp)
 			return err
