@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/reggregory/go-deploy/client/operations"
 	"github.com/reggregory/go-deploy/helpers"
@@ -85,25 +83,16 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
 	client, token := helpers.SetUpClient()
-
 	app_id := int64(d.Get("app_id").(int))
-	params := operations.NewGetAppsIDParams().WithID(app_id)
-	resp, err := client.Operations.GetAppsID(params, token)
+	deleted, err := helpers.GetApp(client, token, app_id)
 	if err != nil {
-		err_struct := err.(*operations.GetAppsIDDefault)
-		switch err_struct.Code() {
-		case 404:
-			d.SetId("")
-			return nil
-		case 401:
-			AppLogger.Println("Make sure you have the correct auth token.")
-			return err
-		default:
-			AppLogger.Println(fmt.Sprintf("There was an error when completing the request to get the app with handle: %s.\n[ERROR] - %s", d.Get("handle").(string), err))
-			return err
-		}
+		AppLogger.Println(err)
+		return err
 	}
-	AppLogger.Println("This is the response.\n[INFO] -", resp)
+	if deleted {
+		d.SetId("")
+		return nil
+	}
 	return nil
 }
 
