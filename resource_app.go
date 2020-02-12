@@ -2,9 +2,7 @@ package main
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/reggregory/go-deploy/client/operations"
 	"github.com/reggregory/go-deploy/helpers"
-	"github.com/reggregory/go-deploy/models"
 )
 
 func resourceApp() *schema.Resource {
@@ -119,13 +117,9 @@ func resourceAppDelete(d *schema.ResourceData, m interface{}) error {
 	if read_err == nil {
 		app_id := int64(d.Get("app_id").(int))
 		client, token := helpers.SetUpClient()
-
-		req_type := "deprovision"
-		app_req := models.AppRequest21{Type: &req_type}
-		app_params := operations.NewPostAppsAppIDOperationsParams().WithAppID(app_id).WithAppRequest(&app_req)
-		app_resp, err := client.Operations.PostAppsAppIDOperations(app_params, token)
+		err := helpers.DestroyApp(client, token, app_id)
 		if err != nil {
-			AppLogger.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", app_resp)
+			AppLogger.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
 			return err
 		}
 	}
