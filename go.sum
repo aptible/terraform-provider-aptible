@@ -427,6 +427,8 @@ github.com/reggregory/go-deploy v0.0.0-20200212013550-d0f25676461e h1:5lG3rYT4cC
 github.com/reggregory/go-deploy v0.0.0-20200212013550-d0f25676461e/go.mod h1:5TynNdqXWp4rG5enfXg2YYYJO3OxySoda+F4OOVomVA=
 github.com/reggregory/go-deploy v0.0.0-20200213014001-785e511878ea h1:quUpWsDSKiR9gTtuTLkTFmMKaewxlYkgs0sK9rJ+Oi8=
 github.com/reggregory/go-deploy v0.0.0-20200213014001-785e511878ea/go.mod h1:5TynNdqXWp4rG5enfXg2YYYJO3OxySoda+F4OOVomVA=
+github.com/reggregory/go-deploy v0.0.0-20200213023920-eb9030614acc h1:5XoNQ1OYbz1ZqtojvzYyNhuPyQ8TP7Hy56+WbrsAh/k=
+github.com/reggregory/go-deploy v0.0.0-20200213023920-eb9030614acc/go.mod h1:5TynNdqXWp4rG5enfXg2YYYJO3OxySoda+F4OOVomVA=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=
 github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
