@@ -71,6 +71,8 @@ github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0 h1:MzVXffFU
 github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0/go.mod h1:oL81AME2rN47vu18xqj1S1jPIPuN7afo62yKTNn3XMM=
 github.com/apparentlymart/go-textseg v1.0.0 h1:rRmlIsPEEhUTIKQb7T++Nz/A5Q6C9IuX2wFoYVvnCs0=
 github.com/apparentlymart/go-textseg v1.0.0/go.mod h1:z96Txxhf3xSFMPmb5X/1W05FF/Nj9VFpLOpjS5yuumk=
+github.com/aptible/go-deploy v0.0.0-20200129195159-d78c8b70aa96 h1:vjxVNp/M1yjkMQz7WFrQt/pL8qRjG+Kq8f9OxGT2uBI=
+github.com/aptible/go-deploy v0.0.0-20200129195159-d78c8b70aa96/go.mod h1:Cew5LOE0KCAy33b+/7ejSxOGGz2Rm6IYVE/h9U7PBkg=
 github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2 h1:7Ip0wMmLHLRJdrloDxZfhMm0xrLXZS8+COSu2bXmEQs=
 github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
@@ -429,6 +431,8 @@ github.com/reggregory/go-deploy v0.0.0-20200213014001-785e511878ea h1:quUpWsDSKi
 github.com/reggregory/go-deploy v0.0.0-20200213014001-785e511878ea/go.mod h1:5TynNdqXWp4rG5enfXg2YYYJO3OxySoda+F4OOVomVA=
 github.com/reggregory/go-deploy v0.0.0-20200213023920-eb9030614acc h1:5XoNQ1OYbz1ZqtojvzYyNhuPyQ8TP7Hy56+WbrsAh/k=
 github.com/reggregory/go-deploy v0.0.0-20200213023920-eb9030614acc/go.mod h1:5TynNdqXWp4rG5enfXg2YYYJO3OxySoda+F4OOVomVA=
+github.com/reggregory/go-deploy v0.0.0-20200215041945-fd7268b65135 h1:aTLVojExp2BVcDFnMBSqHIa7Ix6d4HnmPNhL59g8vWg=
+github.com/reggregory/go-deploy v0.0.0-20200215041945-fd7268b65135/go.mod h1:5TynNdqXWp4rG5enfXg2YYYJO3OxySoda+F4OOVomVA=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=
 github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
