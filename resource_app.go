@@ -79,7 +79,6 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(d *schema.ResourceData, m interface{}) error {
-	// Setting up params and client
 	client := aptible.SetUpClient()
 	app_id := int64(d.Get("app_id").(int))
 	deleted, err := client.GetApp(app_id)
@@ -96,7 +95,6 @@ func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
-	// Setting up params and client
 	client := aptible.SetUpClient()
 	app_id := int64(d.Get("app_id").(int))
 
