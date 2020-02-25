@@ -26,6 +26,7 @@ func resourceEndpoint() *schema.Resource {
 			"service_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"certificate": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -52,7 +53,6 @@ func resourceEndpoint() *schema.Resource {
 			"platform": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"hostname": &schema.Schema{
 				Type:     schema.TypeString,
@@ -86,7 +86,7 @@ func resourceEndpointCreate(d *schema.ResourceData, m interface{}) error {
 func resourceEndpointRead(d *schema.ResourceData, m interface{}) error {
 	client := aptible.SetUpClient()
 	endpoint_id := int64(d.Get("endpoint_id").(int))
-	_, deleted, err := client.GetEndpoint(endpoint_id)
+	payload, deleted, err := client.GetEndpoint(endpoint_id)
 	if err != nil {
 		AppLogger.Println(err)
 		return err
@@ -96,11 +96,38 @@ func resourceEndpointRead(d *schema.ResourceData, m interface{}) error {
 		return nil
 	}
 
+	d.Set("ip_filtering", payload.IPWhitelist)
+	d.Set("platform", *payload.Platform)
 	return nil
 }
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceEndpointUpdate(d *schema.ResourceData, m interface{}) error {
+	client := aptible.SetUpClient()
+	endpoint_id := int64(d.Get("endpoint_id").(int))
+	updates := map[string]interface{}{}
+
+	if d.HasChange("container_port") {
+		container_port := int64(d.Get("container_port").(int))
+		updates["container_port"] = container_port
+	}
+
+	if d.HasChange("ip_filtering") {
+		ip_filtering := d.Get("internal").([]string)
+		updates["ip_filtering"] = ip_filtering
+	}
+
+	if d.HasChange("platform") {
+		platform := d.Get("platform").(string)
+		updates["platform"] = platform
+	}
+
+	err := client.UpdateEndpoint(endpoint_id, updates)
+	if err != nil {
+		AppLogger.Println("There was an error when completing the request.\n[ERROR] -", err)
+		return err
+	}
+
 	return resourceEndpointRead(d, m)
 }
 
