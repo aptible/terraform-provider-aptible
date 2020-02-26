@@ -26,13 +26,13 @@ func resourceEndpoint() *schema.Resource {
 			// v2, for now there's only one service per app
 			"service_name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
-			// v2, for now default = true
+			// v2, for now Default = true
 			"certificate": &schema.Schema{
 				Type:     schema.TypeMap,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -44,6 +44,7 @@ func resourceEndpoint() *schema.Resource {
 			"container_port": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
+				Default:  80,
 			},
 			"ip_filtering": &schema.Schema{
 				Type:     schema.TypeList,
@@ -54,7 +55,8 @@ func resourceEndpoint() *schema.Resource {
 			},
 			"platform": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "alb",
 			},
 			"hostname": &schema.Schema{
 				Type:     schema.TypeString,
@@ -100,6 +102,9 @@ func resourceEndpointRead(d *schema.ResourceData, m interface{}) error {
 		return nil
 	}
 
+	if payload.ContainerPort != nil {
+		d.Set("container_port", *payload.ContainerPort)
+	}
 	d.Set("ip_filtering", payload.IPWhitelist)
 	d.Set("platform", *payload.Platform)
 	return nil
