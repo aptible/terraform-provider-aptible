@@ -23,11 +23,13 @@ func resourceEndpoint() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			// v2, for now there's only one service per app
 			"service_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
+			// v2, for now default = true
 			"certificate": &schema.Schema{
 				Type:     schema.TypeMap,
 				Required: true,
@@ -70,7 +72,9 @@ func resourceEndpoint() *schema.Resource {
 func resourceEndpointCreate(d *schema.ResourceData, m interface{}) error {
 	client := aptible.SetUpClient()
 	app_id := int64(d.Get("app_id").(int))
-	payload, err := client.CreateEndpoint(app_id)
+	attrs := createAttrMap(d)
+
+	payload, err := client.CreateEndpoint(app_id, attrs)
 	if err != nil {
 		AppLogger.Println("There was an error when completing the request to create the endpoint.\n[ERROR] -", err)
 		return err
@@ -113,7 +117,7 @@ func resourceEndpointUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("ip_filtering") {
-		ip_filtering := d.Get("internal").([]string)
+		ip_filtering := d.Get("ip_filtering").([]string)
 		updates["ip_filtering"] = ip_filtering
 	}
 
@@ -142,4 +146,20 @@ func resourceEndpointDelete(d *schema.ResourceData, m interface{}) error {
 
 	d.SetId("")
 	return nil
+}
+
+func createAttrMap(d *schema.ResourceData) map[string]interface{} {
+	attrs := map[string]interface{}{}
+
+	terr_list := d.Get("ip_filtering").([]interface{})
+	ip_whitelist := make([]string, len(terr_list))
+	for i := 0; i < len(terr_list); i++ {
+		ip_whitelist[i] = (terr_list[i].(string))
+	}
+
+	attrs["internal"] = d.Get("internal").(bool)
+	attrs["container_port"] = int64(d.Get("container_port").(int))
+	attrs["ip_filtering"] = ip_whitelist
+	attrs["platform"] = d.Get("platform").(string)
+	return attrs
 }
