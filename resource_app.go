@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/reggregory/go-deploy/aptible"
+	"github.com/aptible/go-deploy/aptible"
 )
 
 func resourceApp() *schema.Resource {
@@ -48,12 +48,12 @@ func resourceApp() *schema.Resource {
 
 func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
-	client, token := aptible.SetUpClient()
+	client := aptible.SetUpClient()
 	account_id := int64(d.Get("account_id").(int))
 	handle := d.Get("handle").(string)
 
 	// Creating app
-	app, err := aptible.CreateApp(client, token, handle, account_id)
+	app, err := client.CreateApp(handle, account_id)
 	if err != nil {
 		AppLogger.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
 		return err
@@ -68,7 +68,7 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	// Deploying app
 	env := d.Get("env").(map[string]interface{})
 	app_id := int64(d.Get("app_id").(int))
-	err = aptible.DeployApp(client, token, app_id, env)
+	err = client.DeployApp(app_id, env)
 	if err != nil {
 		AppLogger.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", err)
 		return err
@@ -79,10 +79,9 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(d *schema.ResourceData, m interface{}) error {
-	// Setting up params and client
-	client, token := aptible.SetUpClient()
+	client := aptible.SetUpClient()
 	app_id := int64(d.Get("app_id").(int))
-	deleted, err := aptible.GetApp(client, token, app_id)
+	deleted, err := client.GetApp(app_id)
 	if err != nil {
 		AppLogger.Println(err)
 		return err
@@ -96,14 +95,13 @@ func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
-	// Setting up params and client
-	client, token := aptible.SetUpClient()
+	client := aptible.SetUpClient()
 	app_id := int64(d.Get("app_id").(int))
 
 	// Handling env changes
 	if d.HasChange("env") {
 		env := d.Get("env").(map[string]interface{})
-		err := aptible.UpdateEnv(env, client, app_id, token)
+		err := client.UpdateEnv(env, app_id)
 		if err != nil {
 			AppLogger.Println("There was an error when completing the request.\n[ERROR] -", err)
 			return err
@@ -116,8 +114,8 @@ func resourceAppDelete(d *schema.ResourceData, m interface{}) error {
 	read_err := resourceAppRead(d, m)
 	if read_err == nil {
 		app_id := int64(d.Get("app_id").(int))
-		client, token := aptible.SetUpClient()
-		err := aptible.DestroyApp(client, token, app_id)
+		client := aptible.SetUpClient()
+		err := client.DestroyApp(app_id)
 		if err != nil {
 			AppLogger.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
 			return err
