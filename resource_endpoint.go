@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/reggregory/go-deploy/aptible"
 )
 
 func resourceEndpoint() *schema.Resource {
@@ -20,7 +20,13 @@ func resourceEndpoint() *schema.Resource {
 			},
 			"app_id": &schema.Schema{
 				Type:     schema.TypeInt,
-				Required: true,
+				Required: true, // TODO: Make optional once we support database endpoints.
+				ForceNew: true,
+			},
+			"type": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "HTTPS",
 				ForceNew: true,
 			},
 			// v2, for now there's only one service per app
@@ -39,16 +45,17 @@ func resourceEndpoint() *schema.Resource {
 			},
 			"internal": &schema.Schema{
 				Type:     schema.TypeBool,
-				Required: true,
+				Optional: true,
+				Default:  false,
 			},
 			"container_port": &schema.Schema{
 				Type:     schema.TypeInt,
-				Required: true,
+				Optional: true,
 				Default:  80,
 			},
 			"ip_filtering": &schema.Schema{
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -61,7 +68,6 @@ func resourceEndpoint() *schema.Resource {
 			"hostname": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
-				ForceNew: true,
 			},
 			"endpoint_id": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -74,7 +80,25 @@ func resourceEndpoint() *schema.Resource {
 func resourceEndpointCreate(d *schema.ResourceData, m interface{}) error {
 	client := aptible.SetUpClient()
 	app_id := int64(d.Get("app_id").(int))
-	attrs := createAttrMap(d)
+
+	if_slice := d.Get("ip_filtering").([]interface{})
+	ip_whitelist, _ := aptible.MakeStringSlice(if_slice)
+
+	t := d.Get("type").(string)
+	t, err := aptible.GetEndpointType(t)
+	if err != nil {
+		AppLogger.Println(err)
+		return err
+	}
+
+	attrs := aptible.CreateAttrs{
+		Type:          &t,
+		Default:       true,
+		Internal:      d.Get("internal").(bool),
+		ContainerPort: int64(d.Get("container_port").(int)),
+		IPWhitelist:   ip_whitelist,
+		Platform:      d.Get("platform").(string),
+	}
 
 	payload, err := client.CreateEndpoint(app_id, attrs)
 	if err != nil {
@@ -114,21 +138,13 @@ func resourceEndpointRead(d *schema.ResourceData, m interface{}) error {
 func resourceEndpointUpdate(d *schema.ResourceData, m interface{}) error {
 	client := aptible.SetUpClient()
 	endpoint_id := int64(d.Get("endpoint_id").(int))
-	updates := map[string]interface{}{}
+	if_slice := d.Get("ip_filtering").([]interface{})
+	ip_whitelist, _ := aptible.MakeStringSlice(if_slice)
 
-	if d.HasChange("container_port") {
-		container_port := int64(d.Get("container_port").(int))
-		updates["container_port"] = container_port
-	}
-
-	if d.HasChange("ip_filtering") {
-		ip_filtering := d.Get("ip_filtering").([]string)
-		updates["ip_filtering"] = ip_filtering
-	}
-
-	if d.HasChange("platform") {
-		platform := d.Get("platform").(string)
-		updates["platform"] = platform
+	updates := aptible.Updates{
+		ContainerPort: int64(d.Get("container_port").(int)),
+		IPWhitelist:   ip_whitelist,
+		Platform:      d.Get("platform").(string),
 	}
 
 	err := client.UpdateEndpoint(endpoint_id, updates)
@@ -151,20 +167,4 @@ func resourceEndpointDelete(d *schema.ResourceData, m interface{}) error {
 
 	d.SetId("")
 	return nil
-}
-
-func createAttrMap(d *schema.ResourceData) map[string]interface{} {
-	attrs := map[string]interface{}{}
-
-	terr_list := d.Get("ip_filtering").([]interface{})
-	ip_whitelist := make([]string, len(terr_list))
-	for i := 0; i < len(terr_list); i++ {
-		ip_whitelist[i] = (terr_list[i].(string))
-	}
-
-	attrs["internal"] = d.Get("internal").(bool)
-	attrs["container_port"] = int64(d.Get("container_port").(int))
-	attrs["ip_filtering"] = ip_whitelist
-	attrs["platform"] = d.Get("platform").(string)
-	return attrs
 }
