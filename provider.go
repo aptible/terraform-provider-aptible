@@ -9,6 +9,7 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"aptible_app":      resourceApp(),
 			"aptible_endpoint": resourceEndpoint(),
+			"aptible_db":       resourceDatabase(),
 		},
 	}
 }
