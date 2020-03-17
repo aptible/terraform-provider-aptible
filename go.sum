@@ -471,6 +471,15 @@ github.com/prometheus/client_model v0.0.0-20190115171406-56726106282f/go.mod h1:
 github.com/prometheus/common v0.2.0/go.mod h1:TNfzLD0ON7rHzMJeJkieUDPYmFC7Snx/y86RQel1bk4=
 github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
 github.com/prometheus/procfs v0.0.0-20190117184657-bf6a532e95b1/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
+<<<<<<< HEAD
+=======
+github.com/reggregory/go-deploy v0.0.0-20200309204729-d9c08835fd42 h1:xHNU6esZc47ugD+3uM/t04yi+/WeTHRv7TrQPK5crX4=
+github.com/reggregory/go-deploy v0.0.0-20200309204729-d9c08835fd42/go.mod h1:Ub4rgS+vTL6c8wuM5Aj1HE+tOounPn5lgaekde778MQ=
+github.com/reggregory/go-deploy v0.0.0-20200310175745-32dd559d835e h1:aZVHwl2YCUIBIpSLG1h6H7jj+t0UCNrp+zG0KzqKZsA=
+github.com/reggregory/go-deploy v0.0.0-20200310175745-32dd559d835e/go.mod h1:Ub4rgS+vTL6c8wuM5Aj1HE+tOounPn5lgaekde778MQ=
+github.com/reggregory/go-deploy v0.0.0-20200317130032-91869e84bf48 h1:JMgWQauWs2mbVoA5cDtFf7OZCdq1ytUd6ZAqwvCzbKU=
+github.com/reggregory/go-deploy v0.0.0-20200317130032-91869e84bf48/go.mod h1:Ub4rgS+vTL6c8wuM5Aj1HE+tOounPn5lgaekde778MQ=
+>>>>>>> account -> env, env -> config
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/go-internal v1.1.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.2.2/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
