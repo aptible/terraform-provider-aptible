@@ -71,8 +71,12 @@ github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0 h1:MzVXffFU
 github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0/go.mod h1:oL81AME2rN47vu18xqj1S1jPIPuN7afo62yKTNn3XMM=
 github.com/apparentlymart/go-textseg v1.0.0 h1:rRmlIsPEEhUTIKQb7T++Nz/A5Q6C9IuX2wFoYVvnCs0=
 github.com/apparentlymart/go-textseg v1.0.0/go.mod h1:z96Txxhf3xSFMPmb5X/1W05FF/Nj9VFpLOpjS5yuumk=
-github.com/aptible/go-deploy v0.0.0-20200306043142-feb5b494b0ed h1:eli88LIHJwfjbjrACABGQQwuGxmfH36MS+DkJ4f7Nqk=
-github.com/aptible/go-deploy v0.0.0-20200306043142-feb5b494b0ed/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
+github.com/aptible/go-deploy v0.0.0-20200309203956-259eaf44cc9d h1:ZO+LWumnQvv6CRMqJMwnv3JNG//63NrkRrpAthHdjlU=
+github.com/aptible/go-deploy v0.0.0-20200309203956-259eaf44cc9d/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
+github.com/aptible/go-deploy v0.0.0-20200309204729-d9c08835fd42 h1:xHNU6esZc47ugD+3uM/t04yi+/WeTHRv7TrQPK5crX4=
+github.com/aptible/go-deploy v0.0.0-20200309204729-d9c08835fd42/go.mod h1:Ub4rgS+vTL6c8wuM5Aj1HE+tOounPn5lgaekde778MQ=
+github.com/aptible/go-deploy v0.0.0-20200310175745-32dd559d835e h1:aZVHwl2YCUIBIpSLG1h6H7jj+t0UCNrp+zG0KzqKZsA=
+github.com/aptible/go-deploy v0.0.0-20200310175745-32dd559d835e/go.mod h1:Ub4rgS+vTL6c8wuM5Aj1HE+tOounPn5lgaekde778MQ=
 github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2 h1:7Ip0wMmLHLRJdrloDxZfhMm0xrLXZS8+COSu2bXmEQs=
 github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
@@ -453,6 +457,7 @@ github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4 h1:49lOXmGaUpV9Fz3gd7T
 github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4/go.mod h1:4OwLy04Bl9Ef3GJJCoec+30X3LQs/0/m4HFRt/2LUSA=
 github.com/pkg/errors v0.8.0 h1:WdK/asTD0HN+q6hsWO3/vpuAkAr+tw6aNJNDFFf0+qw=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

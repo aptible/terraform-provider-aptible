@@ -26,3 +26,15 @@ resource "aptible_endpoint" "<endpoint_name>" {
   ip_filtering = []                 // list of whitelisted IPs
   platform = "alb"                  // or "elb" 
 }
+
+#######################################################
+# DATABASES
+#######################################################
+
+resource "aptible_db" "<db_handle" {
+  account_id = "<account_id>"
+  handle = "<db_handle>"
+  type = "<db_type>"            // E.G. "postgresql", "mongodb", etc.
+  container_size = "1024"
+  disk_size = "10"
+}
