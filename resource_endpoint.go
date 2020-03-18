@@ -13,7 +13,7 @@ func resourceEndpoint() *schema.Resource {
 		Delete: resourceEndpointDelete, // DELETE
 
 		Schema: map[string]*schema.Schema{
-			"account_id": &schema.Schema{
+			"env_id": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,

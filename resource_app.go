@@ -13,7 +13,7 @@ func resourceApp() *schema.Resource {
 		Delete: resourceAppDelete, // DELETE
 
 		Schema: map[string]*schema.Schema{
-			"account_id": &schema.Schema{
+			"env_id": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
@@ -23,7 +23,7 @@ func resourceApp() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"env": &schema.Schema{
+			"config": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -49,11 +49,11 @@ func resourceApp() *schema.Resource {
 func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
 	client := aptible.SetUpClient()
-	account_id := int64(d.Get("account_id").(int))
+	env_id := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
 
 	// Creating app
-	app, err := client.CreateApp(handle, account_id)
+	app, err := client.CreateApp(handle, env_id)
 	if err != nil {
 		AppLogger.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
 		return err
@@ -66,9 +66,9 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetId(handle)
 
 	// Deploying app
-	env := d.Get("env").(map[string]interface{})
+	config := d.Get("config").(map[string]interface{})
 	app_id := int64(d.Get("app_id").(int))
-	err = client.DeployApp(app_id, env)
+	err = client.DeployApp(app_id, config)
 	if err != nil {
 		AppLogger.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", err)
 		return err
@@ -98,10 +98,10 @@ func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
 	client := aptible.SetUpClient()
 	app_id := int64(d.Get("app_id").(int))
 
-	// Handling env changes
-	if d.HasChange("env") {
-		env := d.Get("env").(map[string]interface{})
-		err := client.UpdateEnv(env, app_id)
+	// Handling config changes
+	if d.HasChange("config") {
+		config := d.Get("config").(map[string]interface{})
+		err := client.UpdateApp(config, app_id)
 		if err != nil {
 			AppLogger.Println("There was an error when completing the request.\n[ERROR] -", err)
 			return err

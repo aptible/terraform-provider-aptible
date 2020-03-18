@@ -15,7 +15,7 @@ func resourceDatabase() *schema.Resource {
 		Delete: resourceDatabaseDelete, // DELETE
 
 		Schema: map[string]*schema.Schema{
-			"account_id": &schema.Schema{
+			"env_id": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
@@ -55,21 +55,20 @@ func resourceDatabase() *schema.Resource {
 
 func resourceDatabaseCreate(d *schema.ResourceData, m interface{}) error {
 	client := aptible.SetUpClient()
-	account_id := int64(d.Get("account_id").(int))
+	env_id := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
 	db_type := d.Get("db_type").(string)
 	container_size := int64(d.Get("container_size").(int))
 	disk_size := int64(d.Get("disk_size").(int))
 
 	attrs := aptible.DBCreateAttrs{
-		AccountID:     account_id,
 		Handle:        &handle,
 		Type:          db_type,
 		ContainerSize: container_size,
 		DiskSize:      disk_size,
 	}
 
-	payload, err := client.CreateDatabase(attrs)
+	payload, err := client.CreateDatabase(env_id, attrs)
 	if err != nil {
 		AppLogger.Println(err)
 		return err
