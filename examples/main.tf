@@ -9,6 +9,7 @@ resource "aptible_app" "<app_handle>" {
     handle = "<app_handle>"
     env = {
         "APTIBLE_DOCKER_IMAGE" = "<docker_image>"
+        "DATABASE_URL" = "<connection_url>"
         "ANOTHER_VAR" = "value"
     }
 }
