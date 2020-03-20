@@ -3,7 +3,7 @@ module github.com/aptible/terraform-provider-aptible
 go 1.13
 
 require (
-	github.com/aptible/go-deploy v0.0.0-20200309203956-259eaf44cc9d
+	github.com/aptible/go-deploy v0.0.0-20200318142633-7d4151a29167
 	github.com/go-openapi/loads v0.19.5 // indirect
 	github.com/go-openapi/runtime v0.19.11 // indirect
 	github.com/go-openapi/validate v0.19.6 // indirect

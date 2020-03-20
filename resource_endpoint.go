@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceEndpoint() *schema.Resource {
@@ -78,7 +78,7 @@ func resourceEndpoint() *schema.Resource {
 }
 
 func resourceEndpointCreate(d *schema.ResourceData, m interface{}) error {
-	client := aptible.SetUpClient()
+	client := m.(*aptible.Client)
 	app_id := int64(d.Get("app_id").(int))
 
 	if_slice := d.Get("ip_filtering").([]interface{})
@@ -114,7 +114,7 @@ func resourceEndpointCreate(d *schema.ResourceData, m interface{}) error {
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceEndpointRead(d *schema.ResourceData, m interface{}) error {
-	client := aptible.SetUpClient()
+	client := m.(*aptible.Client)
 	endpoint_id := int64(d.Get("endpoint_id").(int))
 	payload, deleted, err := client.GetEndpoint(endpoint_id)
 	if err != nil {
@@ -136,7 +136,7 @@ func resourceEndpointRead(d *schema.ResourceData, m interface{}) error {
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceEndpointUpdate(d *schema.ResourceData, m interface{}) error {
-	client := aptible.SetUpClient()
+	client := m.(*aptible.Client)
 	endpoint_id := int64(d.Get("endpoint_id").(int))
 	if_slice := d.Get("ip_filtering").([]interface{})
 	ip_whitelist, _ := aptible.MakeStringSlice(if_slice)
@@ -157,7 +157,7 @@ func resourceEndpointUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceEndpointDelete(d *schema.ResourceData, m interface{}) error {
-	client := aptible.SetUpClient()
+	client := m.(*aptible.Client)
 	endpoint_id := int64(d.Get("endpoint_id").(int))
 	err := client.DeleteEndpoint(endpoint_id)
 	if err != nil {

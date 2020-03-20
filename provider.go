@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -11,5 +12,14 @@ func Provider() *schema.Provider {
 			"aptible_endpoint": resourceEndpoint(),
 			"aptible_db":       resourceDatabase(),
 		},
+		ConfigureFunc: providerConfigure,
 	}
+}
+
+func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	client, err := aptible.SetUpClient()
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
