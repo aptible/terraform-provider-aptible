@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/aptible/go-deploy/aptible"
+	"github.com/reggregory/go-deploy/aptible"
 )
 
 func resourceDatabase() *schema.Resource {
@@ -54,7 +54,7 @@ func resourceDatabase() *schema.Resource {
 }
 
 func resourceDatabaseCreate(d *schema.ResourceData, m interface{}) error {
-	client := aptible.SetUpClient()
+	client := m.(*aptible.Client)
 	env_id := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
 	db_type := d.Get("db_type").(string)
@@ -82,7 +82,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, m interface{}) error {
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceDatabaseRead(d *schema.ResourceData, m interface{}) error {
-	client := aptible.SetUpClient()
+	client := m.(*aptible.Client)
 	db_id := int64(d.Get("db_id").(int))
 	payload, deleted, err := client.GetDatabase(db_id)
 	if err != nil {
@@ -103,7 +103,7 @@ func resourceDatabaseRead(d *schema.ResourceData, m interface{}) error {
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceDatabaseUpdate(d *schema.ResourceData, m interface{}) error {
-	c := aptible.SetUpClient()
+	client := m.(*aptible.Client)
 	db_id := int64(d.Get("db_id").(int))
 	container_size := int64(d.Get("container_size").(int))
 	disk_size := int64(d.Get("disk_size").(int))
@@ -118,7 +118,7 @@ func resourceDatabaseUpdate(d *schema.ResourceData, m interface{}) error {
 		updates.DiskSize = disk_size
 	}
 
-	err := c.UpdateDatabase(db_id, updates)
+	err := client.UpdateDatabase(db_id, updates)
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func resourceDatabaseUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceDatabaseDelete(d *schema.ResourceData, m interface{}) error {
-	client := aptible.SetUpClient()
+	client := m.(*aptible.Client)
 	db_id := int64(d.Get("db_id").(int))
 	err := client.DeleteDatabase(db_id)
 	if err != nil {

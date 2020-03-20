@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/aptible/go-deploy/aptible"
+	"github.com/reggregory/go-deploy/aptible"
 )
 
 func resourceApp() *schema.Resource {
@@ -48,7 +48,7 @@ func resourceApp() *schema.Resource {
 
 func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	// Setting up params and client
-	client := aptible.SetUpClient()
+	client := m.(*aptible.Client)
 	env_id := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
 
@@ -79,7 +79,7 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(d *schema.ResourceData, m interface{}) error {
-	client := aptible.SetUpClient()
+	client := m.(*aptible.Client)
 	app_id := int64(d.Get("app_id").(int))
 	deleted, err := client.GetApp(app_id)
 	if err != nil {
@@ -95,7 +95,7 @@ func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
-	client := aptible.SetUpClient()
+	client := m.(*aptible.Client)
 	app_id := int64(d.Get("app_id").(int))
 
 	// Handling config changes
@@ -114,7 +114,7 @@ func resourceAppDelete(d *schema.ResourceData, m interface{}) error {
 	read_err := resourceAppRead(d, m)
 	if read_err == nil {
 		app_id := int64(d.Get("app_id").(int))
-		client := aptible.SetUpClient()
+		client := m.(*aptible.Client)
 		err := client.DestroyApp(app_id)
 		if err != nil {
 			AppLogger.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
