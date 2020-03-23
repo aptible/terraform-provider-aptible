@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/aptible/go-deploy/aptible"
+	"github.com/reggregory/go-deploy/aptible"
 )
 
 func resourceApp() *schema.Resource {

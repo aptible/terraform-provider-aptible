@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/reggregory/go-deploy/aptible"
 )
 
 func Provider() *schema.Provider {
