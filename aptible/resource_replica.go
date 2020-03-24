@@ -1,10 +1,11 @@
-package main
+package aptible
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceReplica() *schema.Resource {
@@ -15,36 +16,36 @@ func resourceReplica() *schema.Resource {
 		Delete: resourceReplicaDelete, // DELETE
 
 		Schema: map[string]*schema.Schema{
-			"env_id": &schema.Schema{
+			"env_id": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"primary_db_id": &schema.Schema{
+			"primary_db_id": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"handle": &schema.Schema{
+			"handle": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"container_size": &schema.Schema{
+			"container_size": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  1024,
 			},
-			"disk_size": &schema.Schema{
+			"disk_size": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  10,
 			},
-			"replica_id": &schema.Schema{
+			"replica_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"connection_url": &schema.Schema{
+			"connection_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -70,7 +71,7 @@ func resourceReplicaCreate(d *schema.ResourceData, m interface{}) error {
 
 	payload, err := client.CreateReplica(attrs)
 	if err != nil {
-		AppLogger.Println(err)
+		log.Println(err)
 		return err
 	}
 
@@ -86,12 +87,12 @@ func resourceReplicaRead(d *schema.ResourceData, m interface{}) error {
 	replica_id := int64(d.Get("replica_id").(int))
 	payload, deleted, err := client.GetReplica(replica_id)
 	if err != nil {
-		AppLogger.Println(err)
+		log.Println(err)
 		return err
 	}
 	if deleted {
 		d.SetId("")
-		AppLogger.Println("Replica with ID: " + strconv.Itoa(int(replica_id)) + " was deleted outside of Terraform. \nNow removing it from Terraform state.")
+		log.Println("Replica with ID: " + strconv.Itoa(int(replica_id)) + " was deleted outside of Terraform. \nNow removing it from Terraform state.")
 		return nil
 	}
 
@@ -132,7 +133,7 @@ func resourceReplicaDelete(d *schema.ResourceData, m interface{}) error {
 	replica_id := int64(d.Get("replica_id").(int))
 	err := client.DeleteReplica(replica_id)
 	if err != nil {
-		AppLogger.Println(err)
+		log.Println(err)
 		return err
 	}
 

@@ -1,10 +1,11 @@
-package main
+package aptible
 
 import (
+	"log"
 	"strconv"
 
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceDatabase() *schema.Resource {
@@ -15,37 +16,37 @@ func resourceDatabase() *schema.Resource {
 		Delete: resourceDatabaseDelete, // DELETE
 
 		Schema: map[string]*schema.Schema{
-			"env_id": &schema.Schema{
+			"env_id": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"handle": &schema.Schema{
+			"handle": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"db_type": &schema.Schema{
+			"db_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "postgresql",
 				ForceNew: true,
 			},
-			"container_size": &schema.Schema{
+			"container_size": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  1024,
 			},
-			"disk_size": &schema.Schema{
+			"disk_size": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  10,
 			},
-			"db_id": &schema.Schema{
+			"db_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"connection_url": &schema.Schema{
+			"connection_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -70,7 +71,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, m interface{}) error {
 
 	payload, err := client.CreateDatabase(env_id, attrs)
 	if err != nil {
-		AppLogger.Println(err)
+		log.Println(err)
 		return err
 	}
 
@@ -86,12 +87,12 @@ func resourceDatabaseRead(d *schema.ResourceData, m interface{}) error {
 	db_id := int64(d.Get("db_id").(int))
 	payload, deleted, err := client.GetDatabase(db_id)
 	if err != nil {
-		AppLogger.Println(err)
+		log.Println(err)
 		return err
 	}
 	if deleted {
 		d.SetId("")
-		AppLogger.Println("Database with ID: " + strconv.Itoa(int(db_id)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
+		log.Println("Database with ID: " + strconv.Itoa(int(db_id)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
 		return nil
 	}
 
@@ -132,7 +133,7 @@ func resourceDatabaseDelete(d *schema.ResourceData, m interface{}) error {
 	db_id := int64(d.Get("db_id").(int))
 	err := client.DeleteDatabase(db_id)
 	if err != nil {
-		AppLogger.Println(err)
+		log.Println(err)
 		return err
 	}
 

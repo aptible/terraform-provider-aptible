@@ -1,8 +1,10 @@
-package main
+package aptible
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
+	"log"
+
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceApp() *schema.Resource {
@@ -13,32 +15,32 @@ func resourceApp() *schema.Resource {
 		Delete: resourceAppDelete, // DELETE
 
 		Schema: map[string]*schema.Schema{
-			"env_id": &schema.Schema{
+			"env_id": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"handle": &schema.Schema{
+			"handle": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"config": &schema.Schema{
+			"config": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"app_id": &schema.Schema{
+			"app_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"git_repo": &schema.Schema{
+			"git_repo": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"created_at": &schema.Schema{
+			"created_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -55,7 +57,7 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	// Creating app
 	app, err := client.CreateApp(handle, env_id)
 	if err != nil {
-		AppLogger.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
+		log.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
 		return err
 	}
 
@@ -70,7 +72,7 @@ func resourceAppCreate(d *schema.ResourceData, m interface{}) error {
 	app_id := int64(d.Get("app_id").(int))
 	err = client.DeployApp(app_id, config)
 	if err != nil {
-		AppLogger.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", err)
+		log.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", err)
 		return err
 	}
 
@@ -83,7 +85,7 @@ func resourceAppRead(d *schema.ResourceData, m interface{}) error {
 	app_id := int64(d.Get("app_id").(int))
 	deleted, err := client.GetApp(app_id)
 	if err != nil {
-		AppLogger.Println(err)
+		log.Println(err)
 		return err
 	}
 	if deleted {
@@ -103,7 +105,7 @@ func resourceAppUpdate(d *schema.ResourceData, m interface{}) error {
 		config := d.Get("config").(map[string]interface{})
 		err := client.UpdateApp(config, app_id)
 		if err != nil {
-			AppLogger.Println("There was an error when completing the request.\n[ERROR] -", err)
+			log.Println("There was an error when completing the request.\n[ERROR] -", err)
 			return err
 		}
 	}
@@ -117,7 +119,7 @@ func resourceAppDelete(d *schema.ResourceData, m interface{}) error {
 		client := m.(*aptible.Client)
 		err := client.DestroyApp(app_id)
 		if err != nil {
-			AppLogger.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
+			log.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
 			return err
 		}
 	}

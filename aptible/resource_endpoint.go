@@ -1,8 +1,10 @@
-package main
+package aptible
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
+	"log"
+
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceEndpoint() *schema.Resource {
@@ -13,63 +15,63 @@ func resourceEndpoint() *schema.Resource {
 		Delete: resourceEndpointDelete, // DELETE
 
 		Schema: map[string]*schema.Schema{
-			"env_id": &schema.Schema{
+			"env_id": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"app_id": &schema.Schema{
+			"app_id": {
 				Type:     schema.TypeInt,
 				Required: true, // TODO: Make optional once we support database endpoints.
 				ForceNew: true,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "HTTPS",
 				ForceNew: true,
 			},
 			// v2, for now there's only one service per app
-			"service_name": &schema.Schema{
+			"service_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 			// v2, for now Default = true
-			"certificate": &schema.Schema{
+			"certificate": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"internal": &schema.Schema{
+			"internal": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"container_port": &schema.Schema{
+			"container_port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  80,
 			},
-			"ip_filtering": &schema.Schema{
+			"ip_filtering": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"platform": &schema.Schema{
+			"platform": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "alb",
 			},
-			"hostname": &schema.Schema{
+			"hostname": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"endpoint_id": &schema.Schema{
+			"endpoint_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
@@ -87,7 +89,7 @@ func resourceEndpointCreate(d *schema.ResourceData, m interface{}) error {
 	t := d.Get("type").(string)
 	t, err := aptible.GetEndpointType(t)
 	if err != nil {
-		AppLogger.Println(err)
+		log.Println(err)
 		return err
 	}
 
@@ -102,7 +104,7 @@ func resourceEndpointCreate(d *schema.ResourceData, m interface{}) error {
 
 	payload, err := client.CreateEndpoint(app_id, attrs)
 	if err != nil {
-		AppLogger.Println("There was an error when completing the request to create the endpoint.\n[ERROR] -", err)
+		log.Println("There was an error when completing the request to create the endpoint.\n[ERROR] -", err)
 		return err
 	}
 
@@ -118,7 +120,7 @@ func resourceEndpointRead(d *schema.ResourceData, m interface{}) error {
 	endpoint_id := int64(d.Get("endpoint_id").(int))
 	payload, deleted, err := client.GetEndpoint(endpoint_id)
 	if err != nil {
-		AppLogger.Println(err)
+		log.Println(err)
 		return err
 	}
 	if deleted {
@@ -149,7 +151,7 @@ func resourceEndpointUpdate(d *schema.ResourceData, m interface{}) error {
 
 	err := client.UpdateEndpoint(endpoint_id, updates)
 	if err != nil {
-		AppLogger.Println("There was an error when completing the request.\n[ERROR] -", err)
+		log.Println("There was an error when completing the request.\n[ERROR] -", err)
 		return err
 	}
 
@@ -161,7 +163,7 @@ func resourceEndpointDelete(d *schema.ResourceData, m interface{}) error {
 	endpoint_id := int64(d.Get("endpoint_id").(int))
 	err := client.DeleteEndpoint(endpoint_id)
 	if err != nil {
-		AppLogger.Println(err)
+		log.Println(err)
 		return err
 	}
 
