@@ -41,7 +41,7 @@ resource "aptible_db" "<db_handle" {
 }
 
 #######################################################
-# DATABASES
+# REPLICAS
 #######################################################
 
 resource "aptible_replica" "<replica_handle" {
