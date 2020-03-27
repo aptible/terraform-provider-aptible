@@ -11,6 +11,7 @@ func Provider() *schema.Provider {
 			"aptible_app":      resourceApp(),
 			"aptible_endpoint": resourceEndpoint(),
 			"aptible_db":       resourceDatabase(),
+			"aptible_replica":  resourceReplica(),
 		},
 		ConfigureFunc: providerConfigure,
 	}

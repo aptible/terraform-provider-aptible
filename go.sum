@@ -465,8 +465,8 @@ github.com/prometheus/client_model v0.0.0-20190115171406-56726106282f/go.mod h1:
 github.com/prometheus/common v0.2.0/go.mod h1:TNfzLD0ON7rHzMJeJkieUDPYmFC7Snx/y86RQel1bk4=
 github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
 github.com/prometheus/procfs v0.0.0-20190117184657-bf6a532e95b1/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
-github.com/reggregory/go-deploy v0.0.0-20200323181957-a550ebed3ccd h1:llIpXG7ykIBvrYztpti79hms3RkUThzG7ZMUigIhl6k=
-github.com/reggregory/go-deploy v0.0.0-20200323181957-a550ebed3ccd/go.mod h1:Ub4rgS+vTL6c8wuM5Aj1HE+tOounPn5lgaekde778MQ=
+github.com/reggregory/go-deploy v0.0.0-20200327035428-4dc3d82d90b7 h1:tso97G2BFj//HEfZX2tQJOzSxOGGiGcoidMbvdY+mZ8=
+github.com/reggregory/go-deploy v0.0.0-20200327035428-4dc3d82d90b7/go.mod h1:Ub4rgS+vTL6c8wuM5Aj1HE+tOounPn5lgaekde778MQ=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/go-internal v1.1.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.2.2/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
