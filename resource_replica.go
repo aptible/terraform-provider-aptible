@@ -3,8 +3,8 @@ package main
 import (
 	"strconv"
 
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceReplica() *schema.Resource {
@@ -20,7 +20,7 @@ func resourceReplica() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"db_id": &schema.Schema{
+			"primary_db_id": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
@@ -55,14 +55,14 @@ func resourceReplica() *schema.Resource {
 func resourceReplicaCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*aptible.Client)
 	env_id := int64(d.Get("env_id").(int))
-	db_id := int64(d.Get("db_id").(int))
+	primary_db_id := int64(d.Get("primary_db_id").(int))
 	handle := d.Get("handle").(string)
 	container_size := int64(d.Get("container_size").(int))
 	disk_size := int64(d.Get("disk_size").(int))
 
 	attrs := aptible.ReplicateAttrs{
 		EnvID:         env_id,
-		DatabaseID:    db_id,
+		DatabaseID:    primary_db_id,
 		ReplicaHandle: handle,
 		ContainerSize: container_size,
 		DiskSize:      disk_size,

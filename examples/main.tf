@@ -46,6 +46,6 @@ resource "aptible_db" "<db_handle" {
 
 resource "aptible_replica" "<replica_handle" {
   env_id = "<env_id>"
-  db_id = "<db_id>"
+  primary_db_id = "<primary_db_id>"
   handle = "<replica_handle>"
 }
