@@ -39,3 +39,13 @@ resource "aptible_db" "<db_handle" {
   container_size = "1024"
   disk_size = "10"
 }
+
+#######################################################
+# REPLICAS
+#######################################################
+
+resource "aptible_replica" "<replica_handle" {
+  env_id = "<env_id>"
+  primary_db_id = "<primary_db_id>"
+  handle = "<replica_handle>"
+}

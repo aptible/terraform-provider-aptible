@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/aptible/go-deploy/aptible"
 )
 
 func Provider() *schema.Provider {
@@ -11,6 +11,7 @@ func Provider() *schema.Provider {
 			"aptible_app":      resourceApp(),
 			"aptible_endpoint": resourceEndpoint(),
 			"aptible_db":       resourceDatabase(),
+			"aptible_replica":  resourceReplica(),
 		},
 		ConfigureFunc: providerConfigure,
 	}

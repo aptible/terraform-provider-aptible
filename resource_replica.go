@@ -3,16 +3,16 @@ package main
 import (
 	"strconv"
 
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceDatabase() *schema.Resource {
+func resourceReplica() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceDatabaseCreate, // POST
-		Read:   resourceDatabaseRead,   // GET
-		Update: resourceDatabaseUpdate, // PUT
-		Delete: resourceDatabaseDelete, // DELETE
+		Create: resourceReplicaCreate, // POST
+		Read:   resourceReplicaRead,   // GET
+		Update: resourceReplicaUpdate, // PUT
+		Delete: resourceReplicaDelete, // DELETE
 
 		Schema: map[string]*schema.Schema{
 			"env_id": &schema.Schema{
@@ -20,15 +20,14 @@ func resourceDatabase() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"handle": &schema.Schema{
-				Type:     schema.TypeString,
+			"primary_db_id": &schema.Schema{
+				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"db_type": &schema.Schema{
+			"handle": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "postgresql",
+				Required: true,
 				ForceNew: true,
 			},
 			"container_size": &schema.Schema{
@@ -41,7 +40,7 @@ func resourceDatabase() *schema.Resource {
 				Optional: true,
 				Default:  10,
 			},
-			"db_id": &schema.Schema{
+			"replica_id": &schema.Schema{
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
@@ -53,45 +52,46 @@ func resourceDatabase() *schema.Resource {
 	}
 }
 
-func resourceDatabaseCreate(d *schema.ResourceData, m interface{}) error {
+func resourceReplicaCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*aptible.Client)
 	env_id := int64(d.Get("env_id").(int))
+	primary_db_id := int64(d.Get("primary_db_id").(int))
 	handle := d.Get("handle").(string)
-	db_type := d.Get("db_type").(string)
 	container_size := int64(d.Get("container_size").(int))
 	disk_size := int64(d.Get("disk_size").(int))
 
-	attrs := aptible.DBCreateAttrs{
-		Handle:        &handle,
-		Type:          db_type,
+	attrs := aptible.ReplicateAttrs{
+		EnvID:         env_id,
+		DatabaseID:    primary_db_id,
+		ReplicaHandle: handle,
 		ContainerSize: container_size,
 		DiskSize:      disk_size,
 	}
 
-	payload, err := client.CreateDatabase(env_id, attrs)
+	payload, err := client.CreateReplica(attrs)
 	if err != nil {
 		AppLogger.Println(err)
 		return err
 	}
 
-	d.Set("db_id", *payload.ID)
+	d.Set("replica_id", payload.ID)
 	d.Set("connection_url", *payload.ConnectionURL)
 	d.SetId(handle)
-	return resourceDatabaseRead(d, m)
+	return resourceReplicaRead(d, m)
 }
 
 // syncs Terraform state with changes made via the API outside of Terraform
-func resourceDatabaseRead(d *schema.ResourceData, m interface{}) error {
+func resourceReplicaRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*aptible.Client)
-	db_id := int64(d.Get("db_id").(int))
-	payload, deleted, err := client.GetDatabase(db_id)
+	replica_id := int64(d.Get("replica_id").(int))
+	payload, deleted, err := client.GetReplica(replica_id)
 	if err != nil {
 		AppLogger.Println(err)
 		return err
 	}
 	if deleted {
 		d.SetId("")
-		AppLogger.Println("Database with ID: " + strconv.Itoa(int(db_id)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
+		AppLogger.Println("Replica with ID: " + strconv.Itoa(int(replica_id)) + " was deleted outside of Terraform. \nNow removing it from Terraform state.")
 		return nil
 	}
 
@@ -103,9 +103,9 @@ func resourceDatabaseRead(d *schema.ResourceData, m interface{}) error {
 }
 
 // changes state of actual resource based on changes made in a Terraform config file
-func resourceDatabaseUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceReplicaUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*aptible.Client)
-	db_id := int64(d.Get("db_id").(int))
+	replica_id := int64(d.Get("replica_id").(int))
 	container_size := int64(d.Get("container_size").(int))
 	disk_size := int64(d.Get("disk_size").(int))
 
@@ -119,18 +119,18 @@ func resourceDatabaseUpdate(d *schema.ResourceData, m interface{}) error {
 		updates.DiskSize = disk_size
 	}
 
-	err := client.UpdateDatabase(db_id, updates)
+	err := client.UpdateReplica(replica_id, updates)
 	if err != nil {
 		return err
 	}
 
-	return resourceDatabaseRead(d, m)
+	return resourceReplicaRead(d, m)
 }
 
-func resourceDatabaseDelete(d *schema.ResourceData, m interface{}) error {
+func resourceReplicaDelete(d *schema.ResourceData, m interface{}) error {
 	client := m.(*aptible.Client)
-	db_id := int64(d.Get("db_id").(int))
-	err := client.DeleteDatabase(db_id)
+	replica_id := int64(d.Get("replica_id").(int))
+	err := client.DeleteReplica(replica_id)
 	if err != nil {
 		AppLogger.Println(err)
 		return err
