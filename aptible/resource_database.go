@@ -75,8 +75,8 @@ func resourceDatabaseCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	d.Set("db_id", *payload.ID)
-	d.Set("connection_url", *payload.ConnectionURL)
+	d.Set("db_id", payload.ID)
+	d.Set("connection_url", payload.ConnectionURL)
 	d.SetId(handle)
 	return resourceDatabaseRead(d, m)
 }
@@ -85,21 +85,23 @@ func resourceDatabaseCreate(d *schema.ResourceData, m interface{}) error {
 func resourceDatabaseRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*aptible.Client)
 	db_id := int64(d.Get("db_id").(int))
-	payload, deleted, err := client.GetDatabase(db_id)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
+	updates, deleted, err := client.GetDatabase(db_id)
 	if deleted {
 		d.SetId("")
 		log.Println("Database with ID: " + strconv.Itoa(int(db_id)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
 		return nil
 	}
+	if err != nil {
+		log.Println(err)
+		return err
+	}
 
-	// TODO: find last PROVISION operation
-	op := payload.Embedded.LastOperation
-	d.Set("container_size", op.ContainerSize)
-	d.Set("disk_size", op.DiskSize)
+	if updates.ContainerSize != 0 {
+		d.Set("container_size", updates.ContainerSize)
+	}
+	if updates.DiskSize != 0 {
+		d.Set("disk_size", updates.DiskSize)
+	}
 	return nil
 }
 
