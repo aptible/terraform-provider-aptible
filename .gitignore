@@ -5,3 +5,4 @@
 terraform-provider-aptible
 logs/*
 vendor/*
+bin/*

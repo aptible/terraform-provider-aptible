@@ -1,0 +1,29 @@
+dist: xenial
+sudo: required
+services:
+  - docker
+language: go
+
+env:
+  global: GOFLAGS=-mod=vendor
+
+matrix:
+  fast_finish: true
+  allow_failures:
+    - go: tip
+  include:
+    - go: "1.13.x"
+      name: "Code Lint"
+      script: make lint
+    - go: "1.13.x"
+      name: "Code UnitTest"
+      script:
+        - make test
+
+install:
+  - make tools
+  - go mod vendor
+
+# branches:
+#   only:
+#     - master
