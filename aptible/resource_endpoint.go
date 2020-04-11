@@ -3,8 +3,8 @@ package aptible
 import (
 	"log"
 
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/reggregory/go-deploy/aptible"
 )
 
 func resourceEndpoint() *schema.Resource {
@@ -20,12 +20,17 @@ func resourceEndpoint() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"app_id": {
+			"resource_id": {
 				Type:     schema.TypeInt,
-				Required: true, // TODO: Make optional once we support database endpoints.
+				Required: true,
 				ForceNew: true,
 			},
-			"type": {
+			"resource_type": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"endpoint_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "HTTPS",
@@ -81,12 +86,13 @@ func resourceEndpoint() *schema.Resource {
 
 func resourceEndpointCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*aptible.Client)
-	app_id := int64(d.Get("app_id").(int))
+	resource_id := int64(d.Get("resource_id").(int))
+	resource_type := d.Get("resource_type").(string)
 
 	if_slice := d.Get("ip_filtering").([]interface{})
 	ip_whitelist, _ := aptible.MakeStringSlice(if_slice)
 
-	t := d.Get("type").(string)
+	t := d.Get("endpoint_type").(string)
 	t, err := aptible.GetEndpointType(t)
 	if err != nil {
 		log.Println(err)
@@ -94,23 +100,33 @@ func resourceEndpointCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	attrs := aptible.CreateAttrs{
+		ResourceType:  resource_type,
 		Type:          &t,
-		Default:       true,
 		Internal:      d.Get("internal").(bool),
 		ContainerPort: int64(d.Get("container_port").(int)),
 		IPWhitelist:   ip_whitelist,
 		Platform:      d.Get("platform").(string),
 	}
+	if resource_type == "app" {
+		attrs.Default = true
+	} else {
+		attrs.Default = false
+	}
 
-	payload, err := client.CreateEndpoint(app_id, attrs)
+	payload, err := client.CreateEndpoint(resource_id, attrs)
 	if err != nil {
 		log.Println("There was an error when completing the request to create the endpoint.\n[ERROR] -", err)
 		return err
 	}
 
-	d.Set("hostname", *payload.VirtualDomain)
 	d.Set("endpoint_id", int(*payload.ID))
-	d.SetId(*payload.VirtualDomain)
+	if resource_type == "app" {
+		d.Set("hostname", *payload.VirtualDomain)
+		d.SetId(*payload.VirtualDomain)
+	} else {
+		d.Set("hostname", *payload.ExternalHost)
+		d.SetId(*payload.ExternalHost)
+	}
 	return resourceEndpointRead(d, m)
 }
 
