@@ -4,7 +4,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/reggregory/go-deploy/aptible"
+	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 

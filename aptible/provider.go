@@ -1,7 +1,7 @@
 package aptible
 
 import (
-	"github.com/reggregory/go-deploy/aptible"
+	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
