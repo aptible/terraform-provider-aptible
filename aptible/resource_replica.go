@@ -53,8 +53,8 @@ func resourceReplica() *schema.Resource {
 	}
 }
 
-func resourceReplicaCreate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 
 	attrs := aptible.ReplicateAttrs{
 		EnvID:         int64(d.Get("env_id").(int)),
@@ -71,14 +71,14 @@ func resourceReplicaCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	d.Set("replica_id", payload.ID)
-	d.Set("connection_url", *payload.ConnectionURL)
+	d.Set("connection_url", payload.ConnectionURL)
 	d.SetId(payload.Handle)
-	return resourceReplicaRead(d, m)
+	return resourceReplicaRead(d, meta)
 }
 
 // syncs Terraform state with changes made via the API outside of Terraform
-func resourceReplicaRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	replica_id := int64(d.Get("replica_id").(int))
 	updates, deleted, err := client.GetReplica(replica_id)
 	if deleted {
@@ -101,8 +101,8 @@ func resourceReplicaRead(d *schema.ResourceData, m interface{}) error {
 }
 
 // changes state of actual resource based on changes made in a Terraform config file
-func resourceReplicaUpdate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceReplicaUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	replica_id := int64(d.Get("replica_id").(int))
 	container_size := int64(d.Get("container_size").(int))
 	disk_size := int64(d.Get("disk_size").(int))
@@ -122,11 +122,11 @@ func resourceReplicaUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	return resourceReplicaRead(d, m)
+	return resourceReplicaRead(d, meta)
 }
 
-func resourceReplicaDelete(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceReplicaDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	replica_id := int64(d.Get("replica_id").(int))
 	err := client.DeleteReplica(replica_id)
 	if err != nil {

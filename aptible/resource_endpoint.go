@@ -3,8 +3,8 @@ package aptible
 import (
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceEndpoint() *schema.Resource {
@@ -84,8 +84,8 @@ func resourceEndpoint() *schema.Resource {
 	}
 }
 
-func resourceEndpointCreate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	resource_id := int64(d.Get("resource_id").(int))
 	resource_type := d.Get("resource_type").(string)
 
@@ -127,12 +127,12 @@ func resourceEndpointCreate(d *schema.ResourceData, m interface{}) error {
 		d.Set("hostname", *payload.ExternalHost)
 		d.SetId(*payload.ExternalHost)
 	}
-	return resourceEndpointRead(d, m)
+	return resourceEndpointRead(d, meta)
 }
 
 // syncs Terraform state with changes made via the API outside of Terraform
-func resourceEndpointRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	endpoint_id := int64(d.Get("endpoint_id").(int))
 	payload, deleted, err := client.GetEndpoint(endpoint_id)
 	if err != nil {
@@ -145,16 +145,16 @@ func resourceEndpointRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if payload.ContainerPort != nil {
-		d.Set("container_port", *payload.ContainerPort)
+		d.Set("container_port", payload.ContainerPort)
 	}
 	d.Set("ip_filtering", payload.IPWhitelist)
-	d.Set("platform", *payload.Platform)
+	d.Set("platform", payload.Platform)
 	return nil
 }
 
 // changes state of actual resource based on changes made in a Terraform config file
-func resourceEndpointUpdate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceEndpointUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	endpoint_id := int64(d.Get("endpoint_id").(int))
 	if_slice := d.Get("ip_filtering").([]interface{})
 	ip_whitelist, _ := aptible.MakeStringSlice(if_slice)
@@ -171,11 +171,11 @@ func resourceEndpointUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	return resourceEndpointRead(d, m)
+	return resourceEndpointRead(d, meta)
 }
 
-func resourceEndpointDelete(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceEndpointDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	endpoint_id := int64(d.Get("endpoint_id").(int))
 	err := client.DeleteEndpoint(endpoint_id)
 	if err != nil {
