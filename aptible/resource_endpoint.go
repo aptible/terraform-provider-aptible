@@ -1,6 +1,7 @@
 package aptible
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/aptible/go-deploy/aptible"
@@ -119,14 +120,26 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("endpoint_id", int(*payload.ID))
-	if resource_type == "app" {
-		d.Set("hostname", *payload.VirtualDomain)
-		d.SetId(*payload.VirtualDomain)
-	} else {
-		d.Set("hostname", *payload.ExternalHost)
-		d.SetId(*payload.ExternalHost)
+	if payload.VirtualDomain == nil {
+		return fmt.Errorf("payload.VirtualDomain is a null pointer")
 	}
+	vd := *payload.VirtualDomain
+	d.SetId(vd)
+	if resource_type == "app" {
+		d.Set("hostname", vd)
+	} else {
+		if payload.ExternalHost == nil {
+			return fmt.Errorf("payload.ExternalHost is a null pointer")
+		}
+		eh := *payload.ExternalHost
+		d.Set("hostname", eh)
+	}
+
+	if payload.ID == nil {
+		return fmt.Errorf("payload.ID is a null pointer")
+	}
+	d.Set("endpoint_id", int(*payload.ID))
+
 	return resourceEndpointRead(d, meta)
 }
 
@@ -145,10 +158,17 @@ func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if payload.ContainerPort != nil {
-		d.Set("container_port", payload.ContainerPort)
+		cp := *payload.ContainerPort
+		d.Set("container_port", cp)
 	}
+
 	d.Set("ip_filtering", payload.IPWhitelist)
-	d.Set("platform", payload.Platform)
+
+	if payload.Platform == nil {
+		return fmt.Errorf("payload.Platform is a null pointer")
+	}
+	p := *payload.Platform
+	d.Set("platform", p)
 	return nil
 }
 

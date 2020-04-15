@@ -1,6 +1,7 @@
 package aptible
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 
@@ -71,8 +72,13 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("replica_id", payload.ID)
-	d.Set("connection_url", payload.ConnectionURL)
 	d.SetId(payload.Handle)
+
+	if payload.ConnectionURL == nil {
+		return fmt.Errorf("payload.Handle is a null pointer")
+	}
+	c := *payload.ConnectionURL
+	d.Set("connection_url", c)
 	return resourceReplicaRead(d, meta)
 }
 
