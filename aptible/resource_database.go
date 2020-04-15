@@ -4,8 +4,8 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceDatabase() *schema.Resource {
@@ -54,8 +54,8 @@ func resourceDatabase() *schema.Resource {
 	}
 }
 
-func resourceDatabaseCreate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	env_id := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
 	db_type := d.Get("db_type").(string)
@@ -78,12 +78,12 @@ func resourceDatabaseCreate(d *schema.ResourceData, m interface{}) error {
 	d.Set("db_id", payload.ID)
 	d.Set("connection_url", payload.ConnectionURL)
 	d.SetId(handle)
-	return resourceDatabaseRead(d, m)
+	return resourceDatabaseRead(d, meta)
 }
 
 // syncs Terraform state with changes made via the API outside of Terraform
-func resourceDatabaseRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	db_id := int64(d.Get("db_id").(int))
 	updates, deleted, err := client.GetDatabase(db_id)
 	if deleted {
@@ -106,8 +106,8 @@ func resourceDatabaseRead(d *schema.ResourceData, m interface{}) error {
 }
 
 // changes state of actual resource based on changes made in a Terraform config file
-func resourceDatabaseUpdate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	db_id := int64(d.Get("db_id").(int))
 	container_size := int64(d.Get("container_size").(int))
 	disk_size := int64(d.Get("disk_size").(int))
@@ -127,11 +127,11 @@ func resourceDatabaseUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	return resourceDatabaseRead(d, m)
+	return resourceDatabaseRead(d, meta)
 }
 
-func resourceDatabaseDelete(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	db_id := int64(d.Get("db_id").(int))
 	err := client.DeleteDatabase(db_id)
 	if err != nil {

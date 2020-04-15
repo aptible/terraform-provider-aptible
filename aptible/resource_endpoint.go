@@ -1,10 +1,11 @@
 package aptible
 
 import (
+	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceEndpoint() *schema.Resource {
@@ -84,8 +85,8 @@ func resourceEndpoint() *schema.Resource {
 	}
 }
 
-func resourceEndpointCreate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	resource_id := int64(d.Get("resource_id").(int))
 	resource_type := d.Get("resource_type").(string)
 
@@ -119,20 +120,32 @@ func resourceEndpointCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	d.Set("endpoint_id", int(*payload.ID))
-	if resource_type == "app" {
-		d.Set("hostname", *payload.VirtualDomain)
-		d.SetId(*payload.VirtualDomain)
-	} else {
-		d.Set("hostname", *payload.ExternalHost)
-		d.SetId(*payload.ExternalHost)
+	if payload.VirtualDomain == nil {
+		return fmt.Errorf("payload.VirtualDomain is a null pointer")
 	}
-	return resourceEndpointRead(d, m)
+	vd := *payload.VirtualDomain
+	d.SetId(vd)
+	if resource_type == "app" {
+		d.Set("hostname", vd)
+	} else {
+		if payload.ExternalHost == nil {
+			return fmt.Errorf("payload.ExternalHost is a null pointer")
+		}
+		eh := *payload.ExternalHost
+		d.Set("hostname", eh)
+	}
+
+	if payload.ID == nil {
+		return fmt.Errorf("payload.ID is a null pointer")
+	}
+	d.Set("endpoint_id", int(*payload.ID))
+
+	return resourceEndpointRead(d, meta)
 }
 
 // syncs Terraform state with changes made via the API outside of Terraform
-func resourceEndpointRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	endpoint_id := int64(d.Get("endpoint_id").(int))
 	payload, deleted, err := client.GetEndpoint(endpoint_id)
 	if err != nil {
@@ -145,16 +158,23 @@ func resourceEndpointRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if payload.ContainerPort != nil {
-		d.Set("container_port", *payload.ContainerPort)
+		cp := *payload.ContainerPort
+		d.Set("container_port", cp)
 	}
+
 	d.Set("ip_filtering", payload.IPWhitelist)
-	d.Set("platform", *payload.Platform)
+
+	if payload.Platform == nil {
+		return fmt.Errorf("payload.Platform is a null pointer")
+	}
+	p := *payload.Platform
+	d.Set("platform", p)
 	return nil
 }
 
 // changes state of actual resource based on changes made in a Terraform config file
-func resourceEndpointUpdate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceEndpointUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	endpoint_id := int64(d.Get("endpoint_id").(int))
 	if_slice := d.Get("ip_filtering").([]interface{})
 	ip_whitelist, _ := aptible.MakeStringSlice(if_slice)
@@ -171,11 +191,11 @@ func resourceEndpointUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	return resourceEndpointRead(d, m)
+	return resourceEndpointRead(d, meta)
 }
 
-func resourceEndpointDelete(d *schema.ResourceData, m interface{}) error {
-	client := m.(*aptible.Client)
+func resourceEndpointDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
 	endpoint_id := int64(d.Get("endpoint_id").(int))
 	err := client.DeleteEndpoint(endpoint_id)
 	if err != nil {
