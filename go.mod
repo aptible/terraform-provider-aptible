@@ -5,6 +5,7 @@ go 1.13
 require (
 	cloud.google.com/go v0.55.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
+	github.com/aptible/go-deploy v0.0.0-20200414233914-ba247cf14eb9
 	github.com/aws/aws-sdk-go v1.30.0 // indirect
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/go-openapi/errors v0.19.4 // indirect
@@ -30,7 +31,6 @@ require (
 	github.com/mitchellh/mapstructure v1.2.2 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/posener/complete v1.2.3 // indirect
-	github.com/aptible/go-deploy latest
 	github.com/ulikunitz/xz v0.5.7 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/zclconf/go-cty v1.3.1 // indirect
