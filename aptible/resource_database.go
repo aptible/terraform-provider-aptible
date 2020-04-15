@@ -4,8 +4,8 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/aptible/go-deploy/aptible"
 )
 
 func resourceDatabase() *schema.Resource {
