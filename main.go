@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/aptible/terrform-provider-aptible/aptible"
+	"github.com/aptible/terraform-provider-aptible/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/plugin"
 )
 

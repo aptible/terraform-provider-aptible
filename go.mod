@@ -1,4 +1,4 @@
-module github.com/aptible/terrform-provider-aptible
+module github.com/aptible/terraform-provider-aptible
 
 go 1.13
 
