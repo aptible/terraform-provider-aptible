@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/reggregory/go-deploy/aptible"
 )
 
 func resourceEndpoint() *schema.Resource {
@@ -120,18 +120,19 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if payload.VirtualDomain == nil {
-		return fmt.Errorf("payload.VirtualDomain is a null pointer")
-	}
-	vd := *payload.VirtualDomain
-	d.SetId(vd)
 	if resource_type == "app" {
+		if payload.VirtualDomain == nil {
+			return fmt.Errorf("payload.VirtualDomain is a null pointer")
+		}
+		vd := *payload.VirtualDomain
+		d.SetId(vd)
 		d.Set("hostname", vd)
 	} else {
 		if payload.ExternalHost == nil {
 			return fmt.Errorf("payload.ExternalHost is a null pointer")
 		}
 		eh := *payload.ExternalHost
+		d.SetId(eh)
 		d.Set("hostname", eh)
 	}
 

@@ -3,8 +3,8 @@ package aptible
 import (
 	"log"
 
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/reggregory/go-deploy/aptible"
 )
 
 func resourceApp() *schema.Resource {
@@ -69,11 +69,13 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 
 	// Deploying app
 	config := d.Get("config").(map[string]interface{})
-	app_id := int64(d.Get("app_id").(int))
-	err = client.DeployApp(app_id, config)
-	if err != nil {
-		log.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", err)
-		return err
+	if len(config) != 0 {
+		app_id := int64(d.Get("app_id").(int))
+		err = client.DeployApp(app_id, config)
+		if err != nil {
+			log.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", err)
+			return err
+		}
 	}
 
 	return resourceAppRead(d, meta)

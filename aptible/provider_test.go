@@ -8,7 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
-const TestEnvironmentId = 5
+// Replace this with relevant environment ID.
+const TestEnvironmentId = 4
 
 var testAccProviders map[string]terraform.ResourceProvider
 var testAccProvider *schema.Provider
