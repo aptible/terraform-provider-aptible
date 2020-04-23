@@ -3,7 +3,7 @@ package aptible
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/reggregory/go-deploy/aptible"
+	"github.com/aptible/go-deploy/aptible"
 )
 
 func Provider() terraform.ResourceProvider {
