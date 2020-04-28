@@ -86,14 +86,15 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	app_id := int64(d.Get("app_id").(int))
 	deleted, err := client.GetApp(app_id)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
 	if deleted {
 		d.SetId("")
 		return nil
 	}
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
 	return nil
 }
 
@@ -119,7 +120,11 @@ func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
 	if read_err == nil {
 		app_id := int64(d.Get("app_id").(int))
 		client := meta.(*aptible.Client)
-		err := client.DestroyApp(app_id)
+		deleted, err := client.DeleteApp(app_id)
+		if deleted {
+			d.SetId("")
+			return nil
+		}
 		if err != nil {
 			log.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
 			return err

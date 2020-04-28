@@ -5,7 +5,6 @@ import (
 	"log"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
@@ -89,9 +88,6 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 
 func testAccCheckAppDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*aptible.Client)
-	// Allow time for deprovision operation to complete.
-	// TODO: Replace this by waiting on the actual operation
-	time.Sleep(30 * time.Second)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_app" {
 			continue
