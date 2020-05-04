@@ -40,10 +40,6 @@ func resourceApp() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"created_at": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }
@@ -62,9 +58,8 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Set computed attributes
-	d.Set("app_id", int(*app.ID))
+	d.Set("app_id", int(app.ID))
 	d.Set("git_repo", app.GitRepo)
-	d.Set("created_at", app.CreatedAt)
 	d.SetId(handle)
 
 	// Deploying app
