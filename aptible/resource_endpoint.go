@@ -1,7 +1,6 @@
 package aptible
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/aptible/go-deploy/aptible"
@@ -100,7 +99,7 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	attrs := aptible.CreateAttrs{
+	attrs := aptible.EndpointCreateAttrs{
 		ResourceType:  resource_type,
 		Type:          &t,
 		Internal:      d.Get("internal").(bool),
@@ -114,32 +113,15 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 		attrs.Default = false
 	}
 
-	payload, err := client.CreateEndpoint(resource_id, attrs)
+	ep, err := client.CreateEndpoint(resource_id, attrs)
 	if err != nil {
 		log.Println("There was an error when completing the request to create the endpoint.\n[ERROR] -", err)
 		return err
 	}
 
-	if resource_type == "app" {
-		if payload.VirtualDomain == nil {
-			return fmt.Errorf("payload.VirtualDomain is a null pointer")
-		}
-		vd := *payload.VirtualDomain
-		d.SetId(vd)
-		d.Set("hostname", vd)
-	} else {
-		if payload.ExternalHost == nil {
-			return fmt.Errorf("payload.ExternalHost is a null pointer")
-		}
-		eh := *payload.ExternalHost
-		d.SetId(eh)
-		d.Set("hostname", eh)
-	}
-
-	if payload.ID == nil {
-		return fmt.Errorf("payload.ID is a null pointer")
-	}
-	d.Set("endpoint_id", int(*payload.ID))
+	d.SetId(ep.Hostname)
+	d.Set("hostname", ep.Hostname)
+	d.Set("endpoint_id", int(ep.ID))
 
 	return resourceEndpointRead(d, meta)
 }
@@ -148,7 +130,8 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	endpoint_id := int64(d.Get("endpoint_id").(int))
-	payload, deleted, err := client.GetEndpoint(endpoint_id)
+	resource_type := d.Get("resource_type").(string)
+	ep, deleted, err := client.GetEndpoint(endpoint_id, resource_type)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -158,18 +141,11 @@ func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	if payload.ContainerPort != nil {
-		cp := *payload.ContainerPort
-		d.Set("container_port", cp)
+	if resource_type == "app" {
+		d.Set("container_port", ep.ContainerPort)
+		d.Set("platform", ep.Platform)
 	}
-
-	d.Set("ip_filtering", payload.IPWhitelist)
-
-	if payload.Platform == nil {
-		return fmt.Errorf("payload.Platform is a null pointer")
-	}
-	p := *payload.Platform
-	d.Set("platform", p)
+	d.Set("ip_filtering", ep.IPWhitelist)
 	return nil
 }
 
@@ -180,7 +156,7 @@ func resourceEndpointUpdate(d *schema.ResourceData, meta interface{}) error {
 	if_slice := d.Get("ip_filtering").([]interface{})
 	ip_whitelist, _ := aptible.MakeStringSlice(if_slice)
 
-	updates := aptible.Updates{
+	updates := aptible.EndpointUpdates{
 		ContainerPort: int64(d.Get("container_port").(int)),
 		IPWhitelist:   ip_whitelist,
 		Platform:      d.Get("platform").(string),

@@ -1,7 +1,6 @@
 package aptible
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 
@@ -56,29 +55,25 @@ func resourceReplica() *schema.Resource {
 
 func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
+	handle := d.Get("handle").(string)
 
 	attrs := aptible.ReplicateAttrs{
 		EnvID:         int64(d.Get("env_id").(int)),
 		DatabaseID:    int64(d.Get("primary_db_id").(int)),
-		ReplicaHandle: d.Get("handle").(string),
+		ReplicaHandle: handle,
 		ContainerSize: int64(d.Get("container_size").(int)),
 		DiskSize:      int64(d.Get("disk_size").(int)),
 	}
 
-	payload, err := client.CreateReplica(attrs)
+	replica, err := client.CreateReplica(attrs)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	d.Set("replica_id", payload.ID)
-	d.SetId(payload.Handle)
-
-	if payload.ConnectionURL == nil {
-		return fmt.Errorf("payload.Handle is a null pointer")
-	}
-	c := *payload.ConnectionURL
-	d.Set("connection_url", c)
+	d.Set("replica_id", replica.ID)
+	d.SetId(handle)
+	d.Set("connection_url", replica.ConnectionURL)
 	return resourceReplicaRead(d, meta)
 }
 
@@ -86,7 +81,7 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	replica_id := int64(d.Get("replica_id").(int))
-	updates, deleted, err := client.GetReplica(replica_id)
+	replica, deleted, err := client.GetReplica(replica_id)
 	if deleted {
 		d.SetId("")
 		log.Println("Replica with ID: " + strconv.Itoa(int(replica_id)) + " was deleted outside of Terraform. \nNow removing it from Terraform state.")
@@ -97,12 +92,9 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if updates.ContainerSize != 0 {
-		d.Set("container_size", updates.ContainerSize)
-	}
-	if updates.DiskSize != 0 {
-		d.Set("disk_size", updates.DiskSize)
-	}
+	d.Set("container_size", replica.ContainerSize)
+	d.Set("disk_size", replica.DiskSize)
+
 	return nil
 }
 

@@ -69,14 +69,14 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 		DiskSize:      disk_size,
 	}
 
-	payload, err := client.CreateDatabase(env_id, attrs)
+	db, err := client.CreateDatabase(env_id, attrs)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	d.Set("db_id", payload.ID)
-	d.Set("connection_url", payload.ConnectionURL)
+	d.Set("db_id", db.ID)
+	d.Set("connection_url", db.ConnectionURL)
 	d.SetId(handle)
 	return resourceDatabaseRead(d, meta)
 }
@@ -85,7 +85,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	db_id := int64(d.Get("db_id").(int))
-	updates, deleted, err := client.GetDatabase(db_id)
+	db, deleted, err := client.GetDatabase(db_id)
 	if deleted {
 		d.SetId("")
 		log.Println("Database with ID: " + strconv.Itoa(int(db_id)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
@@ -96,12 +96,8 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if updates.ContainerSize != 0 {
-		d.Set("container_size", updates.ContainerSize)
-	}
-	if updates.DiskSize != 0 {
-		d.Set("disk_size", updates.DiskSize)
-	}
+	d.Set("container_size", db.ContainerSize)
+	d.Set("disk_size", db.DiskSize)
 	return nil
 }
 
