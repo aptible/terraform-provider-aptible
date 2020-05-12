@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/reggregory/go-deploy/aptible"
+	"github.com/aptible/go-deploy/aptible"
 )
 
 func resourceReplica() *schema.Resource {

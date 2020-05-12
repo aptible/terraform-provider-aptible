@@ -1,4 +1,4 @@
-module github.com/reggregory/terraform-provider-aptible
+module github.com/aptible/terraform-provider-aptible
 
 go 1.13
 
@@ -31,7 +31,6 @@ require (
 	github.com/mitchellh/mapstructure v1.3.0 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/posener/complete v1.2.3 // indirect
-	github.com/reggregory/go-deploy v0.0.0-20200512192552-84e8dfe53b7a
 	github.com/ulikunitz/xz v0.5.7 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/zclconf/go-cty v1.3.1 // indirect
