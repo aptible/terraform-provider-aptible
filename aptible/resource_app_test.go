@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/reggregory/go-deploy/aptible"
 )
 
 func TestAccResourceApp_basic(t *testing.T) {

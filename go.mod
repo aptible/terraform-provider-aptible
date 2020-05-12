@@ -1,11 +1,10 @@
-module github.com/aptible/terraform-provider-aptible
+module github.com/reggregory/terraform-provider-aptible
 
 go 1.13
 
 require (
 	cloud.google.com/go v0.55.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
-	github.com/aptible/go-deploy v0.0.0-20200505194055-5059e26aa3f2
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/aws/aws-sdk-go v1.30.0 // indirect
 	github.com/fatih/color v1.9.0 // indirect
@@ -32,14 +31,16 @@ require (
 	github.com/mitchellh/mapstructure v1.3.0 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/posener/complete v1.2.3 // indirect
+	github.com/reggregory/go-deploy v0.0.0-20200512192552-84e8dfe53b7a
 	github.com/ulikunitz/xz v0.5.7 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/zclconf/go-cty v1.3.1 // indirect
 	go.mongodb.org/mongo-driver v1.3.3 // indirect
 	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59 // indirect
-	golang.org/x/net v0.0.0-20200505041828-1ed23360d12c // indirect
+	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f // indirect
 	golang.org/x/sys v0.0.0-20200331124033-c3d80250170d // indirect
 	golang.org/x/tools v0.0.0-20200331025713-a30bf2db82d4 // indirect
 	google.golang.org/genproto v0.0.0-20200331122359-1ee6d9798940 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	gopkg.in/yaml.v2 v2.3.0 // indirect
 )

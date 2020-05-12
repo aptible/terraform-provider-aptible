@@ -3,8 +3,8 @@ package aptible
 import (
 	"log"
 
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/reggregory/go-deploy/aptible"
 )
 
 func resourceApp() *schema.Resource {
