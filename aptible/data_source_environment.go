@@ -1,19 +1,19 @@
 package aptible
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func dataSourceEnvironment() *schema.Resource {
 	return &schema.Resource{
 		Read: resourceEnvironmentRead,
 		Schema: map[string]*schema.Schema{
-			"handle": &schema.Schema{
+			"handle": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"env_id": &schema.Schema{
+			"env_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},

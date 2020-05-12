@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/plugin"
 	"github.com/aptible/terraform-provider-aptible/aptible"
+	"github.com/hashicorp/terraform-plugin-sdk/plugin"
 )
 
 func main() {
