@@ -5,6 +5,7 @@ import (
 
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceEndpoint() *schema.Resource {
@@ -26,15 +27,17 @@ func resourceEndpoint() *schema.Resource {
 				ForceNew: true,
 			},
 			"resource_type": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringInSlice(validResourceTypes, false),
+				ForceNew:     true,
 			},
 			"endpoint_type": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "HTTPS",
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice(validEndpointTypes, false),
+				Default:      "https",
+				ForceNew:     true,
 			},
 			// v2, for now there's only one service per app
 			"service_name": {
@@ -56,9 +59,10 @@ func resourceEndpoint() *schema.Resource {
 				Default:  false,
 			},
 			"container_port": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  80,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(1, 65535),
+				Default:      80,
 			},
 			"ip_filtering": {
 				Type:     schema.TypeList,
@@ -68,9 +72,10 @@ func resourceEndpoint() *schema.Resource {
 				},
 			},
 			"platform": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "alb",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice(validPlatforms, false),
+				Default:      "alb",
 			},
 			"hostname": {
 				Type:     schema.TypeString,
@@ -182,4 +187,20 @@ func resourceEndpointDelete(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId("")
 	return nil
+}
+
+var validResourceTypes = []string{
+	"app",
+	"database",
+}
+
+var validEndpointTypes = []string{
+	"https",
+	"tls",
+	"tcp",
+}
+
+var validPlatforms = []string{
+	"alb",
+	"elb",
 }

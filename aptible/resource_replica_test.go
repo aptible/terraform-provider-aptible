@@ -3,6 +3,7 @@ package aptible
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -84,6 +85,26 @@ func TestAccResourceReplica_update(t *testing.T) {
 	})
 }
 
+func TestAccResourceReplica_expectError(t *testing.T) {
+	replicaHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckReplicaDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAptibleReplicaInvalidContainerSize(replicaHandle),
+				ExpectError: regexp.MustCompile(`expected container_size to be in the range .*, got 0`),
+			},
+			{
+				Config:      testAccAptibleReplicaInvalidDiskSize(replicaHandle),
+				ExpectError: regexp.MustCompile(`config is invalid: expected disk_size to be in the range .*, got 0`),
+			},
+		},
+	})
+}
+
 func testAccCheckReplicaDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*aptible.Client)
 	// Allow time for deprovision operation to complete.
@@ -160,4 +181,26 @@ func testAccAptibleReplicaUpdate(dbHandle string, repHandle string) string {
 `, TestEnvironmentId, dbHandle, TestEnvironmentId, repHandle, 512, 20)
 	log.Println("HCL generated:", output)
 	return output
+}
+
+func testAccAptibleReplicaInvalidContainerSize(replicaHandle string) string {
+	return fmt.Sprintf(`
+resource "aptible_replica" "test" {
+	env_id = %d
+	handle = "%v"
+	primary_db_id = "1"
+	container_size = %d
+}
+`, TestEnvironmentId, replicaHandle, 0)
+}
+
+func testAccAptibleReplicaInvalidDiskSize(replicaHandle string) string {
+	return fmt.Sprintf(`
+resource "aptible_replica" "test" {
+	env_id = %d
+	handle = "%v"
+	primary_db_id = "1"
+	disk_size = %d
+}
+`, TestEnvironmentId, replicaHandle, 0)
 }

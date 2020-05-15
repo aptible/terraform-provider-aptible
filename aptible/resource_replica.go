@@ -6,6 +6,7 @@ import (
 
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceReplica() *schema.Resource {
@@ -32,14 +33,16 @@ func resourceReplica() *schema.Resource {
 				ForceNew: true,
 			},
 			"container_size": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  1024,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(512, 7168),
+				Default:      1024,
 			},
 			"disk_size": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  10,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(10, 200),
+				Default:      10,
 			},
 			"replica_id": {
 				Type:     schema.TypeInt,

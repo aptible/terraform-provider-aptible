@@ -6,6 +6,7 @@ import (
 
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func resourceDatabase() *schema.Resource {
@@ -27,20 +28,23 @@ func resourceDatabase() *schema.Resource {
 				ForceNew: true,
 			},
 			"db_type": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "postgresql",
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice(validDBTypes, false),
+				Default:      "postgresql",
+				ForceNew:     true,
 			},
 			"container_size": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  1024,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(512, 7168),
+				Default:      1024,
 			},
 			"disk_size": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  10,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(10, 200),
+				Default:      10,
 			},
 			"db_id": {
 				Type:     schema.TypeInt,
@@ -137,4 +141,16 @@ func resourceDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId("")
 	return nil
+}
+
+var validDBTypes = []string{
+	"couchdb",
+	"elasticsearch",
+	"influxdb",
+	"mongodb",
+	"mysql",
+	"postgresql",
+	"rabbitmq",
+	"redis",
+	"sftp",
 }
