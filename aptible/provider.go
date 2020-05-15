@@ -14,6 +14,9 @@ func Provider() terraform.ResourceProvider {
 			"aptible_db":       resourceDatabase(),
 			"aptible_replica":  resourceReplica(),
 		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"aptible_environment": dataSourceEnvironment(),
+		},
 		ConfigureFunc: providerConfigure,
 	}
 }
