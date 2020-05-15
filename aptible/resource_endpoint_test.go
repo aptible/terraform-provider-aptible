@@ -3,6 +3,7 @@ package aptible
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -106,6 +107,28 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 	})
 }
 
+func TestAccResourceEndpoint_expectError(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAptibleEndpointInvalidResourceType(),
+				ExpectError: regexp.MustCompile(`expected resource_type to be one of .*, got should-error`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidEndpointType(),
+				ExpectError: regexp.MustCompile(`expected endpoint_type to be one of .*, got should-error`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidPlatform(),
+				ExpectError: regexp.MustCompile(`expected platform to be one of .*, got should-error`),
+			},
+		},
+	})
+}
+
 func testAccCheckEndpointDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*aptible.Client)
 	// Allow time for deprovision operation to complete.
@@ -166,7 +189,7 @@ resource "aptible_endpoint" "test" {
 	env_id = %d
 	resource_id = aptible_app.test.app_id
 	resource_type = "app"
-	endpoint_type = "HTTPS"
+	endpoint_type = "https"
 	internal = true
 	platform = "alb"
 }`, TestEnvironmentId, appHandle, TestEnvironmentId)
@@ -188,7 +211,7 @@ resource "aptible_endpoint" "test" {
 	env_id = %d
 	resource_id = aptible_db.test.db_id
 	resource_type = "database"
-	endpoint_type = "TCP"
+	endpoint_type = "tcp"
 	internal = false
 	platform = "elb"
 }`, TestEnvironmentId, dbHandle, TestEnvironmentId)
@@ -210,13 +233,48 @@ resource "aptible_endpoint" "test" {
 	env_id = %d
 	resource_id = aptible_app.test.app_id
 	resource_type = "app"
-	endpoint_type = "HTTPS"
+	endpoint_type = "https"
 	internal = true
 	platform = "alb"
 	ip_filtering = [
 		"1.1.1.1/32",
 	]
 }`, TestEnvironmentId, appHandle, TestEnvironmentId)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidResourceType() string {
+	output := fmt.Sprintf(`
+resource "aptible_endpoint" "test" {
+	env_id = %d
+	resource_id = 1
+	resource_type = "should-error"
+	}`, TestEnvironmentId)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidEndpointType() string {
+	output := fmt.Sprintf(`
+resource "aptible_endpoint" "test" {
+	env_id = %d
+	resource_id = 1
+	resource_type = "app"
+	endpoint_type = "should-error"
+	}`, TestEnvironmentId)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidPlatform() string {
+	output := fmt.Sprintf(`
+resource "aptible_endpoint" "test" {
+	env_id = %d
+	resource_id = 1
+	resource_type = "app"
+	platform = "should-error"
+	}`, TestEnvironmentId)
 	log.Println("HCL generated: ", output)
 	return output
 }

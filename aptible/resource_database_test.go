@@ -3,6 +3,7 @@ package aptible
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
-// DONE
 func TestAccResourceDatabase_basic(t *testing.T) {
 	dbHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
@@ -69,6 +69,30 @@ func TestAccResourceDatabase_update(t *testing.T) {
 	})
 }
 
+func TestAccResourceDatabase_expectError(t *testing.T) {
+	dbHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDatabaseDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAptibleDatabaseInvalidDBType(dbHandle),
+				ExpectError: regexp.MustCompile(`expected db_type to be one of .*, got non-existent-db`),
+			},
+			{
+				Config:      testAccAptibleDatabaseInvalidContainerSize(dbHandle),
+				ExpectError: regexp.MustCompile(`expected container_size to be in the range .*, got 0`),
+			},
+			{
+				Config:      testAccAptibleDatabaseInvalidDiskSize(dbHandle),
+				ExpectError: regexp.MustCompile(`config is invalid: expected disk_size to be in the range .*, got 0`),
+			},
+		},
+	})
+}
+
 func testAccCheckDatabaseDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*aptible.Client)
 	// Allow time for deprovision operation to complete.
@@ -115,4 +139,34 @@ resource "aptible_db" "test" {
 	disk_size = %d
 }
 `, TestEnvironmentId, dbHandle, 512, 20)
+}
+
+func testAccAptibleDatabaseInvalidDBType(dbHandle string) string {
+	return fmt.Sprintf(`
+resource "aptible_db" "test" {
+    env_id = %d
+	handle = "%v"
+	db_type = "%v"
+}
+`, TestEnvironmentId, dbHandle, "non-existent-db")
+}
+
+func testAccAptibleDatabaseInvalidContainerSize(dbHandle string) string {
+	return fmt.Sprintf(`
+resource "aptible_db" "test" {
+    env_id = %d
+	handle = "%v"
+	container_size = %d
+}
+`, TestEnvironmentId, dbHandle, 0)
+}
+
+func testAccAptibleDatabaseInvalidDiskSize(dbHandle string) string {
+	return fmt.Sprintf(`
+resource "aptible_db" "test" {
+    env_id = %d
+	handle = "%v"
+	disk_size = %d
+}
+`, TestEnvironmentId, dbHandle, 0)
 }
