@@ -26,12 +26,11 @@ func TestAccResourceEndpoint_app(t *testing.T) {
 				Config: testAccAptibleEndpointApp(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentID)),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentId)),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "app"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentID)),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "HTTPS"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
@@ -55,12 +54,11 @@ func TestAccResourceEndpoint_db(t *testing.T) {
 				Config: testAccAptibleEndpointDatabase(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(TestEnvironmentID)),
 					resource.TestCheckResourceAttrSet("aptible_db.test", "db_id"),
 					resource.TestCheckResourceAttrSet("aptible_db.test", "connection_url"),
 
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentId)),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "database"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentID)),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "TCP"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "false"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "elb"),
@@ -84,12 +82,11 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 				Config: testAccAptibleEndpointApp(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentID)),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentId)),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "app"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentID)),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "HTTPS"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
@@ -150,9 +147,9 @@ func testAccCheckEndpointDestroy(s *terraform.State) error {
 		}
 
 		if res_typ == "app" {
-			deleted, err := client.GetApp(int64(res_id))
-			log.Println("Deleted? ", deleted)
-			if !deleted {
+			endpoint, err := client.GetApp(int64(res_id))
+			log.Println("Deleted? ", endpoint.Deleted)
+			if !endpoint.Deleted {
 				return fmt.Errorf("App %v not removed", res_id)
 			}
 
@@ -161,9 +158,9 @@ func testAccCheckEndpointDestroy(s *terraform.State) error {
 			}
 
 		} else {
-			_, deleted, err := client.GetDatabase(int64(res_id))
-			log.Println("Deleted? ", deleted)
-			if !deleted {
+			endpoint, err := client.GetDatabase(int64(res_id))
+			log.Println("Deleted? ", endpoint.Deleted)
+			if !endpoint.Deleted {
 				return fmt.Errorf("Database %v not removed", res_id)
 			}
 
@@ -192,7 +189,7 @@ resource "aptible_endpoint" "test" {
 	endpoint_type = "https"
 	internal = true
 	platform = "alb"
-}`, TestEnvironmentId, appHandle, TestEnvironmentId)
+}`, TestEnvironmentID, appHandle, TestEnvironmentID)
 	log.Println("HCL generated: ", output)
 	return output
 }
@@ -209,29 +206,26 @@ resource "aptible_db" "test" {
 
 resource "aptible_endpoint" "test" {
 	env_id = %d
-	resource_id = aptible_db.test.db_id
+	resource_id = aptible_service.test_database.service_id
 	resource_type = "database"
 	endpoint_type = "tcp"
 	internal = false
 	platform = "elb"
-}`, TestEnvironmentId, dbHandle, TestEnvironmentId)
+}`, TestEnvironmentID, dbHandle, TestEnvironmentID)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointUpdateIPWhitelist(appHandle string) string {
 	output := fmt.Sprintf(`
-resource "aptible_app" "test" {
+resource "aptible_service" "test" {
 	env_id = %d
 	handle = "%v"
-	config = {
-		"APTIBLE_DOCKER_IMAGE" = "nginx"
-	}
 }
 
 resource "aptible_endpoint" "test" {
 	env_id = %d
-	resource_id = aptible_app.test.app_id
+	service_id = aptible_service.test_app.service_id
 	resource_type = "app"
 	endpoint_type = "https"
 	internal = true
@@ -239,7 +233,7 @@ resource "aptible_endpoint" "test" {
 	ip_filtering = [
 		"1.1.1.1/32",
 	]
-}`, TestEnvironmentId, appHandle, TestEnvironmentId)
+}`, TestEnvironmentID, appHandle, TestEnvironmentID)
 	log.Println("HCL generated: ", output)
 	return output
 }
@@ -248,9 +242,9 @@ func testAccAptibleEndpointInvalidResourceType() string {
 	output := fmt.Sprintf(`
 resource "aptible_endpoint" "test" {
 	env_id = %d
-	resource_id = 1
+	service_id = 1
 	resource_type = "should-error"
-	}`, TestEnvironmentId)
+	}`, TestEnvironmentID)
 	log.Println("HCL generated: ", output)
 	return output
 }
@@ -259,10 +253,10 @@ func testAccAptibleEndpointInvalidEndpointType() string {
 	output := fmt.Sprintf(`
 resource "aptible_endpoint" "test" {
 	env_id = %d
-	resource_id = 1
+	service_id = 1
 	resource_type = "app"
 	endpoint_type = "should-error"
-	}`, TestEnvironmentId)
+	}`, TestEnvironmentID)
 	log.Println("HCL generated: ", output)
 	return output
 }
@@ -271,10 +265,10 @@ func testAccAptibleEndpointInvalidPlatform() string {
 	output := fmt.Sprintf(`
 resource "aptible_endpoint" "test" {
 	env_id = %d
-	resource_id = 1
+	service_id = 1
 	resource_type = "app"
 	platform = "should-error"
-	}`, TestEnvironmentId)
+	}`, TestEnvironmentID)
 	log.Println("HCL generated: ", output)
 	return output
 }

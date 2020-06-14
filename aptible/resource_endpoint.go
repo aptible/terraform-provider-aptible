@@ -1,7 +1,9 @@
 package aptible
 
 import (
+	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -21,16 +23,14 @@ func resourceEndpoint() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"service_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 			"resource_id": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
-			},
-			"resource_type": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice(validResourceTypes, false),
-				ForceNew:     true,
 			},
 			"endpoint_type": {
 				Type:         schema.TypeString,
@@ -39,19 +39,26 @@ func resourceEndpoint() *schema.Resource {
 				Default:      "https",
 				ForceNew:     true,
 			},
-			// v2, for now there's only one service per app
 			"service_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			// v2, for now Default = true
-			"certificate": {
-				Type:     schema.TypeMap,
+			"default_domain": {
+				Type:     schema.TypeBool,
 				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+				Default:  false,
+			},
+			"managed": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"domain": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+				ForceNew: true,
 			},
 			"internal": {
 				Type:     schema.TypeBool,
@@ -91,42 +98,66 @@ func resourceEndpoint() *schema.Resource {
 
 func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
-	resource_id := int64(d.Get("resource_id").(int))
-	resource_type := d.Get("resource_type").(string)
 
-	if_slice := d.Get("ip_filtering").([]interface{})
-	ip_whitelist, _ := aptible.MakeStringSlice(if_slice)
-
-	t := d.Get("endpoint_type").(string)
-	t, err := aptible.GetEndpointType(t)
+	serviceName := d.Get("service_name").(string)
+	resourceID := int64(d.Get("resource_id").(int))
+	service, err := client.GetServiceForAppByName(resourceID, serviceName)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	attrs := aptible.EndpointCreateAttrs{
-		ResourceType:  resource_type,
-		Type:          &t,
-		Internal:      d.Get("internal").(bool),
-		ContainerPort: int64(d.Get("container_port").(int)),
-		IPWhitelist:   ip_whitelist,
-		Platform:      d.Get("platform").(string),
-	}
-	if resource_type == "app" {
-		attrs.Default = true
-	} else {
-		attrs.Default = false
+	interfaceSlice := d.Get("ip_filtering").([]interface{})
+	ipWhitelist, _ := aptible.MakeStringSlice(interfaceSlice)
+
+	humanReadableEndpointType := d.Get("endpoint_type").(string)
+	endpointType, err := aptible.GetEndpointType(humanReadableEndpointType)
+	if err != nil {
+		log.Println(err)
+		return err
 	}
 
-	ep, err := client.CreateEndpoint(resource_id, attrs)
+	defaultDomain := d.Get("default_domain").(bool)
+	managed := d.Get("managed").(bool)
+	domain := d.Get("domain").(string)
+
+	if defaultDomain && managed {
+		return fmt.Errorf("do not specify Managed HTTPS if using the Default Domain")
+	}
+	if defaultDomain && domain != "" {
+		return fmt.Errorf("cannot specify domain when using Default Domain")
+	}
+
+	if service.ResourceType == "database" && defaultDomain {
+		return fmt.Errorf("cannot use Default Domain on Databases")
+	}
+	if service.ResourceType == "database" && domain != "" {
+		return fmt.Errorf("cannot specify domain on Databases")
+	}
+
+	attrs := aptible.EndpointCreateAttrs{
+		Type:          &endpointType,
+		Internal:      d.Get("internal").(bool),
+		ContainerPort: int64(d.Get("container_port").(int)),
+		IPWhitelist:   ipWhitelist,
+		Platform:      d.Get("platform").(string),
+		Default:       defaultDomain,
+		Acme:          managed,
+	}
+	if domain != "" {
+		attrs.UserDomain = domain
+	}
+
+	endpoint, err := client.CreateEndpoint(service, attrs)
 	if err != nil {
 		log.Println("There was an error when completing the request to create the endpoint.\n[ERROR] -", err)
 		return err
 	}
 
-	d.SetId(ep.Hostname)
-	d.Set("hostname", ep.Hostname)
-	d.Set("endpoint_id", int(ep.ID))
+	_ = d.Set("endpoint_id", endpoint.ID)
+	_ = d.Set("service_id", service.ID)
+
+	d.SetId(endpoint.ExternalHost)
 
 	return resourceEndpointRead(d, meta)
 }
@@ -134,40 +165,50 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
-	endpoint_id := int64(d.Get("endpoint_id").(int))
-	resource_type := d.Get("resource_type").(string)
-	ep, deleted, err := client.GetEndpoint(endpoint_id, resource_type)
+	endpointID := int64(d.Get("endpoint_id").(int))
+
+	log.Println("getting Endpoint with ID: " + strconv.Itoa(int(endpointID)))
+
+	endpoint, err := client.GetEndpoint(endpointID)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	if deleted {
+	if endpoint.Deleted {
 		d.SetId("")
+		log.Println("Endpoint with ID: " + strconv.Itoa(int(endpointID)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
 		return nil
 	}
 
-	if resource_type == "app" {
-		d.Set("container_port", ep.ContainerPort)
-		d.Set("platform", ep.Platform)
+	serviceID := int64(d.Get("service_id").(int))
+	service, err := client.GetService(serviceID)
+	if err != nil {
+		log.Println(err)
+		return err
 	}
-	d.Set("ip_filtering", ep.IPWhitelist)
+
+	if service.ResourceType == "app" {
+		_ = d.Set("container_port", endpoint.ContainerPort)
+		_ = d.Set("platform", endpoint.Platform)
+	}
+	_ = d.Set("ip_filtering", endpoint.IPWhitelist)
 	return nil
 }
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceEndpointUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
-	endpoint_id := int64(d.Get("endpoint_id").(int))
-	if_slice := d.Get("ip_filtering").([]interface{})
-	ip_whitelist, _ := aptible.MakeStringSlice(if_slice)
+	endpointID := int64(d.Get("endpoint_id").(int))
+	interfaceSlice := d.Get("ip_filtering").([]interface{})
+	ipWhitelist, _ := aptible.MakeStringSlice(interfaceSlice)
 
 	updates := aptible.EndpointUpdates{
 		ContainerPort: int64(d.Get("container_port").(int)),
-		IPWhitelist:   ip_whitelist,
+		IPWhitelist:   ipWhitelist,
 		Platform:      d.Get("platform").(string),
 	}
 
-	err := client.UpdateEndpoint(endpoint_id, updates)
+	err := client.UpdateEndpoint(endpointID, updates)
 	if err != nil {
 		log.Println("There was an error when completing the request.\n[ERROR] -", err)
 		return err
@@ -178,8 +219,8 @@ func resourceEndpointUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceEndpointDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
-	endpoint_id := int64(d.Get("endpoint_id").(int))
-	err := client.DeleteEndpoint(endpoint_id)
+	endpointID := int64(d.Get("endpoint_id").(int))
+	err := client.DeleteEndpoint(endpointID)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -187,11 +228,6 @@ func resourceEndpointDelete(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId("")
 	return nil
-}
-
-var validResourceTypes = []string{
-	"app",
-	"database",
 }
 
 var validEndpointTypes = []string{
