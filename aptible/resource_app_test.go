@@ -24,7 +24,7 @@ func TestAccResourceApp_basic(t *testing.T) {
 				Config: testAccAptibleAppBasic(rHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentID)),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 				),
@@ -45,7 +45,7 @@ func TestAccResourceApp_deploy(t *testing.T) {
 				Config: testAccAptibleAppDeploy(rHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentID)),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
@@ -68,7 +68,7 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 				Config: testAccAptibleAppDeploy(rHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentID)),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
@@ -93,15 +93,15 @@ func testAccCheckAppDestroy(s *terraform.State) error {
 			continue
 		}
 
-		app_id, err := strconv.Atoi(rs.Primary.Attributes["app_id"])
+		appId, err := strconv.Atoi(rs.Primary.Attributes["app_id"])
 		if err != nil {
 			return err
 		}
 
-		deleted, err := client.GetApp(int64(app_id))
-		log.Println("Deleted? ", deleted)
-		if !deleted {
-			return fmt.Errorf("App %v not removed", app_id)
+		app, err := client.GetApp(int64(appId))
+		log.Println("Deleted? ", app.Deleted)
+		if !app.Deleted {
+			return fmt.Errorf("app %v not removed", appId)
 		}
 
 		if err != nil {
@@ -117,7 +117,7 @@ resource "aptible_app" "test" {
     env_id = %d
     handle = "%v"
 }
-`, TestEnvironmentId, handle)
+`, TestEnvironmentID, handle)
 }
 
 func testAccAptibleAppDeploy(handle string) string {
@@ -130,7 +130,7 @@ func testAccAptibleAppDeploy(handle string) string {
 			"WHATEVER" = "something"
 		}
 	}
-	`, TestEnvironmentId, handle)
+	`, TestEnvironmentID, handle)
 }
 
 func testAccAptibleAppUpdateConfig(handle string) string {
@@ -143,5 +143,5 @@ func testAccAptibleAppUpdateConfig(handle string) string {
 			"WHATEVER" = "nothing"
 		}
 	}
-	`, TestEnvironmentId, handle)
+	`, TestEnvironmentID, handle)
 }

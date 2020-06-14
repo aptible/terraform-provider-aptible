@@ -47,26 +47,26 @@ func resourceApp() *schema.Resource {
 func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	// Setting up params and client
 	client := meta.(*aptible.Client)
-	env_id := int64(d.Get("env_id").(int))
+	envID := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
 
 	// Creating app
-	app, err := client.CreateApp(handle, env_id)
+	app, err := client.CreateApp(handle, envID)
 	if err != nil {
 		log.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
 		return err
 	}
 
 	// Set computed attributes
-	d.Set("app_id", int(app.ID))
-	d.Set("git_repo", app.GitRepo)
+	_ = d.Set("app_id", int(app.ID))
+	_ = d.Set("git_repo", app.GitRepo)
 	d.SetId(handle)
 
 	// Deploying app
 	config := d.Get("config").(map[string]interface{})
 	if len(config) != 0 {
-		app_id := int64(d.Get("app_id").(int))
-		err = client.DeployApp(app_id, config)
+		appID := int64(d.Get("app_id").(int))
+		err = client.DeployApp(appID, config)
 		if err != nil {
 			log.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", err)
 			return err
@@ -79,16 +79,18 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
-	app_id := int64(d.Get("app_id").(int))
-	deleted, err := client.GetApp(app_id)
-	if deleted {
-		d.SetId("")
-		return nil
-	}
+	appID := int64(d.Get("app_id").(int))
+	app, err := client.GetApp(appID)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
+	if app.Deleted {
+		d.SetId("")
+		return nil
+	}
+	_ = d.Set("app_id", int(app.ID))
+	_ = d.Set("git_repo", app.GitRepo)
 
 	return nil
 }
@@ -96,12 +98,12 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceAppUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
-	app_id := int64(d.Get("app_id").(int))
+	appID := int64(d.Get("app_id").(int))
 
 	// Handling config changes
 	if d.HasChange("config") {
 		config := d.Get("config").(map[string]interface{})
-		err := client.UpdateApp(config, app_id)
+		err := client.UpdateApp(config, appID)
 		if err != nil {
 			log.Println("There was an error when completing the request.\n[ERROR] -", err)
 			return err
@@ -111,11 +113,11 @@ func resourceAppUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
-	read_err := resourceAppRead(d, meta)
-	if read_err == nil {
-		app_id := int64(d.Get("app_id").(int))
+	readErr := resourceAppRead(d, meta)
+	if readErr == nil {
+		appID := int64(d.Get("app_id").(int))
 		client := meta.(*aptible.Client)
-		deleted, err := client.DeleteApp(app_id)
+		deleted, err := client.DeleteApp(appID)
 		if deleted {
 			d.SetId("")
 			return nil

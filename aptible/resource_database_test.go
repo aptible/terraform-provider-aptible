@@ -26,7 +26,7 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 				Config: testAccAptibleDatabaseBasic(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(TestEnvironmentID)),
 					resource.TestCheckResourceAttr("aptible_db.test", "db_type", "postgresql"),
 					resource.TestCheckResourceAttr("aptible_db.test", "container_size", "1024"),
 					resource.TestCheckResourceAttr("aptible_db.test", "disk_size", "10"),
@@ -50,7 +50,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 				Config: testAccAptibleDatabaseBasic(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(TestEnvironmentID)),
 					resource.TestCheckResourceAttr("aptible_db.test", "db_type", "postgresql"),
 					resource.TestCheckResourceAttr("aptible_db.test", "container_size", "1024"),
 					resource.TestCheckResourceAttr("aptible_db.test", "disk_size", "10"),
@@ -103,15 +103,15 @@ func testAccCheckDatabaseDestroy(s *terraform.State) error {
 			continue
 		}
 
-		db_id, err := strconv.Atoi(rs.Primary.Attributes["db_id"])
+		databaseId, err := strconv.Atoi(rs.Primary.Attributes["db_id"])
 		if err != nil {
 			return err
 		}
 
-		_, deleted, err := client.GetDatabase(int64(db_id))
-		log.Println("Deleted? ", deleted)
-		if !deleted {
-			return fmt.Errorf("Database %v not removed", db_id)
+		database, err := client.GetDatabase(int64(databaseId))
+		log.Println("Deleted? ", database.Deleted)
+		if !database.Deleted {
+			return fmt.Errorf("database %v not removed", databaseId)
 		}
 
 		if err != nil {
@@ -127,7 +127,7 @@ resource "aptible_db" "test" {
     env_id = %d
 	handle = "%v"
 }
-`, TestEnvironmentId, dbHandle)
+`, TestEnvironmentID, dbHandle)
 }
 
 func testAccAptibleDatabaseUpdate(dbHandle string) string {
@@ -138,7 +138,7 @@ resource "aptible_db" "test" {
 	container_size = %d
 	disk_size = %d
 }
-`, TestEnvironmentId, dbHandle, 512, 20)
+`, TestEnvironmentID, dbHandle, 512, 20)
 }
 
 func testAccAptibleDatabaseInvalidDBType(dbHandle string) string {
@@ -148,7 +148,7 @@ resource "aptible_db" "test" {
 	handle = "%v"
 	db_type = "%v"
 }
-`, TestEnvironmentId, dbHandle, "non-existent-db")
+`, TestEnvironmentID, dbHandle, "non-existent-db")
 }
 
 func testAccAptibleDatabaseInvalidContainerSize(dbHandle string) string {
@@ -158,7 +158,7 @@ resource "aptible_db" "test" {
 	handle = "%v"
 	container_size = %d
 }
-`, TestEnvironmentId, dbHandle, 0)
+`, TestEnvironmentID, dbHandle, 0)
 }
 
 func testAccAptibleDatabaseInvalidDiskSize(dbHandle string) string {
@@ -168,5 +168,5 @@ resource "aptible_db" "test" {
 	handle = "%v"
 	disk_size = %d
 }
-`, TestEnvironmentId, dbHandle, 0)
+`, TestEnvironmentID, dbHandle, 0)
 }

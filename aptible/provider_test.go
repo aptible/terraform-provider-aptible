@@ -9,7 +9,7 @@ import (
 )
 
 // Replace this with relevant environment ID.
-const TestEnvironmentId = 4
+const TestEnvironmentID = 4
 
 var testAccProviders map[string]terraform.ResourceProvider
 var testAccProvider *schema.Provider
