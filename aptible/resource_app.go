@@ -1,10 +1,10 @@
 package aptible
 
 import (
-	"log"
-
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"log"
+	"strconv"
 )
 
 func resourceApp() *schema.Resource {
@@ -13,6 +13,9 @@ func resourceApp() *schema.Resource {
 		Read:   resourceAppRead,   // GET
 		Update: resourceAppUpdate, // PUT
 		Delete: resourceAppDelete, // DELETE
+		Importer: &schema.ResourceImporter{
+			State: resourceAppImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"env_id": {
@@ -76,10 +79,20 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAppRead(d, meta)
 }
 
+func resourceAppImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	appID, _ := strconv.Atoi(d.Id())
+	_ = d.Set("app_id", appID)
+	err := resourceAppRead(d, meta)
+	return []*schema.ResourceData{d}, err
+}
+
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	appID := int64(d.Get("app_id").(int))
+
+	log.Println("Getting App with ID: " + strconv.Itoa(int(appID)))
+
 	app, err := client.GetApp(appID)
 	if err != nil {
 		log.Println(err)
@@ -91,6 +104,13 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	_ = d.Set("app_id", int(app.ID))
 	_ = d.Set("git_repo", app.GitRepo)
+	_ = d.Set("handle", app.Handle)
+	_ = d.Set("env_id", app.EnvironmentID)
+	err = d.Set("config", app.Env)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
 
 	return nil
 }

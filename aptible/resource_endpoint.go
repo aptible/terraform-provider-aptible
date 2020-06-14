@@ -16,6 +16,9 @@ func resourceEndpoint() *schema.Resource {
 		Read:   resourceEndpointRead,   // GET
 		Update: resourceEndpointUpdate, // PUT
 		Delete: resourceEndpointDelete, // DELETE
+		Importer: &schema.ResourceImporter{
+			State: resourceEndpointImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"env_id": {
@@ -83,10 +86,6 @@ func resourceEndpoint() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(validPlatforms, false),
 				Default:      "alb",
-			},
-			"hostname": {
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 			"endpoint_id": {
 				Type:     schema.TypeInt,
@@ -156,10 +155,16 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 
 	_ = d.Set("endpoint_id", endpoint.ID)
 	_ = d.Set("service_id", service.ID)
-
 	d.SetId(endpoint.ExternalHost)
 
 	return resourceEndpointRead(d, meta)
+}
+
+func resourceEndpointImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	endpointID, _ := strconv.Atoi(d.Id())
+	_ = d.Set("endpoint_id", endpointID)
+	err := resourceEndpointRead(d, meta)
+	return []*schema.ResourceData{d}, err
 }
 
 // syncs Terraform state with changes made via the API outside of Terraform
@@ -180,18 +185,25 @@ func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	serviceID := int64(d.Get("service_id").(int))
-	service, err := client.GetService(serviceID)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
+	service := endpoint.Service
 	if service.ResourceType == "app" {
 		_ = d.Set("container_port", endpoint.ContainerPort)
 		_ = d.Set("platform", endpoint.Platform)
 	}
 	_ = d.Set("ip_filtering", endpoint.IPWhitelist)
+	_ = d.Set("env_id", endpoint.Service.EnvironmentID)
+	_ = d.Set("resource_id", endpoint.Service.ResourceID)
+	_ = d.Set("endpoint_type", endpoint.Type)
+	_ = d.Set("service_name", endpoint.Service.ProcessType)
+	_ = d.Set("default_domain", endpoint.Default)
+	_ = d.Set("managed", endpoint.Acme)
+	_ = d.Set("domain", endpoint.UserDomain)
+	_ = d.Set("internal", endpoint.Internal)
+	_ = d.Set("container_port", endpoint.ContainerPort)
+	_ = d.Set("ip_filtering", endpoint.IPWhitelist)
+	_ = d.Set("platform", endpoint.Platform)
+	_ = d.Set("endpoint_id", endpoint.ID)
+
 	return nil
 }
 

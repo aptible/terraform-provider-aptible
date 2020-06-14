@@ -15,6 +15,9 @@ func resourceDatabase() *schema.Resource {
 		Read:   resourceDatabaseRead,   // GET
 		Update: resourceDatabaseUpdate, // PUT
 		Delete: resourceDatabaseDelete, // DELETE
+		Importer: &schema.ResourceImporter{
+			State: resourceDatabaseImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"env_id": {
@@ -103,9 +106,19 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("disk_size", database.DiskSize)
 	_ = d.Set("connection_url", database.ConnectionURL)
 	_ = d.Set("handle", database.Handle)
+	_ = d.Set("env_id", database.EnvironmentID)
+	_ = d.Set("db_type", database.Type)
+
 	d.SetId(database.Handle)
 
 	return nil
+}
+
+func resourceDatabaseImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	databaseID, _ := strconv.Atoi(d.Id())
+	_ = d.Set("db_id", databaseID)
+	err := resourceDatabaseRead(d, meta)
+	return []*schema.ResourceData{d}, err
 }
 
 // changes state of actual resource based on changes made in a Terraform config file

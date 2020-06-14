@@ -115,30 +115,30 @@ func testAccCheckReplicaDestroy(s *terraform.State) error {
 			continue
 		}
 
-		db_id, err := strconv.Atoi(rs.Primary.Attributes["primary_db_id"])
+		databaseID, err := strconv.Atoi(rs.Primary.Attributes["primary_db_id"])
 		if err != nil {
 			return err
 		}
 
-		replica_id, err := strconv.Atoi(rs.Primary.Attributes["replica_id"])
+		replicaID, err := strconv.Atoi(rs.Primary.Attributes["replica_id"])
 		if err != nil {
 			return err
 		}
 
 		// Check replica is deleted first, then the primary database
-		_, deleted, err := client.GetReplica(int64(replica_id))
-		log.Println("Deleted? ", deleted)
-		if !deleted {
-			return fmt.Errorf("Replica %v not removed", replica_id)
+		database, err := client.GetReplica(int64(replicaID))
+		log.Println("Deleted? ", database.Deleted)
+		if !database.Deleted {
+			return fmt.Errorf("Replica %v not removed", replicaID)
 		}
 		if err != nil {
 			return err
 		}
 
-		_, deleted, err = client.GetDatabase(int64(db_id))
-		log.Println("Deleted? ", deleted)
-		if !deleted {
-			return fmt.Errorf("Database %v not removed", db_id)
+		database, err = client.GetDatabase(int64(databaseID))
+		log.Println("Deleted? ", database.Deleted)
+		if !database.Deleted {
+			return fmt.Errorf("Database %v not removed", databaseID)
 		}
 		if err != nil {
 			return err

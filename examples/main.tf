@@ -28,12 +28,12 @@ resource "aptible_app" "<app_handle>" {
 
 resource "aptible_endpoint" "<endpoint_name>" {
   env_id = data.aptible_environment.example.env_id
-  app_id     = "<app_id>"
+  service_id = data.aptible_service.example.id
   type = "HTTPS"                    // other options: TCP, TLS
   internal = true                   // or false for external
   container_port = 80               // port #
   ip_filtering = []                 // list of whitelisted IPs
-  platform = "alb"                  // or "elb" 
+  platform = "alb"                  // or "elb"
 }
 
 #######################################################
