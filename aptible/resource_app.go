@@ -43,37 +43,64 @@ func resourceApp() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"service": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"process_type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"container_count": {
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  1,
+						},
+						"container_memory_limit": {
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  1024,
+						},
+					},
+				},
+			},
 		},
 	}
 }
 
 func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
-	// Setting up params and client
 	client := meta.(*aptible.Client)
 	envID := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
 
-	// Creating app
 	app, err := client.CreateApp(handle, envID)
 	if err != nil {
 		log.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
 		return err
 	}
-
-	// Set computed attributes
-	_ = d.Set("app_id", int(app.ID))
-	_ = d.Set("git_repo", app.GitRepo)
 	d.SetId(handle)
+	_ = d.Set("app_id", app.ID)
 
-	// Deploying app
 	config := d.Get("config").(map[string]interface{})
+
 	if len(config) != 0 {
-		appID := int64(d.Get("app_id").(int))
-		err = client.DeployApp(appID, config)
+		err := client.DeployApp(config, app.ID)
 		if err != nil {
-			log.Println("There was an error when completing the request to deploy the app.\n[ERROR] -", err)
+			log.Println("There was an error when completing the request to configure the app.\n[ERROR] -", err)
 			return err
 		}
+	}
+
+	// Our model prevents editing services or configurations directly. As a result, any services
+	// are created as part of the deployment process and scaled to a single 1 GB container by default.
+	// Unfortunately, this isn't something we can bypass without making exceptions to our API security model,
+	// which I'm not prepared to do quite yet. So instead we're handling scaling after deployment, rather than
+	// at the time of deployment.
+	// TODO: We can could for services scaled to 1 GB/1 container before scaling.
+	err = scaleServices(d, meta)
+	if err != nil {
+		return err
 	}
 
 	return resourceAppRead(d, meta)
@@ -106,29 +133,44 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("git_repo", app.GitRepo)
 	_ = d.Set("handle", app.Handle)
 	_ = d.Set("env_id", app.EnvironmentID)
-	err = d.Set("config", app.Env)
-	if err != nil {
-		log.Println(err)
-		return err
+	_ = d.Set("config", app.Env)
+
+	var services = make([]map[string]interface{}, len(app.Services), len(app.Services))
+	for i, s := range app.Services {
+		service := make(map[string]interface{})
+		service["container_count"] = s.ContainerCount
+		service["container_memory_limit"] = s.ContainerMemoryLimitMb
+		service["process_type"] = s.ProcessType
+		services[i] = service
 	}
+	log.Println("SETTING SERVICE ")
+	log.Println(services)
+
+	_ = d.Set("service", services)
 
 	return nil
 }
 
-// changes state of actual resource based on changes made in a Terraform config file
 func resourceAppUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	appID := int64(d.Get("app_id").(int))
 
-	// Handling config changes
 	if d.HasChange("config") {
 		config := d.Get("config").(map[string]interface{})
-		err := client.UpdateApp(config, appID)
+		err := client.DeployApp(config, appID)
 		if err != nil {
 			log.Println("There was an error when completing the request.\n[ERROR] -", err)
 			return err
 		}
 	}
+
+	if d.HasChange("service") {
+		err := scaleServices(d, meta)
+		if err != nil {
+			return err
+		}
+	}
+
 	return resourceAppRead(d, meta)
 }
 
@@ -148,5 +190,31 @@ func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	d.SetId("")
+	return nil
+}
+
+func scaleServices(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*aptible.Client)
+	appID := int64(d.Get("app_id").(int))
+
+	for _, s := range d.Get("service").(*schema.Set).List() {
+
+		serviceInterface := s.(map[string]interface{})
+		memoryLimit, _ := serviceInterface["container_memory_limit"]
+		containerCount, _ := serviceInterface["container_count"]
+		processType, _ := serviceInterface["process_type"]
+
+		service, err := client.GetServiceForAppByName(appID, processType.(string))
+		if err != nil {
+			log.Println("There was an error when finding the service \n[ERROR] -", err)
+			return err
+		}
+		err = client.ScaleService(service.ID, int64(containerCount.(int)), int64(memoryLimit.(int)))
+		if err != nil {
+			log.Println("There was an error when scaling the service \n[ERROR] -", err)
+			return err
+		}
+
+	}
 	return nil
 }

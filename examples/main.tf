@@ -20,6 +20,16 @@ resource "aptible_app" "<app_handle>" {
       "DATABASE_URL" = "<connection_url>"
       "ANOTHER_VAR" = "value"
   }
+  service {
+    process_type = "web"
+    container_count = 3
+    container_memory_limit = 2048
+  }
+  service {
+    process_type = "background"
+    container_count = 1
+    container_memory_limit = 512
+  }
 }
 
 #######################################################
