@@ -26,11 +26,11 @@ func TestAccResourceEndpoint_app(t *testing.T) {
 				Config: testAccAptibleEndpointApp(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "app"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "HTTPS"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
@@ -55,11 +55,11 @@ func TestAccResourceEndpoint_db(t *testing.T) {
 				Config: testAccAptibleEndpointDatabase(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttrSet("aptible_db.test", "db_id"),
 					resource.TestCheckResourceAttrSet("aptible_db.test", "connection_url"),
 
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "database"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "TCP"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "false"),
@@ -84,11 +84,11 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 				Config: testAccAptibleEndpointApp(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "app"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "HTTPS"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
@@ -192,7 +192,7 @@ resource "aptible_endpoint" "test" {
 	endpoint_type = "https"
 	internal = true
 	platform = "alb"
-}`, TestEnvironmentId, appHandle, TestEnvironmentId)
+}`, testEnvironmentId, appHandle, testEnvironmentId)
 	log.Println("HCL generated: ", output)
 	return output
 }
@@ -214,7 +214,7 @@ resource "aptible_endpoint" "test" {
 	endpoint_type = "tcp"
 	internal = false
 	platform = "elb"
-}`, TestEnvironmentId, dbHandle, TestEnvironmentId)
+}`, testEnvironmentId, dbHandle, testEnvironmentId)
 	log.Println("HCL generated: ", output)
 	return output
 }
@@ -239,7 +239,7 @@ resource "aptible_endpoint" "test" {
 	ip_filtering = [
 		"1.1.1.1/32",
 	]
-}`, TestEnvironmentId, appHandle, TestEnvironmentId)
+}`, testEnvironmentId, appHandle, testEnvironmentId)
 	log.Println("HCL generated: ", output)
 	return output
 }
@@ -250,7 +250,7 @@ resource "aptible_endpoint" "test" {
 	env_id = %d
 	resource_id = 1
 	resource_type = "should-error"
-	}`, TestEnvironmentId)
+	}`, testEnvironmentId)
 	log.Println("HCL generated: ", output)
 	return output
 }
@@ -262,7 +262,7 @@ resource "aptible_endpoint" "test" {
 	resource_id = 1
 	resource_type = "app"
 	endpoint_type = "should-error"
-	}`, TestEnvironmentId)
+	}`, testEnvironmentId)
 	log.Println("HCL generated: ", output)
 	return output
 }
@@ -274,7 +274,7 @@ resource "aptible_endpoint" "test" {
 	resource_id = 1
 	resource_type = "app"
 	platform = "should-error"
-	}`, TestEnvironmentId)
+	}`, testEnvironmentId)
 	log.Println("HCL generated: ", output)
 	return output
 }

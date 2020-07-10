@@ -26,7 +26,7 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 				Config: testAccAptibleDatabaseBasic(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_db.test", "db_type", "postgresql"),
 					resource.TestCheckResourceAttr("aptible_db.test", "container_size", "1024"),
 					resource.TestCheckResourceAttr("aptible_db.test", "disk_size", "10"),
@@ -50,7 +50,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 				Config: testAccAptibleDatabaseBasic(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(TestEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_db.test", "db_type", "postgresql"),
 					resource.TestCheckResourceAttr("aptible_db.test", "container_size", "1024"),
 					resource.TestCheckResourceAttr("aptible_db.test", "disk_size", "10"),
@@ -127,7 +127,7 @@ resource "aptible_db" "test" {
     env_id = %d
 	handle = "%v"
 }
-`, TestEnvironmentId, dbHandle)
+`, testEnvironmentId, dbHandle)
 }
 
 func testAccAptibleDatabaseUpdate(dbHandle string) string {
@@ -138,7 +138,7 @@ resource "aptible_db" "test" {
 	container_size = %d
 	disk_size = %d
 }
-`, TestEnvironmentId, dbHandle, 512, 20)
+`, testEnvironmentId, dbHandle, 512, 20)
 }
 
 func testAccAptibleDatabaseInvalidDBType(dbHandle string) string {
@@ -148,7 +148,7 @@ resource "aptible_db" "test" {
 	handle = "%v"
 	db_type = "%v"
 }
-`, TestEnvironmentId, dbHandle, "non-existent-db")
+`, testEnvironmentId, dbHandle, "non-existent-db")
 }
 
 func testAccAptibleDatabaseInvalidContainerSize(dbHandle string) string {
@@ -158,7 +158,7 @@ resource "aptible_db" "test" {
 	handle = "%v"
 	container_size = %d
 }
-`, TestEnvironmentId, dbHandle, 0)
+`, testEnvironmentId, dbHandle, 0)
 }
 
 func testAccAptibleDatabaseInvalidDiskSize(dbHandle string) string {
@@ -168,5 +168,5 @@ resource "aptible_db" "test" {
 	handle = "%v"
 	disk_size = %d
 }
-`, TestEnvironmentId, dbHandle, 0)
+`, testEnvironmentId, dbHandle, 0)
 }
