@@ -14,6 +14,33 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
+func TestAccResourceEndpoint_customDomain(t *testing.T) {
+	appHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleEndpointCustomDomain(appHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
+					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentID)),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentID)),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "domain", "www.aptible-test-demo.fake"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
+					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceEndpoint_app(t *testing.T) {
 	appHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
@@ -31,11 +58,10 @@ func TestAccResourceEndpoint_app(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentID)),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "HTTPS"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
-					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "hostname"),
 				),
 			},
 		},
@@ -53,17 +79,16 @@ func TestAccResourceEndpoint_db(t *testing.T) {
 			{
 				Config: testAccAptibleEndpointDatabase(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(TestEnvironmentID)),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "db_id"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "connection_url"),
+					resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
+					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(TestEnvironmentID)),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
 
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentID)),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "TCP"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "tcp"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "false"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "elb"),
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
-					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "hostname"),
 				),
 			},
 		},
@@ -87,11 +112,10 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentID)),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "HTTPS"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
-					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "hostname"),
 				),
 			},
 			{
@@ -172,6 +196,36 @@ func testAccCheckEndpointDestroy(s *terraform.State) error {
 	return nil
 }
 
+func testAccAptibleEndpointCustomDomain(appHandle string) string {
+	output := fmt.Sprintf(`
+resource "aptible_app" "test" {
+	env_id = %d
+	handle = "%v"
+	config = {
+		"APTIBLE_DOCKER_IMAGE" = "nginx"
+	}
+	service {
+		process_type = "cmd"
+		container_memory_limit = 512
+		container_count = 1
+	}
+}
+
+resource "aptible_endpoint" "test" {
+	env_id = %d
+	resource_id = aptible_app.test.app_id
+	resource_type = "app"
+	process_type = "cmd"
+	endpoint_type = "https"
+	managed = true
+	domain = "www.aptible-test-demo.fake"
+	internal = true
+	platform = "alb"
+}`, TestEnvironmentID, appHandle, TestEnvironmentID)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
 func testAccAptibleEndpointApp(appHandle string) string {
 	output := fmt.Sprintf(`
 resource "aptible_app" "test" {
@@ -180,13 +234,20 @@ resource "aptible_app" "test" {
 	config = {
 		"APTIBLE_DOCKER_IMAGE" = "nginx"
 	}
+	service {
+		process_type = "cmd"
+		container_memory_limit = 512
+		container_count = 1
+	}
 }
 
 resource "aptible_endpoint" "test" {
 	env_id = %d
 	resource_id = aptible_app.test.app_id
 	resource_type = "app"
+	process_type = "cmd"
 	endpoint_type = "https"
+	default_domain = true
 	internal = true
 	platform = "alb"
 }`, TestEnvironmentID, appHandle, TestEnvironmentID)
@@ -196,17 +257,17 @@ resource "aptible_endpoint" "test" {
 
 func testAccAptibleEndpointDatabase(dbHandle string) string {
 	output := fmt.Sprintf(`
-resource "aptible_db" "test" {
+resource "aptible_database" "test" {
 	env_id = %d
 	handle = "%v"
-	db_type = "postgresql"
+	database_type = "postgresql"
 	container_size = 1024
 	disk_size = 10
 }
 
 resource "aptible_endpoint" "test" {
 	env_id = %d
-	resource_id = aptible_service.test_database.service_id
+	resource_id = aptible_database.test.database_id
 	resource_type = "database"
 	endpoint_type = "tcp"
 	internal = false
@@ -218,16 +279,26 @@ resource "aptible_endpoint" "test" {
 
 func testAccAptibleEndpointUpdateIPWhitelist(appHandle string) string {
 	output := fmt.Sprintf(`
-resource "aptible_service" "test" {
+resource "aptible_app" "test" {
 	env_id = %d
 	handle = "%v"
+	config = {
+		"APTIBLE_DOCKER_IMAGE" = "nginx"
+	}
+	service {
+		process_type = "cmd"
+		container_memory_limit = 512
+		container_count = 1
+	}
 }
 
 resource "aptible_endpoint" "test" {
 	env_id = %d
-	service_id = aptible_service.test_app.service_id
+	resource_id = aptible_app.test.app_id
 	resource_type = "app"
+	process_type = "cmd"
 	endpoint_type = "https"
+	default_domain = true
 	internal = true
 	platform = "alb"
 	ip_filtering = [
@@ -242,7 +313,7 @@ func testAccAptibleEndpointInvalidResourceType() string {
 	output := fmt.Sprintf(`
 resource "aptible_endpoint" "test" {
 	env_id = %d
-	service_id = 1
+	resource_id = 1
 	resource_type = "should-error"
 	}`, TestEnvironmentID)
 	log.Println("HCL generated: ", output)
@@ -253,8 +324,10 @@ func testAccAptibleEndpointInvalidEndpointType() string {
 	output := fmt.Sprintf(`
 resource "aptible_endpoint" "test" {
 	env_id = %d
-	service_id = 1
+	resource_id = 1
 	resource_type = "app"
+	process_type = "cmd"
+	default_domain = true
 	endpoint_type = "should-error"
 	}`, TestEnvironmentID)
 	log.Println("HCL generated: ", output)
@@ -265,8 +338,10 @@ func testAccAptibleEndpointInvalidPlatform() string {
 	output := fmt.Sprintf(`
 resource "aptible_endpoint" "test" {
 	env_id = %d
-	service_id = 1
+	resource_id = 1
 	resource_type = "app"
+	process_type = "cmd"
+	default_domain = true
 	platform = "should-error"
 	}`, TestEnvironmentID)
 	log.Println("HCL generated: ", output)

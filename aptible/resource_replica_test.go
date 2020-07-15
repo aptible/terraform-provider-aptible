@@ -26,13 +26,13 @@ func TestAccResourceReplica_basic(t *testing.T) {
 			{
 				Config: testAccAptibleReplicaBasic(dbHandle, replicaHandle),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(TestEnvironmentID)),
-					resource.TestCheckResourceAttr("aptible_db.test", "db_type", "postgresql"),
-					resource.TestCheckResourceAttr("aptible_db.test", "container_size", "1024"),
-					resource.TestCheckResourceAttr("aptible_db.test", "disk_size", "10"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "db_id"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "connection_url"),
+					resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
+					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(TestEnvironmentID)),
+					resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
+					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
+					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
 
 					resource.TestCheckResourceAttr("aptible_replica.test", "handle", replicaHandle),
 					resource.TestCheckResourceAttr("aptible_replica.test", "env_id", strconv.Itoa(TestEnvironmentID)),
@@ -58,13 +58,13 @@ func TestAccResourceReplica_update(t *testing.T) {
 			{
 				Config: testAccAptibleReplicaBasic(dbHandle, replicaHandle),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(TestEnvironmentID)),
-					resource.TestCheckResourceAttr("aptible_db.test", "db_type", "postgresql"),
-					resource.TestCheckResourceAttr("aptible_db.test", "container_size", "1024"),
-					resource.TestCheckResourceAttr("aptible_db.test", "disk_size", "10"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "db_id"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "connection_url"),
+					resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
+					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(TestEnvironmentID)),
+					resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
+					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
+					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
 
 					resource.TestCheckResourceAttr("aptible_replica.test", "handle", replicaHandle),
 					resource.TestCheckResourceAttr("aptible_replica.test", "env_id", strconv.Itoa(TestEnvironmentID)),
@@ -115,7 +115,7 @@ func testAccCheckReplicaDestroy(s *terraform.State) error {
 			continue
 		}
 
-		databaseID, err := strconv.Atoi(rs.Primary.Attributes["primary_db_id"])
+		databaseID, err := strconv.Atoi(rs.Primary.Attributes["primary_database_id"])
 		if err != nil {
 			return err
 		}
@@ -149,7 +149,7 @@ func testAccCheckReplicaDestroy(s *terraform.State) error {
 
 func testAccAptibleReplicaBasic(dbHandle string, replicaHandle string) string {
 	output := fmt.Sprintf(`
-resource "aptible_db" "test" {
+resource "aptible_database" "test" {
     env_id = %d
 	handle = "%v"
 }
@@ -157,7 +157,7 @@ resource "aptible_db" "test" {
 resource "aptible_replica" "test" {
 	env_id = %d
 	handle = "%v"
-	primary_db_id = aptible_db.test.db_id
+	primary_database_id = aptible_database.test.database_id
 }
 `, TestEnvironmentID, dbHandle, TestEnvironmentID, replicaHandle)
 	log.Println("HCL generated:", output)
@@ -166,7 +166,7 @@ resource "aptible_replica" "test" {
 
 func testAccAptibleReplicaUpdate(dbHandle string, repHandle string) string {
 	output := fmt.Sprintf(`
-	resource "aptible_db" "test" {
+	resource "aptible_database" "test" {
 		env_id = %d
 		handle = "%v"
 	}
@@ -174,7 +174,7 @@ func testAccAptibleReplicaUpdate(dbHandle string, repHandle string) string {
 	resource "aptible_replica" "test" {
 		env_id = %d
 		handle = "%v"
-		primary_db_id = aptible_db.test.db_id
+		primary_database_id = aptible_database.test.database_id
 		container_size = %d
 		disk_size = %d
 	}
@@ -188,7 +188,7 @@ func testAccAptibleReplicaInvalidContainerSize(replicaHandle string) string {
 resource "aptible_replica" "test" {
 	env_id = %d
 	handle = "%v"
-	primary_db_id = "1"
+	primary_database_id = "1"
 	container_size = %d
 }
 `, TestEnvironmentID, replicaHandle, 0)
@@ -199,7 +199,7 @@ func testAccAptibleReplicaInvalidDiskSize(replicaHandle string) string {
 resource "aptible_replica" "test" {
 	env_id = %d
 	handle = "%v"
-	primary_db_id = "1"
+	primary_database_id = "1"
 	disk_size = %d
 }
 `, TestEnvironmentID, replicaHandle, 0)

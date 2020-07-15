@@ -25,7 +25,7 @@ func resourceReplica() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"primary_db_id": {
+			"primary_database_id": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
@@ -65,7 +65,7 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 
 	attrs := aptible.ReplicateAttrs{
 		EnvID:         int64(d.Get("env_id").(int)),
-		DatabaseID:    int64(d.Get("primary_db_id").(int)),
+		DatabaseID:    int64(d.Get("primary_database_id").(int)),
 		ReplicaHandle: handle,
 		ContainerSize: int64(d.Get("container_size").(int)),
 		DiskSize:      int64(d.Get("disk_size").(int)),
@@ -110,8 +110,8 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("connection_url", replica.ConnectionURL)
 	_ = d.Set("handle", replica.Handle)
 	_ = d.Set("env_id", replica.EnvironmentID)
-	_ = d.Set("db_type", replica.Type)
-	_ = d.Set("primary_db_id", replica.InitializeFromID)
+	_ = d.Set("database_type", replica.Type)
+	_ = d.Set("primary_database_id", replica.InitializeFromID)
 
 	return nil
 }

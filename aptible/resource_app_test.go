@@ -129,6 +129,11 @@ func testAccAptibleAppDeploy(handle string) string {
 			"APTIBLE_DOCKER_IMAGE" = "nginx"
 			"WHATEVER" = "something"
 		}
+        service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+		}
 	}
 	`, TestEnvironmentID, handle)
 }
@@ -141,6 +146,11 @@ func testAccAptibleAppUpdateConfig(handle string) string {
 		config = {
 			"APTIBLE_DOCKER_IMAGE" = "httpd:alpine"
 			"WHATEVER" = "nothing"
+		}
+        service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
 		}
 	}
 	`, TestEnvironmentID, handle)

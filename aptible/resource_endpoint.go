@@ -35,6 +35,12 @@ func resourceEndpoint() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"resource_type": {
+				Type:         schema.TypeString,
+				ValidateFunc: validation.StringInSlice(validResourceTypes, false),
+				Required:     true,
+				ForceNew:     true,
+			},
 			"endpoint_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -42,7 +48,7 @@ func resourceEndpoint() *schema.Resource {
 				Default:      "https",
 				ForceNew:     true,
 			},
-			"service_name": {
+			"process_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -97,13 +103,26 @@ func resourceEndpoint() *schema.Resource {
 
 func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
+	service := aptible.Service{}
+	var err error
 
-	serviceName := d.Get("service_name").(string)
+	processType := d.Get("process_type").(string)
 	resourceID := int64(d.Get("resource_id").(int))
-	service, err := client.GetServiceForAppByName(resourceID, serviceName)
-	if err != nil {
-		log.Println(err)
-		return err
+	resourceType := d.Get("resource_type").(string)
+
+	if resourceType == "app" {
+		service, err = client.GetServiceForAppByName(resourceID, processType)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	} else {
+		database, err := client.GetDatabase(resourceID)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		service = database.Service
 	}
 
 	interfaceSlice := d.Get("ip_filtering").([]interface{})
@@ -167,12 +186,9 @@ func resourceEndpointImport(d *schema.ResourceData, meta interface{}) ([]*schema
 	return []*schema.ResourceData{d}, err
 }
 
-// syncs Terraform state with changes made via the API outside of Terraform
 func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	endpointID := int64(d.Get("endpoint_id").(int))
-
-	log.Println("getting Endpoint with ID: " + strconv.Itoa(int(endpointID)))
 
 	endpoint, err := client.GetEndpoint(endpointID)
 	if err != nil {
@@ -189,17 +205,18 @@ func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
 	if service.ResourceType == "app" {
 		_ = d.Set("container_port", endpoint.ContainerPort)
 		_ = d.Set("platform", endpoint.Platform)
+		_ = d.Set("process_type", endpoint.Service.ProcessType)
 	}
+
+	_ = d.Set("resource_type", endpoint.Service.ResourceType)
 	_ = d.Set("ip_filtering", endpoint.IPWhitelist)
 	_ = d.Set("env_id", endpoint.Service.EnvironmentID)
 	_ = d.Set("resource_id", endpoint.Service.ResourceID)
 	_ = d.Set("endpoint_type", endpoint.Type)
-	_ = d.Set("service_name", endpoint.Service.ProcessType)
 	_ = d.Set("default_domain", endpoint.Default)
 	_ = d.Set("managed", endpoint.Acme)
 	_ = d.Set("domain", endpoint.UserDomain)
 	_ = d.Set("internal", endpoint.Internal)
-	_ = d.Set("container_port", endpoint.ContainerPort)
 	_ = d.Set("ip_filtering", endpoint.IPWhitelist)
 	_ = d.Set("platform", endpoint.Platform)
 	_ = d.Set("endpoint_id", endpoint.ID)
@@ -251,4 +268,9 @@ var validEndpointTypes = []string{
 var validPlatforms = []string{
 	"alb",
 	"elb",
+}
+
+var validResourceTypes = []string{
+	"app",
+	"database",
 }

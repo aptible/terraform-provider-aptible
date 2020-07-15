@@ -30,7 +30,7 @@ func resourceDatabase() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"db_type": {
+			"database_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(validDBTypes, false),
@@ -49,7 +49,7 @@ func resourceDatabase() *schema.Resource {
 				ValidateFunc: validation.IntBetween(10, 200),
 				Default:      10,
 			},
-			"db_id": {
+			"database_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
@@ -68,7 +68,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 
 	attrs := aptible.DBCreateAttrs{
 		Handle:        &handle,
-		Type:          d.Get("db_type").(string),
+		Type:          d.Get("database_type").(string),
 		ContainerSize: int64(d.Get("container_size").(int)),
 		DiskSize:      int64(d.Get("disk_size").(int)),
 	}
@@ -79,7 +79,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	_ = d.Set("db_id", database.ID)
+	_ = d.Set("database_id", database.ID)
 
 	d.SetId(handle)
 	return resourceDatabaseRead(d, meta)
@@ -88,7 +88,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
-	databaseID := int64(d.Get("db_id").(int))
+	databaseID := int64(d.Get("database_id").(int))
 
 	database, err := client.GetDatabase(databaseID)
 	if err != nil {
@@ -107,7 +107,7 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("connection_url", database.ConnectionURL)
 	_ = d.Set("handle", database.Handle)
 	_ = d.Set("env_id", database.EnvironmentID)
-	_ = d.Set("db_type", database.Type)
+	_ = d.Set("database_type", database.Type)
 
 	d.SetId(database.Handle)
 
@@ -116,7 +116,7 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceDatabaseImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	databaseID, _ := strconv.Atoi(d.Id())
-	_ = d.Set("db_id", databaseID)
+	_ = d.Set("database_id", databaseID)
 	err := resourceDatabaseRead(d, meta)
 	return []*schema.ResourceData{d}, err
 }
@@ -124,7 +124,7 @@ func resourceDatabaseImport(d *schema.ResourceData, meta interface{}) ([]*schema
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
-	databaseID := int64(d.Get("db_id").(int))
+	databaseID := int64(d.Get("database_id").(int))
 	containerSize := int64(d.Get("container_size").(int))
 	diskSize := int64(d.Get("disk_size").(int))
 
@@ -148,7 +148,7 @@ func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
-	databaseID := int64(d.Get("db_id").(int))
+	databaseID := int64(d.Get("database_id").(int))
 
 	err := client.DeleteDatabase(databaseID)
 	if err != nil {
