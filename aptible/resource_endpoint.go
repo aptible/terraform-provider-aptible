@@ -26,10 +26,6 @@ func resourceEndpoint() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"service_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
 			"resource_id": {
 				Type:     schema.TypeInt,
 				Required: true,

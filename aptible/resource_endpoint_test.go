@@ -26,10 +26,10 @@ func TestAccResourceEndpoint_customDomain(t *testing.T) {
 				Config: testAccAptibleEndpointCustomDomain(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentID)),
+					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(TestEnvironmentID)),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "domain", "www.aptible-test-demo.fake"),
@@ -224,7 +224,7 @@ resource "aptible_endpoint" "test" {
 	domain = "www.aptible-test-demo.fake"
 	internal = true
 	platform = "alb"
-}`, TestEnvironmentID, appHandle, TestEnvironmentID)
+}`, testEnvironmentId, appHandle, testEnvironmentId)
 	log.Println("HCL generated: ", output)
 	return output
 }

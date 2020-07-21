@@ -26,7 +26,7 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 				Config: testAccAptibleDatabaseBasic(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(TestEnvironmentID)),
+					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
 					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
 					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
@@ -50,7 +50,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 				Config: testAccAptibleDatabaseBasic(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(TestEnvironmentID)),
+					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
 					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
 					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
