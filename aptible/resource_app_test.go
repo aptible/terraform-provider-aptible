@@ -24,7 +24,7 @@ func TestAccResourceApp_basic(t *testing.T) {
 				Config: testAccAptibleAppBasic(rHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentID)),
+					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 				),
@@ -45,7 +45,7 @@ func TestAccResourceApp_deploy(t *testing.T) {
 				Config: testAccAptibleAppDeploy(rHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentID)),
+					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
@@ -68,7 +68,7 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 				Config: testAccAptibleAppDeploy(rHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentID)),
+(??)					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(TestEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
@@ -117,7 +117,7 @@ resource "aptible_app" "test" {
     env_id = %d
     handle = "%v"
 }
-`, TestEnvironmentID, handle)
+`, testEnvironmentId, handle)
 }
 
 func testAccAptibleAppDeploy(handle string) string {
@@ -135,7 +135,7 @@ func testAccAptibleAppDeploy(handle string) string {
 			container_count = 1
 		}
 	}
-	`, TestEnvironmentID, handle)
+	`, testEnvironmentId, handle)
 }
 
 func testAccAptibleAppUpdateConfig(handle string) string {
@@ -153,5 +153,5 @@ func testAccAptibleAppUpdateConfig(handle string) string {
 			container_count = 1
 		}
 	}
-	`, TestEnvironmentID, handle)
+	`, testEnvironmentId, handle)
 }

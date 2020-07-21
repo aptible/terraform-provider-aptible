@@ -127,7 +127,7 @@ resource "aptible_database" "test" {
     env_id = %d
 	handle = "%v"
 }
-`, TestEnvironmentID, dbHandle)
+`, testEnvironmentId, dbHandle)
 }
 
 func testAccAptibleDatabaseUpdate(dbHandle string) string {
@@ -138,7 +138,7 @@ resource "aptible_database" "test" {
 	container_size = %d
 	disk_size = %d
 }
-`, TestEnvironmentID, dbHandle, 512, 20)
+`, testEnvironmentId, dbHandle, 512, 20)
 }
 
 func testAccAptibleDatabaseInvalidDBType(dbHandle string) string {
@@ -148,7 +148,7 @@ resource "aptible_database" "test" {
 	handle = "%v"
 	database_type = "%v"
 }
-`, TestEnvironmentID, dbHandle, "non-existent-db")
+`, testEnvironmentId, dbHandle, "non-existent-db")
 }
 
 func testAccAptibleDatabaseInvalidContainerSize(dbHandle string) string {
@@ -158,7 +158,7 @@ resource "aptible_database" "test" {
 	handle = "%v"
 	container_size = %d
 }
-`, TestEnvironmentID, dbHandle, 0)
+`, testEnvironmentId, dbHandle, 0)
 }
 
 func testAccAptibleDatabaseInvalidDiskSize(dbHandle string) string {
@@ -168,5 +168,5 @@ resource "aptible_database" "test" {
 	handle = "%v"
 	disk_size = %d
 }
-`, TestEnvironmentID, dbHandle, 0)
+`, testEnvironmentId, dbHandle, 0)
 }
