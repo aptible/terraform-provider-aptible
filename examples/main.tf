@@ -38,8 +38,9 @@ resource "aptible_app" "<app_handle>" {
 
 resource "aptible_endpoint" "<endpoint_name>" {
   env_id = data.aptible_environment.example.env_id
-  service_id = data.aptible_service.example.id
-  type = "HTTPS"                    // other options: TCP, TLS
+  resource_id = resource.aptible_app.example.id
+  resource_type = "app"             // other options: database
+  type = "https"                    // other options: tcp, tls
   internal = true                   // or false for external
   container_port = 80               // port #
   ip_filtering = []                 // list of whitelisted IPs

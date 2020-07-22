@@ -99,7 +99,7 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	// Unfortunately, this isn't something we can bypass without making exceptions to our API security model,
 	// which I'm not prepared to do quite yet. So instead we're handling scaling after deployment, rather than
 	// at the time of deployment.
-	// TODO: We can could for services scaled to 1 GB/1 container before scaling.
+	// TODO: We can check for services scaled to 1 GB/1 container before scaling.
 	err = scaleServices(d, meta)
 	if err != nil {
 		return err
