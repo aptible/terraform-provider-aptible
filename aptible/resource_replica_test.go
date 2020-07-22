@@ -26,13 +26,13 @@ func TestAccResourceReplica_basic(t *testing.T) {
 			{
 				Config: testAccAptibleReplicaBasic(dbHandle, replicaHandle),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(testEnvironmentId)),
-					resource.TestCheckResourceAttr("aptible_db.test", "db_type", "postgresql"),
-					resource.TestCheckResourceAttr("aptible_db.test", "container_size", "1024"),
-					resource.TestCheckResourceAttr("aptible_db.test", "disk_size", "10"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "db_id"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "connection_url"),
+					resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
+					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
+					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
+					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
 
 					resource.TestCheckResourceAttr("aptible_replica.test", "handle", replicaHandle),
 					resource.TestCheckResourceAttr("aptible_replica.test", "env_id", strconv.Itoa(testEnvironmentId)),
@@ -58,13 +58,13 @@ func TestAccResourceReplica_update(t *testing.T) {
 			{
 				Config: testAccAptibleReplicaBasic(dbHandle, replicaHandle),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(testEnvironmentId)),
-					resource.TestCheckResourceAttr("aptible_db.test", "db_type", "postgresql"),
-					resource.TestCheckResourceAttr("aptible_db.test", "container_size", "1024"),
-					resource.TestCheckResourceAttr("aptible_db.test", "disk_size", "10"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "db_id"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "connection_url"),
+					resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
+					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
+					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
+					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
 
 					resource.TestCheckResourceAttr("aptible_replica.test", "handle", replicaHandle),
 					resource.TestCheckResourceAttr("aptible_replica.test", "env_id", strconv.Itoa(testEnvironmentId)),
@@ -129,7 +129,7 @@ func testAccCheckReplicaDestroy(s *terraform.State) error {
 		database, err := client.GetReplica(int64(replicaID))
 		log.Println("Deleted? ", database.Deleted)
 		if !database.Deleted {
-			return fmt.Errorf("Replica %v not removed", replicaID)
+			return fmt.Errorf("replica %v not removed", replicaID)
 		}
 		if err != nil {
 			return err
@@ -138,7 +138,7 @@ func testAccCheckReplicaDestroy(s *terraform.State) error {
 		database, err = client.GetDatabase(int64(databaseID))
 		log.Println("Deleted? ", database.Deleted)
 		if !database.Deleted {
-			return fmt.Errorf("Database %v not removed", databaseID)
+			return fmt.Errorf("database %v not removed", databaseID)
 		}
 		if err != nil {
 			return err

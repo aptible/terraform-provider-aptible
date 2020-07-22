@@ -83,7 +83,7 @@ func TestAccResourceDatabase_expectError(t *testing.T) {
 			},
 			{
 				Config:      testAccAptibleDatabaseInvalidContainerSize(dbHandle),
-				ExpectError: regexp.MustCompile(`expected container_size to be in the range .*, got 0`),
+				ExpectError: regexp.MustCompile(`expected container_size to be one of .*, got 0`),
 			},
 			{
 				Config:      testAccAptibleDatabaseInvalidDiskSize(dbHandle),

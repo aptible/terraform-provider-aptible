@@ -80,10 +80,10 @@ func TestAccResourceEndpoint_db(t *testing.T) {
 			{
 				Config: testAccAptibleEndpointDatabase(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(testEnvironmentId)),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "database_id"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "connection_url"),
+					resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
+					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
 
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "database"),
