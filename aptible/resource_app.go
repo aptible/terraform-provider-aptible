@@ -137,7 +137,7 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("env_id", app.EnvironmentID)
 	_ = d.Set("config", app.Env)
 
-	var services = make([]map[string]interface{}, len(app.Services), len(app.Services))
+	var services = make([]map[string]interface{}, len(app.Services))
 	for i, s := range app.Services {
 		service := make(map[string]interface{})
 		service["container_count"] = s.ContainerCount
@@ -202,9 +202,9 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 	for _, s := range d.Get("service").(*schema.Set).List() {
 
 		serviceInterface := s.(map[string]interface{})
-		memoryLimit, _ := serviceInterface["container_memory_limit"]
-		containerCount, _ := serviceInterface["container_count"]
-		processType, _ := serviceInterface["process_type"]
+		memoryLimit := serviceInterface["container_memory_limit"]
+		containerCount := serviceInterface["container_count"]
+		processType := serviceInterface["process_type"]
 
 		service, err := client.GetServiceForAppByName(appID, processType.(string))
 		if err != nil {
