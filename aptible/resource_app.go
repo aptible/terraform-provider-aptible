@@ -3,6 +3,7 @@ package aptible
 import (
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"log"
 	"strconv"
 )
@@ -58,9 +59,10 @@ func resourceApp() *schema.Resource {
 							Default:  1,
 						},
 						"container_memory_limit": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Default:  1024,
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Default:      1024,
+							ValidateFunc: validation.IntInSlice(validContainerSizes),
 						},
 					},
 				},
@@ -217,4 +219,17 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 
 	}
 	return nil
+}
+
+var validContainerSizes = []int{
+	512,
+	1024,
+	2048,
+	4096,
+	7168,
+	15360,
+	30720,
+	61440,
+	153600,
+	245760,
 }

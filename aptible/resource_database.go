@@ -40,13 +40,13 @@ func resourceDatabase() *schema.Resource {
 			"container_size": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				ValidateFunc: validation.IntBetween(512, 7168),
+				ValidateFunc: validation.IntInSlice(validContainerSizes),
 				Default:      1024,
 			},
 			"disk_size": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				ValidateFunc: validation.IntBetween(10, 200),
+				ValidateFunc: validation.IntBetween(1, 16000),
 				Default:      10,
 			},
 			"database_id": {

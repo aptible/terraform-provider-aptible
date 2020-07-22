@@ -81,6 +81,12 @@ github.com/aptible/go-deploy v0.0.0-20200715184114-4da260fe3061 h1:ADN8Npci4M6Mj
 github.com/aptible/go-deploy v0.0.0-20200715184114-4da260fe3061/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
 github.com/aptible/go-deploy v0.0.0-20200720131415-bfe46f25f66d h1:eWdhiUxqRlwjuJ/3kfvc9U2NBi5CO+xxjauzzdO0iCU=
 github.com/aptible/go-deploy v0.0.0-20200720131415-bfe46f25f66d/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
+github.com/aptible/go-deploy v0.0.0-20200721194103-bd802e31f2fd h1:cNO0PJqs0/wOVwbB6+e/VbLX/X3XKK/Oyn854ZQnhEs=
+github.com/aptible/go-deploy v0.0.0-20200721194103-bd802e31f2fd/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
+github.com/aptible/go-deploy v0.0.0-20200721201801-fb90aafd8674 h1:VnTDyInSgjkr+GAf6aUbf3J5oojYkN5B8mKWONEQ5r8=
+github.com/aptible/go-deploy v0.0.0-20200721201801-fb90aafd8674/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
+github.com/aptible/go-deploy v0.0.0-20200722002038-5ebd10a35a01 h1:qprS+Ey6S8hR/2gin/0wqndixzSfCx+5bl0zVOhMyCo=
+github.com/aptible/go-deploy v0.0.0-20200722002038-5ebd10a35a01/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
 github.com/armon/go-radix v1.0.0 h1:F4z6KzEeeQIMeLFa97iZU6vupzoecKdU5TX24SNppXI=
 github.com/armon/go-radix v1.0.0/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
