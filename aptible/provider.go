@@ -11,7 +11,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"aptible_app":      resourceApp(),
 			"aptible_endpoint": resourceEndpoint(),
-			"aptible_db":       resourceDatabase(),
+			"aptible_database": resourceDatabase(),
 			"aptible_replica":  resourceReplica(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{

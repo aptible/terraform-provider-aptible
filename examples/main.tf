@@ -20,6 +20,16 @@ resource "aptible_app" "<app_handle>" {
       "DATABASE_URL" = "<connection_url>"
       "ANOTHER_VAR" = "value"
   }
+  service {
+    process_type = "web"
+    container_count = 3
+    container_memory_limit = 2048
+  }
+  service {
+    process_type = "background"
+    container_count = 1
+    container_memory_limit = 512
+  }
 }
 
 #######################################################
@@ -28,12 +38,13 @@ resource "aptible_app" "<app_handle>" {
 
 resource "aptible_endpoint" "<endpoint_name>" {
   env_id = data.aptible_environment.example.env_id
-  app_id     = "<app_id>"
-  type = "HTTPS"                    // other options: TCP, TLS
+  resource_id = resource.aptible_app.example.id
+  resource_type = "app"             // other options: database
+  type = "https"                    // other options: tcp, tls
   internal = true                   // or false for external
   container_port = 80               // port #
   ip_filtering = []                 // list of whitelisted IPs
-  platform = "alb"                  // or "elb" 
+  platform = "alb"                  // or "elb"
 }
 
 #######################################################

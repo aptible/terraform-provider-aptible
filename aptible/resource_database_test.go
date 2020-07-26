@@ -25,13 +25,13 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 			{
 				Config: testAccAptibleDatabaseBasic(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(testEnvironmentId)),
-					resource.TestCheckResourceAttr("aptible_db.test", "db_type", "postgresql"),
-					resource.TestCheckResourceAttr("aptible_db.test", "container_size", "1024"),
-					resource.TestCheckResourceAttr("aptible_db.test", "disk_size", "10"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "db_id"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "connection_url"),
+					resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
+					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
+					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
+					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
 				),
 			},
 		},
@@ -49,20 +49,20 @@ func TestAccResourceDatabase_update(t *testing.T) {
 			{
 				Config: testAccAptibleDatabaseBasic(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_db.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_db.test", "env_id", strconv.Itoa(testEnvironmentId)),
-					resource.TestCheckResourceAttr("aptible_db.test", "db_type", "postgresql"),
-					resource.TestCheckResourceAttr("aptible_db.test", "container_size", "1024"),
-					resource.TestCheckResourceAttr("aptible_db.test", "disk_size", "10"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "db_id"),
-					resource.TestCheckResourceAttrSet("aptible_db.test", "connection_url"),
+					resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
+					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
+					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
+					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
 				),
 			},
 			{
 				Config: testAccAptibleDatabaseUpdate(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_db.test", "container_size", "512"),
-					resource.TestCheckResourceAttr("aptible_db.test", "disk_size", "20"),
+					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "512"),
+					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "20"),
 				),
 			},
 		},
@@ -79,11 +79,11 @@ func TestAccResourceDatabase_expectError(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccAptibleDatabaseInvalidDBType(dbHandle),
-				ExpectError: regexp.MustCompile(`expected db_type to be one of .*, got non-existent-db`),
+				ExpectError: regexp.MustCompile(`expected database_type to be one of .*, got non-existent-db`),
 			},
 			{
 				Config:      testAccAptibleDatabaseInvalidContainerSize(dbHandle),
-				ExpectError: regexp.MustCompile(`expected container_size to be in the range .*, got 0`),
+				ExpectError: regexp.MustCompile(`expected container_size to be one of .*, got 0`),
 			},
 			{
 				Config:      testAccAptibleDatabaseInvalidDiskSize(dbHandle),
@@ -103,15 +103,15 @@ func testAccCheckDatabaseDestroy(s *terraform.State) error {
 			continue
 		}
 
-		db_id, err := strconv.Atoi(rs.Primary.Attributes["db_id"])
+		databaseId, err := strconv.Atoi(rs.Primary.Attributes["database_id"])
 		if err != nil {
 			return err
 		}
 
-		_, deleted, err := client.GetDatabase(int64(db_id))
-		log.Println("Deleted? ", deleted)
-		if !deleted {
-			return fmt.Errorf("Database %v not removed", db_id)
+		database, err := client.GetDatabase(int64(databaseId))
+		log.Println("Deleted? ", database.Deleted)
+		if !database.Deleted {
+			return fmt.Errorf("database %v not removed", databaseId)
 		}
 
 		if err != nil {
@@ -123,7 +123,7 @@ func testAccCheckDatabaseDestroy(s *terraform.State) error {
 
 func testAccAptibleDatabaseBasic(dbHandle string) string {
 	return fmt.Sprintf(`
-resource "aptible_db" "test" {
+resource "aptible_database" "test" {
     env_id = %d
 	handle = "%v"
 }
@@ -132,7 +132,7 @@ resource "aptible_db" "test" {
 
 func testAccAptibleDatabaseUpdate(dbHandle string) string {
 	return fmt.Sprintf(`
-resource "aptible_db" "test" {
+resource "aptible_database" "test" {
     env_id = %d
 	handle = "%v"
 	container_size = %d
@@ -143,17 +143,17 @@ resource "aptible_db" "test" {
 
 func testAccAptibleDatabaseInvalidDBType(dbHandle string) string {
 	return fmt.Sprintf(`
-resource "aptible_db" "test" {
+resource "aptible_database" "test" {
     env_id = %d
 	handle = "%v"
-	db_type = "%v"
+	database_type = "%v"
 }
 `, testEnvironmentId, dbHandle, "non-existent-db")
 }
 
 func testAccAptibleDatabaseInvalidContainerSize(dbHandle string) string {
 	return fmt.Sprintf(`
-resource "aptible_db" "test" {
+resource "aptible_database" "test" {
     env_id = %d
 	handle = "%v"
 	container_size = %d
@@ -163,7 +163,7 @@ resource "aptible_db" "test" {
 
 func testAccAptibleDatabaseInvalidDiskSize(dbHandle string) string {
 	return fmt.Sprintf(`
-resource "aptible_db" "test" {
+resource "aptible_database" "test" {
     env_id = %d
 	handle = "%v"
 	disk_size = %d

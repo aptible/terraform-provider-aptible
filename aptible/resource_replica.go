@@ -15,6 +15,9 @@ func resourceReplica() *schema.Resource {
 		Read:   resourceReplicaRead,   // GET
 		Update: resourceReplicaUpdate, // PUT
 		Delete: resourceReplicaDelete, // DELETE
+		Importer: &schema.ResourceImporter{
+			State: resourceReplicaImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"env_id": {
@@ -22,7 +25,7 @@ func resourceReplica() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"primary_db_id": {
+			"primary_database_id": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
@@ -62,7 +65,7 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 
 	attrs := aptible.ReplicateAttrs{
 		EnvID:         int64(d.Get("env_id").(int)),
-		DatabaseID:    int64(d.Get("primary_db_id").(int)),
+		DatabaseID:    int64(d.Get("primary_database_id").(int)),
 		ReplicaHandle: handle,
 		ContainerSize: int64(d.Get("container_size").(int)),
 		DiskSize:      int64(d.Get("disk_size").(int)),
@@ -74,29 +77,41 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("replica_id", replica.ID)
+	_ = d.Set("replica_id", replica.ID)
 	d.SetId(handle)
-	d.Set("connection_url", replica.ConnectionURL)
+	_ = d.Set("connection_url", replica.ConnectionURL)
 	return resourceReplicaRead(d, meta)
+}
+
+func resourceReplicaImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	replicaID, _ := strconv.Atoi(d.Id())
+	_ = d.Set("replica_id", replicaID)
+	err := resourceReplicaRead(d, meta)
+	return []*schema.ResourceData{d}, err
 }
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
-	replica_id := int64(d.Get("replica_id").(int))
-	replica, deleted, err := client.GetReplica(replica_id)
-	if deleted {
-		d.SetId("")
-		log.Println("Replica with ID: " + strconv.Itoa(int(replica_id)) + " was deleted outside of Terraform. \nNow removing it from Terraform state.")
-		return nil
-	}
+	replicaID := int64(d.Get("replica_id").(int))
+	replica, err := client.GetReplica(replicaID)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
+	if replica.Deleted {
+		d.SetId("")
+		log.Println("Replica with ID: " + strconv.Itoa(int(replicaID)) + " was deleted outside of Terraform. \nNow removing it from Terraform state.")
+		return nil
+	}
 
-	d.Set("container_size", replica.ContainerSize)
-	d.Set("disk_size", replica.DiskSize)
+	_ = d.Set("container_size", replica.ContainerSize)
+	_ = d.Set("disk_size", replica.DiskSize)
+	_ = d.Set("connection_url", replica.ConnectionURL)
+	_ = d.Set("handle", replica.Handle)
+	_ = d.Set("env_id", replica.EnvironmentID)
+	_ = d.Set("database_type", replica.Type)
+	_ = d.Set("primary_database_id", replica.InitializeFromID)
 
 	return nil
 }
@@ -104,21 +119,21 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceReplicaUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
-	replica_id := int64(d.Get("replica_id").(int))
-	container_size := int64(d.Get("container_size").(int))
-	disk_size := int64(d.Get("disk_size").(int))
+	replicaID := int64(d.Get("replica_id").(int))
+	containerSize := int64(d.Get("container_size").(int))
+	diskSize := int64(d.Get("disk_size").(int))
 
 	updates := aptible.DBUpdates{}
 
 	if d.HasChange("container_size") {
-		updates.ContainerSize = container_size
+		updates.ContainerSize = containerSize
 	}
 
 	if d.HasChange("disk_size") {
-		updates.DiskSize = disk_size
+		updates.DiskSize = diskSize
 	}
 
-	err := client.UpdateReplica(replica_id, updates)
+	err := client.UpdateReplica(replicaID, updates)
 	if err != nil {
 		return err
 	}
@@ -128,8 +143,8 @@ func resourceReplicaUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceReplicaDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
-	replica_id := int64(d.Get("replica_id").(int))
-	err := client.DeleteReplica(replica_id)
+	replicaID := int64(d.Get("replica_id").(int))
+	err := client.DeleteReplica(replicaID)
 	if err != nil {
 		log.Println(err)
 		return err

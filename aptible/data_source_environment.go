@@ -29,7 +29,7 @@ func resourceEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("env_id", id)
+	_ = d.Set("env_id", id)
 	d.SetId("handle")
 	return nil
 }

@@ -5,7 +5,7 @@ go 1.13
 require (
 	cloud.google.com/go v0.55.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
-	github.com/aptible/go-deploy v0.0.0-20200514195610-5aecbe6000c4
+	github.com/aptible/go-deploy v0.0.0-20200723212130-876c2154f82f
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/aws/aws-sdk-go v1.30.0 // indirect
 	github.com/fatih/color v1.9.0 // indirect
