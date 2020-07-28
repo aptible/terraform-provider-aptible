@@ -31,6 +31,33 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
 					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
 					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceDatabase_version(t *testing.T) {
+	dbHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDatabaseDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleDatabaseVersion(dbHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
+					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
+					resource.TestCheckResourceAttr("aptible_database.test", "version", "9.4"),
+					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
+					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
 					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
 				),
 			},
@@ -55,6 +82,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
 					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
 					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
 					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
 				),
 			},
@@ -126,6 +154,17 @@ func testAccAptibleDatabaseBasic(dbHandle string) string {
 resource "aptible_database" "test" {
     env_id = %d
 	handle = "%v"
+}
+`, testEnvironmentId, dbHandle)
+}
+
+func testAccAptibleDatabaseVersion(dbHandle string) string {
+	return fmt.Sprintf(`
+resource "aptible_database" "test" {
+    env_id = %d
+	handle = "%v"
+	version = "9.4"
+	database_type = "postgresql"
 }
 `, testEnvironmentId, dbHandle)
 }
