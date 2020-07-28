@@ -1,29 +1,35 @@
 dist: xenial
-sudo: required
+os: linux
 services:
   - docker
 language: go
 
+go:
+  - 1.13.x
+
 env:
   global: GOFLAGS=-mod=vendor
-
-matrix:
-  fast_finish: true
-  allow_failures:
-    - go: tip
-  include:
-    - go: "1.13.x"
-      name: "Code Lint"
-      script: make lint
-    - go: "1.13.x"
-      name: "Code UnitTest"
-      script:
-        - make test
 
 install:
   - make tools
   - go mod vendor
 
-# branches:
-#   only:
-#     - master
+jobs:
+  fast_finish: true
+  allow_failures:
+    - go: tip
+  include:
+    - name: "Code Lint"
+      script: make lint
+    - name: "Code UnitTest"
+      script: make test
+    - stage: deploy
+      script: skip
+      before_deploy:
+        - echo "$GPG_PRIVATE_KEY" | base64 -d | gpg --import --no-tty --batch --yes
+      deploy:
+        - provider: script
+          edge: true
+          script: curl -sL https://git.io/goreleaser | bash
+          on:
+            tags: true
