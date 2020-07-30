@@ -54,7 +54,8 @@ resource "aptible_endpoint" "<endpoint_name>" {
 resource "aptible_db" "<db_handle" {
   env_id = data.aptible_environment.example.env_id
   handle = "<db_handle>"
-  db_type = "<db_type>"            // E.G. "postgresql", "mongodb", etc.
+  database_type = "<db_type>"            // E.G. "postgresql", "mongodb", etc.
+  version = "<version>"                  // E.G. "9.6" or "12" if using postgresql
   container_size = "1024"
   disk_size = "10"
 }

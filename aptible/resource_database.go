@@ -57,6 +57,14 @@ func resourceDatabase() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"version": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"database_image_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -65,12 +73,23 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	envID := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
+	version := d.Get("version").(string)
+	databaseType := d.Get("database_type").(string)
 
 	attrs := aptible.DBCreateAttrs{
 		Handle:        &handle,
-		Type:          d.Get("database_type").(string),
+		Type:          databaseType,
 		ContainerSize: int64(d.Get("container_size").(int)),
 		DiskSize:      int64(d.Get("disk_size").(int)),
+	}
+
+	if version != "" {
+		image, err := client.GetDatabaseImageByTypeAndVersion(databaseType, version)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		attrs.DatabaseImageID = image.ID
 	}
 
 	database, err := client.CreateDatabase(envID, attrs)
@@ -108,6 +127,7 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("handle", database.Handle)
 	_ = d.Set("env_id", database.EnvironmentID)
 	_ = d.Set("database_type", database.Type)
+	_ = d.Set("database_image_id", database.DatabaseImage.ID)
 
 	d.SetId(database.Handle)
 
