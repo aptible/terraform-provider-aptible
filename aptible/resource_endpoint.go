@@ -74,7 +74,6 @@ func resourceEndpoint() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				ValidateFunc: validation.IntBetween(1, 65535),
-				Default:      80,
 			},
 			"ip_filtering": {
 				Type:     schema.TypeList,
