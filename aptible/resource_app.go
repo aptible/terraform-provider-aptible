@@ -1,11 +1,12 @@
 package aptible
 
 import (
+	"log"
+	"strconv"
+
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"log"
-	"strconv"
 )
 
 func resourceApp() *schema.Resource {
@@ -158,7 +159,19 @@ func resourceAppUpdate(d *schema.ResourceData, meta interface{}) error {
 	appID := int64(d.Get("app_id").(int))
 
 	if d.HasChange("config") {
-		config := d.Get("config").(map[string]interface{})
+		o, c := d.GetChange("config")
+		old := o.(map[string]interface{})
+		config := c.(map[string]interface{})
+
+		// Set any old keys that are not present to an empty string.
+		// The API will then clear them during normalization otherwise
+		// the old values will be merged with the new
+		for key := range old {
+			if _, present := config[key]; !present {
+				config[key] = ""
+			}
+		}
+
 		err := client.DeployApp(config, appID)
 		if err != nil {
 			log.Println("There was an error when completing the request.\n[ERROR] -", err)
