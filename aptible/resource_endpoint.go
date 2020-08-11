@@ -92,6 +92,10 @@ func resourceEndpoint() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"endpoint_domain": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -211,6 +215,7 @@ func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("default_domain", endpoint.Default)
 	_ = d.Set("managed", endpoint.Acme)
 	_ = d.Set("domain", endpoint.UserDomain)
+	_ = d.Set("endpoint_domain", endpoint.VirtualDomain)
 	_ = d.Set("internal", endpoint.Internal)
 	_ = d.Set("ip_filtering", endpoint.IPWhitelist)
 	_ = d.Set("platform", endpoint.Platform)
