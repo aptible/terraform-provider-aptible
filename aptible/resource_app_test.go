@@ -71,6 +71,7 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
+					resource.TestCheckResourceAttr("aptible_app.test", "config.OOPS", "mistake"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 				),
@@ -80,6 +81,7 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "httpd:alpine"),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "nothing"),
+					resource.TestCheckNoResourceAttr("aptible_app.test", "config.OOPS"),
 				),
 			},
 		},
@@ -128,6 +130,7 @@ func testAccAptibleAppDeploy(handle string) string {
 		config = {
 			"APTIBLE_DOCKER_IMAGE" = "nginx"
 			"WHATEVER" = "something"
+			"OOPS" = "mistake"
 		}
         service {
 			process_type = "cmd"
