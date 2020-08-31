@@ -32,7 +32,36 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
 					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
 					resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
-					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
+					resource.TestMatchResourceAttr("aptible_database.test", "default_connection_url", regexp.MustCompile(`postgresql:.*\.aptible\.in:.*`)),
+					resource.TestCheckResourceAttrPair("aptible_database.test", "connection_urls.0", "aptible_database.test", "default_connection_url"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceDatabase_redis(t *testing.T) {
+	dbHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDatabaseDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleDatabaseRedis(dbHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
+					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_database.test", "database_type", "redis"),
+					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
+					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
+					resource.TestMatchResourceAttr("aptible_database.test", "default_connection_url", regexp.MustCompile(`redis:.*\.aptible\.in:.*`)),
+					resource.TestCheckResourceAttr("aptible_database.test", "connection_urls.#", "2"),
+					resource.TestCheckResourceAttrPair("aptible_database.test", "connection_urls.0", "aptible_database.test", "default_connection_url"),
+					resource.TestMatchResourceAttr("aptible_database.test", "connection_urls.1", regexp.MustCompile(`rediss:.*\.aptible\.in:.*`)),
 				),
 			},
 		},
@@ -154,6 +183,16 @@ func testAccAptibleDatabaseBasic(dbHandle string) string {
 resource "aptible_database" "test" {
     env_id = %d
 	handle = "%v"
+}
+`, testEnvironmentId, dbHandle)
+}
+
+func testAccAptibleDatabaseRedis(dbHandle string) string {
+	return fmt.Sprintf(`
+resource "aptible_database" "test" {
+    env_id = %d
+	handle = "%v"
+  database_type = "redis"
 }
 `, testEnvironmentId, dbHandle)
 }

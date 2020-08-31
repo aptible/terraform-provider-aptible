@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/aptible/go-deploy/client/operations"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
@@ -53,7 +54,7 @@ func resourceDatabase() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"connection_url": {
+			"default_connection_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -64,6 +65,13 @@ func resourceDatabase() *schema.Resource {
 			"database_image_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
+			},
+			"connection_urls": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 		},
 	}
@@ -123,13 +131,29 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 
 	_ = d.Set("container_size", database.ContainerSize)
 	_ = d.Set("disk_size", database.DiskSize)
-	_ = d.Set("connection_url", database.ConnectionURL)
+	_ = d.Set("default_connection_url", database.ConnectionURL)
 	_ = d.Set("handle", database.Handle)
 	_ = d.Set("env_id", database.EnvironmentID)
 	_ = d.Set("database_type", database.Type)
 	_ = d.Set("database_image_id", database.DatabaseImage.ID)
 
 	d.SetId(database.Handle)
+
+	// TODO: This is temporary until we get the credentials properly embedded into the Database call above
+	page := int64(1)
+	params := operations.NewGetDatabasesDatabaseIDDatabaseCredentialsParams().WithDatabaseID(databaseID).WithPage(&page)
+	resp, err := client.Client.Operations.GetDatabasesDatabaseIDDatabaseCredentials(params, client.Token)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	connectionURLs := []string{}
+	for _, cred := range resp.Payload.Embedded.DatabaseCredentials {
+		connectionURLs = append(connectionURLs, cred.ConnectionURL)
+	}
+
+	_ = d.Set("connection_urls", connectionURLs)
 
 	return nil
 }
