@@ -77,7 +77,7 @@ Below are the attributes defined in the database config with the accepted values
 - **container_size**: the container size for your database.
 - **disk_size**: the disk size for your database.
 
-The `db_id` and `connection_url` attributes will be generated upon running `terraform apply`.
+The `db_id` and `default_connection_url` attributes will be generated upon running `terraform apply`.
 
 ### Endpoints
 
