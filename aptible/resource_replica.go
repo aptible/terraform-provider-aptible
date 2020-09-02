@@ -51,7 +51,7 @@ func resourceReplica() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"connection_url": {
+			"default_connection_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -79,7 +79,7 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 
 	_ = d.Set("replica_id", replica.ID)
 	d.SetId(handle)
-	_ = d.Set("connection_url", replica.ConnectionURL)
+	_ = d.Set("default_connection_url", replica.ConnectionURL)
 	return resourceReplicaRead(d, meta)
 }
 
@@ -107,7 +107,7 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 
 	_ = d.Set("container_size", replica.ContainerSize)
 	_ = d.Set("disk_size", replica.DiskSize)
-	_ = d.Set("connection_url", replica.ConnectionURL)
+	_ = d.Set("default_connection_url", replica.ConnectionURL)
 	_ = d.Set("handle", replica.Handle)
 	_ = d.Set("env_id", replica.EnvironmentID)
 	_ = d.Set("database_type", replica.Type)

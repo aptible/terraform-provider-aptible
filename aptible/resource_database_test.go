@@ -87,7 +87,7 @@ func TestAccResourceDatabase_version(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
 					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
 					resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
-					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "default_connection_url"),
 				),
 			},
 		},
@@ -112,7 +112,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
 					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
 					resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
-					resource.TestCheckResourceAttrSet("aptible_database.test", "connection_url"),
+					resource.TestCheckResourceAttrSet("aptible_database.test", "default_connection_url"),
 				),
 			},
 			{
