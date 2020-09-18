@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/aptible/go-deploy/aptible"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceEndpoint_customDomain(t *testing.T) {
@@ -37,6 +37,11 @@ func TestAccResourceEndpoint_customDomain(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "virtual_domain", "www.aptible-test-demo.fake"),
 				),
+			},
+			{
+				ResourceName:      "aptible_endpoint.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -67,6 +72,11 @@ func TestAccResourceEndpoint_app(t *testing.T) {
 					resource.TestMatchResourceAttr("aptible_endpoint.test", "virtual_domain", regexp.MustCompile(`app-.*\.on-aptible\.com`)),
 				),
 			},
+			{
+				ResourceName:      "aptible_endpoint.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -95,6 +105,11 @@ func TestAccResourceEndpoint_db(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
 				),
 			},
+			{
+				ResourceName:      "aptible_endpoint.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -122,6 +137,11 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
 				),
+			},
+			{
+				ResourceName:      "aptible_endpoint.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 			{
 				Config: testAccAptibleEndpointUpdateIPWhitelist(appHandle),

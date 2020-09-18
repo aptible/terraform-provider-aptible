@@ -6,8 +6,8 @@ import (
 
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/aptible/go-deploy/client/operations"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceDatabase() *schema.Resource {
@@ -59,8 +59,9 @@ func resourceDatabase() *schema.Resource {
 				Computed: true,
 			},
 			"version": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: suppressDefaultDatabaseVersion,
 			},
 			"database_image_id": {
 				Type:     schema.TypeInt,
@@ -108,7 +109,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 
 	_ = d.Set("database_id", database.ID)
 
-	d.SetId(handle)
+	d.SetId(strconv.Itoa(int(database.ID)))
 	return resourceDatabaseRead(d, meta)
 }
 
@@ -136,8 +137,7 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("env_id", database.EnvironmentID)
 	_ = d.Set("database_type", database.Type)
 	_ = d.Set("database_image_id", database.DatabaseImage.ID)
-
-	d.SetId(database.Handle)
+	_ = d.Set("version", database.DatabaseImage.Version)
 
 	// TODO: This is temporary until we get the credentials properly embedded into the Database call above
 	page := int64(1)

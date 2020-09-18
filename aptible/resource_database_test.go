@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/aptible/go-deploy/aptible"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceDatabase_basic(t *testing.T) {
@@ -35,6 +35,11 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 					resource.TestMatchResourceAttr("aptible_database.test", "default_connection_url", regexp.MustCompile(`postgresql:.*\.aptible\.in:.*`)),
 					resource.TestCheckResourceAttrPair("aptible_database.test", "connection_urls.0", "aptible_database.test", "default_connection_url"),
 				),
+			},
+			{
+				ResourceName:      "aptible_database.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -64,6 +69,11 @@ func TestAccResourceDatabase_redis(t *testing.T) {
 					resource.TestMatchResourceAttr("aptible_database.test", "connection_urls.1", regexp.MustCompile(`rediss:.*\.aptible\.in:.*`)),
 				),
 			},
+			{
+				ResourceName:      "aptible_database.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -90,6 +100,11 @@ func TestAccResourceDatabase_version(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aptible_database.test", "default_connection_url"),
 				),
 			},
+			{
+				ResourceName:      "aptible_database.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -114,6 +129,11 @@ func TestAccResourceDatabase_update(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
 					resource.TestCheckResourceAttrSet("aptible_database.test", "default_connection_url"),
 				),
+			},
+			{
+				ResourceName:      "aptible_database.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 			{
 				Config: testAccAptibleDatabaseUpdate(dbHandle),
@@ -144,7 +164,7 @@ func TestAccResourceDatabase_expectError(t *testing.T) {
 			},
 			{
 				Config:      testAccAptibleDatabaseInvalidDiskSize(dbHandle),
-				ExpectError: regexp.MustCompile(`config is invalid: expected disk_size to be in the range .*, got 0`),
+				ExpectError: regexp.MustCompile(`expected disk_size to be in the range .*, got 0`),
 			},
 		},
 	})
@@ -200,7 +220,7 @@ resource "aptible_database" "test" {
 func testAccAptibleDatabaseVersion(dbHandle string) string {
 	return fmt.Sprintf(`
 resource "aptible_database" "test" {
-    env_id = %d
+  env_id = %d
 	handle = "%v"
 	version = "9.4"
 	database_type = "postgresql"

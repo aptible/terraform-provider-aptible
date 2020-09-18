@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/aptible/go-deploy/aptible"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceReplica_basic(t *testing.T) {
@@ -41,6 +41,11 @@ func TestAccResourceReplica_basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aptible_replica.test", "replica_id"),
 					resource.TestCheckResourceAttrSet("aptible_replica.test", "default_connection_url"),
 				),
+			},
+			{
+				ResourceName:      "aptible_database.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -75,6 +80,11 @@ func TestAccResourceReplica_update(t *testing.T) {
 				),
 			},
 			{
+				ResourceName:      "aptible_database.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccAptibleReplicaUpdate(dbHandle, replicaHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_replica.test", "container_size", "512"),
@@ -99,7 +109,7 @@ func TestAccResourceReplica_expectError(t *testing.T) {
 			},
 			{
 				Config:      testAccAptibleReplicaInvalidDiskSize(replicaHandle),
-				ExpectError: regexp.MustCompile(`config is invalid: expected disk_size to be in the range .*, got 0`),
+				ExpectError: regexp.MustCompile(`expected disk_size to be in the range .*, got 0`),
 			},
 		},
 	})

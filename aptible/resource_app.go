@@ -5,8 +5,8 @@ import (
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceApp() *schema.Resource {
@@ -82,7 +82,7 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 		log.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
 		return err
 	}
-	d.SetId(handle)
+	d.SetId(strconv.Itoa(int(app.ID)))
 	_ = d.Set("app_id", app.ID)
 
 	config := d.Get("config").(map[string]interface{})
