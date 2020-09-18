@@ -11,7 +11,7 @@ running on Aptible.
 ```hcl
 resource "aptible_endpoint" "example_endpoint" {
     env_id = 123
-    service_name = "cmd"
+    process_type = "cmd"
     resource_id = aptible_app.example_app.app_id
     default_domain = true
     endpoint_type = "https"
@@ -43,7 +43,7 @@ resource "aptible_endpoint" "example_endpoint" {
 - `resource_id` - The ID of the resource you are adding an endpoint to.
 - `resource_type` - The type of resource you are adding an endpoint to.
   This should be either `app` or `database`.
-- `service_name` - (Required for Apps) The name of the service the Endpoint
+- `process_type` - (Required for Apps) The name of the service the Endpoint
   is for. See main provider documentation for more information on how to
   determine the sevice name.
 

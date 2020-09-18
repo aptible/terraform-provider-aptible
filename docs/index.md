@@ -128,7 +128,7 @@ can be managed using the `terraform_aptible_endpoint` resource.
 ```hcl
 resource "aptible_endpoint" "EXAMPLE" {
     env_id = ENVIONMENT_ID
-    service_name = "SERVICE_NAME"
+    process_type = "SERVICE_NAME"
     resource_id = aptible_app.APP_HANDLE.app_id
     default_domain = true
     endpoint_type = "https"
