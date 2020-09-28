@@ -6,8 +6,8 @@ import (
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceEndpoint() *schema.Resource {
@@ -172,8 +172,7 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	_ = d.Set("endpoint_id", endpoint.ID)
-	_ = d.Set("service_id", service.ID)
-	d.SetId(endpoint.ExternalHost)
+	d.SetId(strconv.Itoa(int(endpoint.ID)))
 
 	return resourceEndpointRead(d, meta)
 }

@@ -5,10 +5,12 @@ services:
 language: go
 
 go:
-  - 1.13.x
+  - 1.15.x
 
 env:
-  global: GOFLAGS=-mod=vendor
+  global:
+    - GOFLAGS=-mod=vendor
+    - GO111MODULE=on
 
 install:
   - make tools

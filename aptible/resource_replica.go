@@ -5,8 +5,8 @@ import (
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceReplica() *schema.Resource {
@@ -78,7 +78,7 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	_ = d.Set("replica_id", replica.ID)
-	d.SetId(handle)
+	d.SetId(strconv.Itoa(int(replica.ID)))
 	_ = d.Set("default_connection_url", replica.ConnectionURL)
 	return resourceReplicaRead(d, meta)
 }
@@ -110,8 +110,8 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("default_connection_url", replica.ConnectionURL)
 	_ = d.Set("handle", replica.Handle)
 	_ = d.Set("env_id", replica.EnvironmentID)
-	_ = d.Set("database_type", replica.Type)
 	_ = d.Set("primary_database_id", replica.InitializeFromID)
+	d.SetId(strconv.Itoa(int(replica.ID)))
 
 	return nil
 }

@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/aptible/go-deploy/aptible"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceApp_basic(t *testing.T) {
@@ -28,6 +28,11 @@ func TestAccResourceApp_basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 				),
+			},
+			{
+				ResourceName:      "aptible_app.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -52,6 +57,11 @@ func TestAccResourceApp_deploy(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 				),
 			},
+			{
+				ResourceName:      "aptible_app.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -75,6 +85,11 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 				),
+			},
+			{
+				ResourceName:      "aptible_app.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 			{
 				Config: testAccAptibleAppUpdateConfig(rHandle),
