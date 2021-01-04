@@ -32,3 +32,5 @@ require (
 	google.golang.org/genproto v0.0.0-20200925023002-c2d885f95484 // indirect
 	google.golang.org/grpc v1.32.0 // indirect
 )
+
+replace github.com/aptible/go-deploy v0.1.2 => github.com/robertfairhead/go-deploy v0.0.0-20210104213637-5912fcbc9e3f

@@ -80,8 +80,6 @@ github.com/apparentlymart/go-textseg v1.0.0 h1:rRmlIsPEEhUTIKQb7T++Nz/A5Q6C9IuX2
 github.com/apparentlymart/go-textseg v1.0.0/go.mod h1:z96Txxhf3xSFMPmb5X/1W05FF/Nj9VFpLOpjS5yuumk=
 github.com/apparentlymart/go-textseg/v12 v12.0.0 h1:bNEQyAGak9tojivJNkoqWErVCQbjdL7GzRt3F8NvfJ0=
 github.com/apparentlymart/go-textseg/v12 v12.0.0/go.mod h1:S/4uRK2UtaQttw1GenVJEynmyUenKwP++x/+DdGV/Ec=
-github.com/aptible/go-deploy v0.1.2 h1:GRthQ0RdNchV5FDL8LBxgURIoTW21baP19HskodK8Ow=
-github.com/aptible/go-deploy v0.1.2/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
@@ -697,6 +695,8 @@ github.com/quasilyte/go-ruleguard v0.2.0 h1:UOVMyH2EKkxIfzrULvA9n/tO+HtEhqD9mrLS
 github.com/quasilyte/go-ruleguard v0.2.0/go.mod h1:2RT/tf0Ce0UDj5y243iWKosQogJd8+1G3Rs2fxmlYnw=
 github.com/quasilyte/regex/syntax v0.0.0-20200407221936-30656e2c4a95 h1:L8QM9bvf68pVdQ3bCFZMDmnt9yqcMBro1pC7F+IPYMY=
 github.com/quasilyte/regex/syntax v0.0.0-20200407221936-30656e2c4a95/go.mod h1:rlzQ04UMyJXu/aOvhd8qT+hvDrFpiwqp8MRXDY9szc0=
+github.com/robertfairhead/go-deploy v0.0.0-20210104213637-5912fcbc9e3f h1:yTyJ+378naJBKbdmC9eAK2gEBZHza5fkD79yi/ae3NY=
+github.com/robertfairhead/go-deploy v0.0.0-20210104213637-5912fcbc9e3f/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/go-internal v1.1.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.2.2/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
