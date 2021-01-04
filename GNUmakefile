@@ -3,11 +3,17 @@ GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 PKG_NAME=aptible
 TEST_COUNT?=1
 CUR_DIR = $(shell echo "${PWD}")
+TARGET=darwin_amd64
 
 default: build
 
 build: fmtcheck
-	go install
+	go build
+
+local-install: build
+	@mkdir -p "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(TARGET)"
+	@cp terraform-provider-aptible "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(TARGET)"
+	@echo "Installed as provider aptible.com/aptible/aptible version 0.0.0+local"
 
 gen:
 	go generate ./...
@@ -33,4 +39,4 @@ tools:
 	@go install github.com/bflad/tfproviderlint/cmd/tfproviderlint
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint
 
-.PHONY: build gen test testacc fmt fmtcheck lint tools
+.PHONY: build gen test testacc fmt fmtcheck lint tools local-install
