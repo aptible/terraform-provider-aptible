@@ -33,4 +33,4 @@ require (
 	google.golang.org/grpc v1.32.0 // indirect
 )
 
-replace github.com/aptible/go-deploy v0.1.2 => github.com/robertfairhead/go-deploy v0.0.0-20210104213637-5912fcbc9e3f
+replace github.com/aptible/go-deploy v0.1.2 => github.com/robertfairhead/go-deploy v0.0.0-20210106164604-a9e92a68dc83
