@@ -52,7 +52,8 @@ func resourceApp() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"process_type": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Default:  "cmd",
 						},
 						"container_count": {
 							Type:     schema.TypeInt,
@@ -233,7 +234,7 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 			log.Println("There was an error when finding the service \n[ERROR] -", err)
 			return err
 		}
-		err = client.ScaleService(service.ID, 0, memoryLimit)
+		err = client.ScaleService(service.ID, containerCount, memoryLimit)
 		if err != nil {
 			log.Println("There was an error when scaling the service \n[ERROR] -", err)
 			return err
