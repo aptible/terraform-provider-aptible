@@ -15,8 +15,8 @@ import (
 )
 
 func TestAccResourceReplica_basic(t *testing.T) {
-	dbHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	replicaHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	dbHandle := acctest.RandString(10)
+	replicaHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -52,8 +52,8 @@ func TestAccResourceReplica_basic(t *testing.T) {
 }
 
 func TestAccResourceReplica_update(t *testing.T) {
-	dbHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
-	replicaHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	dbHandle := acctest.RandString(10)
+	replicaHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -96,7 +96,7 @@ func TestAccResourceReplica_update(t *testing.T) {
 }
 
 func TestAccResourceReplica_expectError(t *testing.T) {
-	replicaHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	replicaHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -119,6 +119,8 @@ func testAccCheckReplicaDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*aptible.Client)
 	// Allow time for deprovision operation to complete.
 	// TODO: Replace this by waiting on the actual operation
+
+	//lintignore:R018
 	time.Sleep(30 * time.Second)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_replica" {

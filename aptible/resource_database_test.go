@@ -15,7 +15,7 @@ import (
 )
 
 func TestAccResourceDatabase_basic(t *testing.T) {
-	dbHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	dbHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -46,7 +46,7 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 }
 
 func TestAccResourceDatabase_redis(t *testing.T) {
-	dbHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	dbHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -79,7 +79,7 @@ func TestAccResourceDatabase_redis(t *testing.T) {
 }
 
 func TestAccResourceDatabase_version(t *testing.T) {
-	dbHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	dbHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -110,7 +110,7 @@ func TestAccResourceDatabase_version(t *testing.T) {
 }
 
 func TestAccResourceDatabase_update(t *testing.T) {
-	dbHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	dbHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -147,7 +147,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 }
 
 func TestAccResourceDatabase_expectError(t *testing.T) {
-	dbHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	dbHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -174,6 +174,8 @@ func testAccCheckDatabaseDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*aptible.Client)
 	// Allow time for deprovision operation to complete.
 	// TODO: Replace this by waiting on the actual operation
+
+	//lintignore:R018
 	time.Sleep(30 * time.Second)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_app" {

@@ -13,7 +13,7 @@ import (
 )
 
 func TestAccResourceApp_basic(t *testing.T) {
-	rHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	rHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -39,7 +39,7 @@ func TestAccResourceApp_basic(t *testing.T) {
 }
 
 func TestAccResourceApp_deploy(t *testing.T) {
-	rHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	rHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -67,7 +67,7 @@ func TestAccResourceApp_deploy(t *testing.T) {
 }
 
 func TestAccResourceApp_updateConfig(t *testing.T) {
-	rHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	rHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -104,7 +104,7 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 }
 
 func TestAccResourceApp_scaleDown(t *testing.T) {
-	rHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	rHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },

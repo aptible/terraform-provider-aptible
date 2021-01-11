@@ -31,12 +31,12 @@ fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
 lint:
-	@golangci-lint run ./$(PKG_NAME)/...
+	@bin/golangci-lint run ./$(PKG_NAME)/...
 	@tfproviderlint ./...
 
 tools:
 	@go mod vendor
 	@go install github.com/bflad/tfproviderlint/cmd/tfproviderlint
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.35.2
 
 .PHONY: build gen test testacc fmt fmtcheck lint tools local-install
