@@ -1,27 +1,18 @@
 # This deploys our Aptible Demo App
 # https://www.aptible.com/documentation/deploy/tutorials/deploy-demo-app.html
 
-
-# terraform {
-#   required_providers {
-#     aptible = {
-#       source  = "aptible/aptible"
-#       version = "0.1.2"
-#     }
-#   }
-# }
 terraform {
   required_providers {
     aptible = {
-      source  = "aptible.com/aptible/aptible"
-      version = "0.0.0+local"
+      source  = "aptible/aptible"
+      version = "~>0.1"
     }
   }
 }
 
 # TODO: Enter your account handle here
 data "aptible_environment" "demo" {
-  handle = "bobco"
+  handle = ""
 }
 
 resource "aptible_app" "demo-app" {
@@ -44,7 +35,7 @@ resource "aptible_app" "demo-app" {
   }
 
   # https://www.aptible.com/documentation/deploy/tutorials/deploy-demo-app.html#run-database-migrations
-  # This is a one-time actual at application creation for demo purposes.
+  # This is a one-time execution at application creation for demo purposes.
   # If you need to run migrations on each app release, you should use a before_release command
   # https://www.aptible.com/documentation/deploy/reference/apps/aptible-yml.html#before-release
   provisioner "local-exec" {
