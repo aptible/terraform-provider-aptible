@@ -79,7 +79,7 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 
 	_ = d.Set("replica_id", replica.ID)
 	d.SetId(strconv.Itoa(int(replica.ID)))
-	_ = d.Set("default_connection_url", replica.ConnectionURL)
+	_ = d.Set("default_connection_url", replica.DefaultConnection)
 	return resourceReplicaRead(d, meta)
 }
 
@@ -107,7 +107,7 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 
 	_ = d.Set("container_size", replica.ContainerSize)
 	_ = d.Set("disk_size", replica.DiskSize)
-	_ = d.Set("default_connection_url", replica.ConnectionURL)
+	_ = d.Set("default_connection_url", replica.DefaultConnection)
 	_ = d.Set("handle", replica.Handle)
 	_ = d.Set("env_id", replica.EnvironmentID)
 	_ = d.Set("primary_database_id", replica.InitializeFromID)

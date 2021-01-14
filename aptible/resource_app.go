@@ -52,7 +52,8 @@ func resourceApp() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"process_type": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Default:  "cmd",
 						},
 						"container_count": {
 							Type:     schema.TypeInt,
@@ -179,11 +180,9 @@ func resourceAppUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	if d.HasChange("service") {
-		err := scaleServices(d, meta)
-		if err != nil {
-			return err
-		}
+	err := scaleServices(d, meta)
+	if err != nil {
+		return err
 	}
 
 	return resourceAppRead(d, meta)
@@ -212,19 +211,30 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	appID := int64(d.Get("app_id").(int))
 
-	for _, s := range d.Get("service").(*schema.Set).List() {
+	services := d.Get("service").(*schema.Set).List()
+
+	// If we're changing existing services, be sure we're using the "new" service definitions and only
+	// try to scale ones that actually change
+	if d.HasChange("service") {
+		log.Println("Detected change in services")
+		old, neue := d.GetChange("service")
+		services = neue.(*schema.Set).Difference(old.(*schema.Set)).List()
+	}
+
+	for _, s := range services {
 
 		serviceInterface := s.(map[string]interface{})
-		memoryLimit := serviceInterface["container_memory_limit"]
-		containerCount := serviceInterface["container_count"]
-		processType := serviceInterface["process_type"]
+		memoryLimit := int64(serviceInterface["container_memory_limit"].(int))
+		containerCount := int64(serviceInterface["container_count"].(int))
+		processType := serviceInterface["process_type"].(string)
 
-		service, err := client.GetServiceForAppByName(appID, processType.(string))
+		log.Printf("Updating %s service to count: %d and limit: %d\n", processType, containerCount, memoryLimit)
+		service, err := client.GetServiceForAppByName(appID, processType)
 		if err != nil {
 			log.Println("There was an error when finding the service \n[ERROR] -", err)
 			return err
 		}
-		err = client.ScaleService(service.ID, int64(containerCount.(int)), int64(memoryLimit.(int)))
+		err = client.ScaleService(service.ID, containerCount, memoryLimit)
 		if err != nil {
 			log.Println("There was an error when scaling the service \n[ERROR] -", err)
 			return err

@@ -13,7 +13,7 @@ import (
 )
 
 func TestAccResourceApp_basic(t *testing.T) {
-	rHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	rHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -39,7 +39,7 @@ func TestAccResourceApp_basic(t *testing.T) {
 }
 
 func TestAccResourceApp_deploy(t *testing.T) {
-	rHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	rHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -67,7 +67,7 @@ func TestAccResourceApp_deploy(t *testing.T) {
 }
 
 func TestAccResourceApp_updateConfig(t *testing.T) {
-	rHandle := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	rHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -97,6 +97,41 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "httpd:alpine"),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "nothing"),
 					resource.TestCheckNoResourceAttr("aptible_app.test", "config.OOPS"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceApp_scaleDown(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAppDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleAppDeploy(rHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
+					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
+					resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+					resource.TestCheckResourceAttr("aptible_app.test", "service.0.container_count", "1"),
+				),
+			},
+			{
+				ResourceName:      "aptible_app.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config: testAccAptibleAppScaleDown(rHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_app.test", "service.0.container_count", "0"),
 				),
 			},
 		},
@@ -147,7 +182,7 @@ func testAccAptibleAppDeploy(handle string) string {
 			"WHATEVER" = "something"
 			"OOPS" = "mistake"
 		}
-        service {
+    service {
 			process_type = "cmd"
 			container_memory_limit = 512
 			container_count = 1
@@ -169,6 +204,25 @@ func testAccAptibleAppUpdateConfig(handle string) string {
 			process_type = "cmd"
 			container_memory_limit = 512
 			container_count = 1
+		}
+	}
+	`, testEnvironmentId, handle)
+}
+
+func testAccAptibleAppScaleDown(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_app" "test" {
+		env_id = %d
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"WHATEVER" = "something"
+			"OOPS" = "mistake"
+		}
+    service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 0
 		}
 	}
 	`, testEnvironmentId, handle)
