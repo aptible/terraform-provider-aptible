@@ -58,3 +58,5 @@ require (
 	honnef.co/go/tools v0.1.0 // indirect
 	mvdan.cc/unparam v0.0.0-20210104141923-aac4ce9116a7 // indirect
 )
+
+replace github.com/aptible/go-deploy v0.1.3 => github.com/robertfairhead/go-deploy v0.0.0-20210210185255-e35f4c934efc
