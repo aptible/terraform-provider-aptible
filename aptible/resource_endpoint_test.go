@@ -36,6 +36,9 @@ func TestAccResourceEndpoint_customDomain(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "virtual_domain", "www.aptible-test-demo.fake"),
+					resource.TestMatchResourceAttr("aptible_endpoint.test", "external_hostname", regexp.MustCompile(`elb.*\.aptible\.in`)),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "dns_validation_record", "_acme-challenge.www.aptible-test-demo.fake"),
+					resource.TestMatchResourceAttr("aptible_endpoint.test", "dns_validation_value", regexp.MustCompile(`acme\.elb.*\.aptible\.in`)),
 				),
 			},
 			{
@@ -70,6 +73,9 @@ func TestAccResourceEndpoint_app(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
 					resource.TestMatchResourceAttr("aptible_endpoint.test", "virtual_domain", regexp.MustCompile(`app-.*\.on-aptible\.com`)),
+					resource.TestMatchResourceAttr("aptible_endpoint.test", "external_hostname", regexp.MustCompile(`elb.*\.aptible\.in`)),
+					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_record"),
+					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_value"),
 				),
 			},
 			{

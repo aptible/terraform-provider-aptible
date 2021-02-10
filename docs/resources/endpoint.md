@@ -54,6 +54,9 @@ In addition to all arguments above, the following attributes are exported:
 - `endpoint_id` - The unique identifier for this Endpoint
 - `virtual_domain` - The public domain name that would correspond to the
   certificate served by this domain, if any
+- `external_hostname` - The public hostname of the load balancer serving this endpoint
+- `dns_validation_record` - The CNAME record that needs to be created for Managed HTTPS to validate
+- `dns_validation_value` - The domain name to which the CNAME record should point for Managed HTTPS to validate
 
 ## Import
 
