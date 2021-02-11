@@ -22,7 +22,7 @@ Once defined, you can use this data source in your resource definitions.
 For example, when defining an App:
 
 ```hcl
-data "aptible_app" "techo-app" {
+resource "aptible_app" "techo-app" {
     env_id = data.aptible_environment.techco-test-environment.env_id
     handle = "techo-app"
 }
