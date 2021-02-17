@@ -96,6 +96,18 @@ func resourceEndpoint() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"external_hostname": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"dns_validation_record": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"dns_validation_value": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -219,6 +231,16 @@ func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("ip_filtering", endpoint.IPWhitelist)
 	_ = d.Set("platform", endpoint.Platform)
 	_ = d.Set("endpoint_id", endpoint.ID)
+	_ = d.Set("external_hostname", endpoint.ExternalHost)
+
+	for _, c := range endpoint.AcmeChallenges {
+		if c.Method != "dns01" {
+			continue
+		}
+		_ = d.Set("dns_validation_record", c.From)
+		_ = d.Set("dns_validation_value", c.To)
+		break
+	}
 
 	return nil
 }
