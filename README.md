@@ -1,10 +1,14 @@
 # Aptible Terraform Provider
 
+The provider is available on the [Terraform Registry](https://registry.terraform.io/providers/aptible/aptible/latest) and can be installed using the normal Terraform [configuration process](https://www.terraform.io/docs/language/providers/configuration.html).
+
 To create an app:
 
 - Create a file named `main.tf`
 - Add your app's metadata.
-  - You can see an example in `examples/main.tf`
+  - You can see an example in `examples/demo.tf`
+
+## Developing the provider
 
 Whenever a change is made:
 
@@ -12,6 +16,12 @@ Whenever a change is made:
 - Initialize the plugin: `terraform init`
 - See what changes will be made: `terraform plan`
 - Apply the changes: `terraform apply`
+
+## Manual Installation
+
+If you are using a Terraform version that cannot install the provider from the registry, 
+then you may attempt a local installation. However, we do not test this process and cannot
+ensure it works.
 
 ### Verifying the Releases
 
