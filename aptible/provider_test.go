@@ -9,6 +9,8 @@ import (
 )
 
 var testEnvironmentId int
+var testAccountId int
+var testDatabaseId int
 
 var testAccProviders map[string]*schema.Provider
 var testAccProvider *schema.Provider
@@ -20,10 +22,16 @@ func init() {
 	}
 
 	i := os.Getenv("APTIBLE_ENVIRONMENT_ID")
+	a := os.Getenv("APTIBLE_ACCOUNT_ID")
+	d := os.Getenv("APTIBLE_DATABASE_ID")
 
 	// Precheck confirms this will work
 	id, _ := strconv.Atoi(i)
 	testEnvironmentId = id
+	aid, _ := strconv.Atoi(a)
+	testAccountId = aid
+	did, _ := strconv.Atoi(d)
+	testDatabaseId = did
 }
 
 // Ensure we're pointing at a sandbox before we run and a token is provided
