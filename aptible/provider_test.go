@@ -9,8 +9,6 @@ import (
 )
 
 var testEnvironmentId int
-var testAccountId int
-var testDatabaseId int
 
 var testAccProviders map[string]*schema.Provider
 var testAccProvider *schema.Provider
