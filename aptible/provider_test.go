@@ -24,10 +24,6 @@ func init() {
 	// Precheck confirms this will work
 	id, _ := strconv.Atoi(i)
 	testEnvironmentId = id
-	aid, _ := strconv.Atoi(a)
-	testAccountId = aid
-	did, _ := strconv.Atoi(d)
-	testDatabaseId = did
 }
 
 // Ensure we're pointing at a sandbox before we run and a token is provided
