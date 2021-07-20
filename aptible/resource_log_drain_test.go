@@ -63,7 +63,7 @@ func testAccCheckLogDrainDestroy(s *terraform.State) error {
 func testAccAptibleLogDrainElastic(handle string) string {
 	return fmt.Sprintf(`
 resource "aptible_log_drain" "test" {
-    account_id = %d
+    env_id = %d
     database_id = %d
     handle = "%v"
     drain_type = "elasticsearch_database"
