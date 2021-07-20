@@ -20,8 +20,6 @@ func init() {
 	}
 
 	i := os.Getenv("APTIBLE_ENVIRONMENT_ID")
-	a := os.Getenv("APTIBLE_ACCOUNT_ID")
-	d := os.Getenv("APTIBLE_DATABASE_ID")
 
 	// Precheck confirms this will work
 	id, _ := strconv.Atoi(i)
