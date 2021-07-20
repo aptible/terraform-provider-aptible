@@ -38,11 +38,6 @@ func resourceLogDrain() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"database": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
 			"database_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
