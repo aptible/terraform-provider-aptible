@@ -23,7 +23,7 @@ func resourceLogDrain() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"account_id": {
+			"env_id": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
