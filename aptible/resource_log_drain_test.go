@@ -68,5 +68,5 @@ resource "aptible_log_drain" "test" {
     handle = "%v"
     drain_type = "elasticsearch_database"
 }
-`, testAccountId, testDatabaseId, handle)
+`, testEnvironmentId, handle)
 }
