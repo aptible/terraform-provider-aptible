@@ -109,7 +109,6 @@ func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 		DrainPassword:          d.Get("drain_password").(string),
 		DrainHost:              strfmt.URI(d.Get("drain_host").(string)),
 		DatabaseID:             int64(d.Get("database_id").(int)),
-		Database:               strfmt.URI(d.Get("database").(string)),
 		DrainProxies:           d.Get("drain_proxies").(bool),
 		DrainEphemeralSessions: d.Get("drain_ephemeral_sessions").(bool),
 		DrainDatabases:         d.Get("drain_databases").(bool),
