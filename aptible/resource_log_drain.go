@@ -99,7 +99,7 @@ func resourceLogDrain() *schema.Resource {
 func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	handle := d.Get("handle").(string)
-	accountID := int64(d.Get("account_id").(int))
+	accountID := int64(d.Get("env_id").(int))
 	drainType := d.Get("drain_type").(string)
 	data := &aptible.LogDrainCreateAttrs{
 		DrainType:              &drainType,
