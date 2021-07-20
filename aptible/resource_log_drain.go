@@ -152,7 +152,7 @@ func resourceLogDrainRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("drain_ephemeral_sessions", logDrain.DrainEphemeralSessions)
 	_ = d.Set("drain_databases", logDrain.DrainDatabases)
 	_ = d.Set("drain_apps", logDrain.DrainApps)
-	_ = d.Set("account_id", logDrain.AccountID)
+	_ = d.Set("env_id", logDrain.AccountID)
 	_ = d.Set("database_id", logDrain.DatabaseID)
 
 	return nil
