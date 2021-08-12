@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/storage v1.15.0 // indirect
 	github.com/Djarvur/go-err113 v0.1.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/aptible/go-deploy v0.1.7
+	github.com/aptible/go-deploy v0.1.8
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.38.67 // indirect
 	github.com/bflad/tfproviderdocs v0.9.1
@@ -18,7 +18,7 @@ require (
 	github.com/go-openapi/analysis v0.20.1 // indirect
 	github.com/go-openapi/errors v0.20.0 // indirect
 	github.com/go-openapi/jsonreference v0.19.6 // indirect
-	github.com/go-openapi/runtime v0.19.29 // indirect
+	github.com/go-openapi/runtime v0.19.30 // indirect
 	github.com/go-openapi/strfmt v0.20.1
 	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/go-openapi/validate v0.20.2 // indirect
@@ -53,10 +53,11 @@ require (
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/yuin/goldmark v1.3.8 // indirect
 	github.com/yuin/goldmark-meta v1.0.0 // indirect
-	go.mongodb.org/mongo-driver v1.5.4 // indirect
+	go.mongodb.org/mongo-driver v1.7.1 // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e // indirect
-	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
+	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d // indirect
 	golang.org/x/oauth2 v0.0.0-20210622215436-a8dc77f794b6 // indirect
+	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.4 // indirect
 	google.golang.org/api v0.49.0 // indirect
 	google.golang.org/genproto v0.0.0-20210624195500-8bfb893ecb84 // indirect
