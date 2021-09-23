@@ -43,6 +43,11 @@ func resourceLogDrain() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+            "drain_username": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 			"drain_host": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -108,6 +113,7 @@ func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 		DrainPort:              int64(d.Get("drain_port").(int)),
 		DrainPassword:          d.Get("drain_password").(string),
 		DrainHost:              strfmt.URI(d.Get("drain_host").(string)),
+		DrainUsername:          strfmt.URI(d.Get("drain_username").(string)),
 		DatabaseID:             int64(d.Get("database_id").(int)),
 		DrainProxies:           d.Get("drain_proxies").(bool),
 		DrainEphemeralSessions: d.Get("drain_ephemeral_sessions").(bool),
@@ -127,7 +133,7 @@ func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLogDrainRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*aptible.Client)
+	lient := meta.(*aptible.Client)
 	logDrainID := int64(d.Get("log_drain_id").(int))
 
 	log.Println("Getting log drain with ID: " + strconv.Itoa(int(logDrainID)))
@@ -147,6 +153,7 @@ func resourceLogDrainRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("url", logDrain.URL)
 	_ = d.Set("logging_token", logDrain.LoggingToken)
 	_ = d.Set("drain_port", logDrain.DrainPort)
+	_ = d.Set("drain_username", logDrain.DrainUsername)
 	_ = d.Set("drain_host", logDrain.DrainHost)
 	_ = d.Set("drain_proxies", logDrain.DrainProxies)
 	_ = d.Set("drain_ephemeral_sessions", logDrain.DrainEphemeralSessions)
