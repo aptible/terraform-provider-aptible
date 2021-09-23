@@ -33,11 +33,12 @@ resource "aptible_log_drain" "http_log_drain" {
 
 Based on the `drain_type` it will change what arguments are required.
 
-Because we support a lot of different destinations for log drain, we could not
-properly validate all the required fields for each `drain_type`.
+Because we support a lot of different destinations for log drains, we could not
+properly validate all the required fields for each `drain_type` within
+terraform.
 
-So it's possible that terraform will success but the log drain isn't
-necessarily set up properly.
+It's entirely possible that terraform will pass its linting but the log drain isn't
+necessarily set up properly in Aptible.
 
 - `env_id` (Required) - The ID of the environment you would like to deploy your
   App in. See main provider documentation for more on how to determine what
