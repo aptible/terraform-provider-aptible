@@ -61,6 +61,9 @@ necessarily set up properly in Aptible.
   sent
 - `logging_token` - Tag for syslog, logdna, or datadog
 - `url` - The destination url where the logs will be sent
+- `tags` - (alias for `logging_token`) tags for logdna or datadog
+- `token` - (alias for `drain_username`) API token used for logdna or datadog
+- `pipeline` - (alias for `logging_token`) used for elasticsearch
 
 ### Arguments based on `drain_type`
 
@@ -78,6 +81,7 @@ The following arguments are required regardless of the `drain_type`:
 #### `elasticsearch_database`
 
 - `database_id` (Required)
+- `pipeline` (Optional)
 
 #### `https_post`
 
@@ -89,16 +93,16 @@ The following arguments are required regardless of the `drain_type`:
 
 #### `logdna`
 
-- `drain_username` (Required)
+- `token` (Required)
 - `drain_host` (Optional)
-- `logging_token` (Optional)
+- `tags` (Optional)
 
 #### `datadog`
 
-- `drain_username` (Required)
+- `token` (Required)
 - `drain_host` (Optional)
 - `drain_password` (Optional)
-- `logging_token` (Optional)
+- `tags` (Optional)
 
 #### `papertrail`
 

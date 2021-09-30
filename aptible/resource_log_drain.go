@@ -47,7 +47,7 @@ func resourceLogDrain() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-			},
+			}, 
 			"drain_host": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -97,6 +97,22 @@ func resourceLogDrain() *schema.Resource {
 				Default:  false,
 				ForceNew: true,
 			},
+            // aliases
+            "token": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+            "pipeline": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+            "tags": {
+				Type:     schema.TypeString,
+                Optional: true,
+                ForceNew: true,
+			},
 		},
 	}
 }
@@ -120,6 +136,21 @@ func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 		DrainDatabases:         d.Get("drain_databases").(bool),
 		DrainApps:              d.Get("drain_apps").(bool),
 	}
+
+    // alias support
+    if drainType == "elasticsearch_database" && data.LoggingToken == "" {
+        data.LoggingToken = d.Get("pipeline").(string)
+    }
+
+    if drainType == "datadog" || drainType == "logdna" {
+        if data.DrainUsername == "" {
+            data.DrainUsername = d.Get("token").(string)
+        }
+
+        if data.LoggingToken == "" {
+            data.LoggingToken = d.Get("tags").(string)
+        }
+    }
 
 	logDrain, err := client.CreateLogDrain(handle, accountID, data)
 	if err != nil {
@@ -161,6 +192,9 @@ func resourceLogDrainRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("drain_apps", logDrain.DrainApps)
 	_ = d.Set("env_id", logDrain.AccountID)
 	_ = d.Set("database_id", logDrain.DatabaseID)
+	_ = d.Set("token", logDrain.DrainUsername)
+	_ = d.Set("tags", logDrain.LoggingToken)
+	_ = d.Set("pipeline", logDrain.LoggingToken)
 
 	return nil
 }
