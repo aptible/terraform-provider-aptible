@@ -129,7 +129,7 @@ func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 		DrainPort:              int64(d.Get("drain_port").(int)),
 		DrainPassword:          d.Get("drain_password").(string),
 		DrainHost:              strfmt.URI(d.Get("drain_host").(string)),
-		DrainUsername:          strfmt.URI(d.Get("drain_username").(string)),
+		DrainUsername:          d.Get("drain_username").(string),
 		DatabaseID:             int64(d.Get("database_id").(int)),
 		DrainProxies:           d.Get("drain_proxies").(bool),
 		DrainEphemeralSessions: d.Get("drain_ephemeral_sessions").(bool),
@@ -164,7 +164,7 @@ func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLogDrainRead(d *schema.ResourceData, meta interface{}) error {
-	lient := meta.(*aptible.Client)
+	client := meta.(*aptible.Client)
 	logDrainID := int64(d.Get("log_drain_id").(int))
 
 	log.Println("Getting log drain with ID: " + strconv.Itoa(int(logDrainID)))
