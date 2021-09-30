@@ -43,11 +43,11 @@ func resourceLogDrain() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-            "drain_username": {
+			"drain_username": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-			}, 
+			},
 			"drain_host": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -97,21 +97,21 @@ func resourceLogDrain() *schema.Resource {
 				Default:  false,
 				ForceNew: true,
 			},
-            // aliases
-            "token": {
+			// aliases
+			"token": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-            "pipeline": {
+			"pipeline": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-            "tags": {
+			"tags": {
 				Type:     schema.TypeString,
-                Optional: true,
-                ForceNew: true,
+				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -137,20 +137,20 @@ func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 		DrainApps:              d.Get("drain_apps").(bool),
 	}
 
-    // alias support
-    if drainType == "elasticsearch_database" && data.LoggingToken == "" {
-        data.LoggingToken = d.Get("pipeline").(string)
-    }
+	// alias support
+	if drainType == "elasticsearch_database" && data.LoggingToken == "" {
+		data.LoggingToken = d.Get("pipeline").(string)
+	}
 
-    if drainType == "datadog" || drainType == "logdna" {
-        if data.DrainUsername == "" {
-            data.DrainUsername = d.Get("token").(string)
-        }
+	if drainType == "datadog" || drainType == "logdna" {
+		if data.DrainUsername == "" {
+			data.DrainUsername = d.Get("token").(string)
+		}
 
-        if data.LoggingToken == "" {
-            data.LoggingToken = d.Get("tags").(string)
-        }
-    }
+		if data.LoggingToken == "" {
+			data.LoggingToken = d.Get("tags").(string)
+		}
+	}
 
 	logDrain, err := client.CreateLogDrain(handle, accountID, data)
 	if err != nil {
