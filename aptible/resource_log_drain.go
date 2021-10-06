@@ -185,6 +185,7 @@ func resourceLogDrainRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("logging_token", logDrain.LoggingToken)
 	_ = d.Set("drain_port", logDrain.DrainPort)
 	_ = d.Set("drain_username", logDrain.DrainUsername)
+	_ = d.Set("drain_password", logDrain.DrainPassword)
 	_ = d.Set("drain_host", logDrain.DrainHost)
 	_ = d.Set("drain_proxies", logDrain.DrainProxies)
 	_ = d.Set("drain_ephemeral_sessions", logDrain.DrainEphemeralSessions)
