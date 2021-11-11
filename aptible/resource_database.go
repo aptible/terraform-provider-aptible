@@ -54,8 +54,9 @@ func resourceDatabase() *schema.Resource {
 				Computed: true,
 			},
 			"default_connection_url": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:      schema.TypeString,
+				Computed:  true,
+				Sensitive: true,
 			},
 			"version": {
 				Type:             schema.TypeString,
@@ -67,8 +68,9 @@ func resourceDatabase() *schema.Resource {
 				Computed: true,
 			},
 			"connection_urls": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:      schema.TypeList,
+				Computed:  true,
+				Sensitive: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
