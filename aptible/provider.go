@@ -7,6 +7,13 @@ import (
 
 func Provider() *schema.Provider {
 	return &schema.Provider{
+		Schema: map[string]*schema.Schema{
+			"token": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("APTIBLE_ACCESS_TOKEN", nil),
+			},
+		},
 		ResourcesMap: map[string]*schema.Resource{
 			"aptible_app":      resourceApp(),
 			"aptible_endpoint": resourceEndpoint(),
@@ -21,7 +28,10 @@ func Provider() *schema.Provider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	client, err := aptible.SetUpClient()
+	attrs := aptible.ClientAttrs{
+		TokenString: d.Get("token").(string),
+	}
+	client, err := aptible.SetUpClient(attrs)
 	if err != nil {
 		return nil, err
 	}
