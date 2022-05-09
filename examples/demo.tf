@@ -6,6 +6,7 @@ terraform {
     aptible = {
       source  = "aptible/aptible"
       version = "~>0.1"
+#      token = <SOME TOKEN HERE>
     }
   }
 }
