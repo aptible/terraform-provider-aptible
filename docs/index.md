@@ -9,20 +9,9 @@ that the [cli](https://www.aptible.com/documentation/deploy/cli.html) uses.
 Therefore, you should log into the account you want to use Terraform with using
 the `aptible login` CLI command before running any Terraform commands.
 
-If using in an ephemeral file system or needing something temporary to avoid using the aptible CLI and/or environment variables, you can also use a token in the `required_providers` block to use a token. Take the usual precautions when writing tokens to disk.
-
-```terraform
-terraform {
-  required_providers {
-    aptible = {
-      source  = "aptible/aptible"
-      version = "~>0.1"
-      token = "YOUR TOKEN HERE"
-    }
-  }
-}
-
-```
+If using in an ephemeral file system to avoid using the aptible CLI and/or environment variables, it is possible
+to set the `token` value in the `terraform.required_providers` block (see `examples/demo.tf` for an example). 
+While this is possible, __it is strongly discouraged__.
 
 ### Determining the Environment ID
 

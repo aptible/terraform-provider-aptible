@@ -6,6 +6,8 @@ terraform {
     aptible = {
       source  = "aptible/aptible"
       version = "~>0.1"
+#      The token may be set here, but proceed with extreme caution. This is not encouraged. You should use the
+#      environment variable `APTIBLE_ACCESS_TOKEN` or the CLI `aptible login`
 #      token = <SOME TOKEN HERE>
     }
   }
