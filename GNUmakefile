@@ -12,7 +12,7 @@ build: fmtcheck
 	go build
 
 build_local:
-	@echo TARGET=$(LOCAL_TARGET) go build
+	echo TARGET=$(LOCAL_TARGET) go build
 
 local-install: build_local
 	@mkdir -p "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(LOCAL_TARGET)"
