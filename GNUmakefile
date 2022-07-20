@@ -3,16 +3,20 @@ GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 PKG_NAME=aptible
 TEST_COUNT?=1
 CUR_DIR = $(shell echo "${PWD}")
-TARGET=darwin_amd64
+TARGET=darwin_arm64
+LOCAL_TARGET=darwin_$(shell uname -p)64
 
 default: build
 
 build: fmtcheck
 	go build
 
-local-install: build
-	@mkdir -p "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(TARGET)"
-	@cp terraform-provider-aptible "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(TARGET)"
+build_local:
+	@echo TARGET=$(LOCAL_TARGET) go build
+
+local-install: build_local
+	@mkdir -p "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(LOCAL_TARGET)"
+	@cp terraform-provider-aptible "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(LOCAL_TARGET)"
 	@echo "Installed as provider aptible.com/aptible/aptible version 0.0.0+local"
 
 gen:
