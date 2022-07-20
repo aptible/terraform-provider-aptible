@@ -3,7 +3,7 @@ GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 PKG_NAME=aptible
 TEST_COUNT?=1
 CUR_DIR = $(shell echo "${PWD}")
-TARGET=darwin_arm64
+TARGET=darwin_amd64
 LOCAL_TARGET=darwin_$(shell uname -p)64
 
 default: build
