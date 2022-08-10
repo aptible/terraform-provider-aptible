@@ -138,6 +138,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 			{
 				Config: testAccAptibleDatabaseUpdate(dbHandle),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_database.test", "handle", fmt.Sprintf("%s%s", "new", dbHandle)),
 					resource.TestCheckResourceAttr("aptible_database.test", "container_size", "512"),
 					resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "20"),
 				),

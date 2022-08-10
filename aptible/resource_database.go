@@ -28,7 +28,6 @@ func resourceDatabase() *schema.Resource {
 			"handle": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"database_type": {
 				Type:         schema.TypeString,

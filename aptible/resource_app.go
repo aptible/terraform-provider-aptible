@@ -28,7 +28,6 @@ func resourceApp() *schema.Resource {
 			"handle": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"config": {
 				Type:     schema.TypeMap,

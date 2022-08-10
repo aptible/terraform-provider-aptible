@@ -94,6 +94,7 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 			{
 				Config: testAccAptibleAppUpdateConfig(rHandle),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_app.test", "handle", fmt.Sprintf("%s%s", "new", rHandle)),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "httpd:alpine"),
 					resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "nothing"),
 					resource.TestCheckNoResourceAttr("aptible_app.test", "config.OOPS"),
