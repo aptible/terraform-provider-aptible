@@ -156,6 +156,7 @@ func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 	databaseID := int64(d.Get("database_id").(int))
 	containerSize := int64(d.Get("container_size").(int))
 	diskSize := int64(d.Get("disk_size").(int))
+	handle := d.Get("handle").(string)
 
 	updates := aptible.DBUpdates{}
 
@@ -165,6 +166,14 @@ func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("disk_size") {
 		updates.DiskSize = diskSize
+	}
+
+	if d.HasChange("handle") {
+		updates.Handle = handle
+	}
+
+	if !d.HasChange("container_size") && !d.HasChangesExcept("disk_size") {
+		updates.OnlyChangingHandle = true
 	}
 
 	err := client.UpdateDatabase(databaseID, updates)

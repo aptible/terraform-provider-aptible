@@ -157,6 +157,16 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAppUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	appID := int64(d.Get("app_id").(int))
+	handle := d.Get("handle").(string)
+
+	if d.HasChange("handle") {
+		updates := aptible.AppUpdates{
+			Handle: handle,
+		}
+		if err := client.UpdateApp(appID, updates); err != nil {
+			return err
+		}
+	}
 
 	if d.HasChange("config") {
 		o, c := d.GetChange("config")
