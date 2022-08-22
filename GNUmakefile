@@ -11,9 +11,10 @@ build: fmtcheck
 	go build
 
 local-install: build
-	@mkdir -p "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(TARGET)"
-	@cp terraform-provider-aptible "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(TARGET)"
-	@echo "Installed as provider aptible.com/aptible/aptible version 0.0.0+local"
+	mkdir -p "$(HOME)/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(TARGET)"
+	rm "$(HOME)/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(TARGET)/terraform-provider-aptible" || true
+	cp terraform-provider-aptible "$(HOME)/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(TARGET)/"
+	echo "Installed as provider aptible.com/aptible/aptible version 0.0.0+local"
 
 gen:
 	go generate ./...

@@ -1,22 +1,27 @@
 package aptible
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"github.com/aptible/go-deploy/aptible"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"log"
 	"strconv"
+
+	"github.com/aptible/go-deploy/aptible"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceDatabase() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceDatabaseCreate, // POST
-		Read:   resourceDatabaseRead,   // GET
-		Update: resourceDatabaseUpdate, // PUT
-		Delete: resourceDatabaseDelete, // DELETE
+		CreateContext: resourceDatabaseCreate, // POST
+		ReadContext:   resourceDatabaseRead,   // GET
+		UpdateContext: resourceDatabaseUpdate, // PUT
+		DeleteContext: resourceDatabaseDelete, // DELETE
 		Importer: &schema.ResourceImporter{
-			State: resourceDatabaseImport,
+			StateContext: resourceDatabaseImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -78,12 +83,13 @@ func resourceDatabase() *schema.Resource {
 	}
 }
 
-func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	envID := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
 	version := d.Get("version").(string)
 	databaseType := d.Get("database_type").(string)
+	var diags diag.Diagnostics
 
 	attrs := aptible.DBCreateAttrs{
 		Handle:        &handle,
@@ -95,39 +101,60 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	if version != "" {
 		image, err := client.GetDatabaseImageByTypeAndVersion(databaseType, version)
 		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when completing the request.",
+				Detail:   "There was an error when trying to get database images by type and version.",
+			})
 			log.Println(err)
-			return err
+			return diags
 		}
 		attrs.DatabaseImageID = image.ID
 	}
 
 	database, err := client.CreateDatabase(envID, attrs)
 	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when completing the request.",
+			Detail:   "There was an error when trying to create the database.",
+		})
 		log.Println(err)
-		return err
+		return diags
 	}
 
 	_ = d.Set("database_id", database.ID)
 
 	d.SetId(strconv.Itoa(int(database.ID)))
-	return resourceDatabaseRead(d, meta)
+	return append(diags, resourceDatabaseRead(ctx, d, meta)...)
 }
 
 // syncs Terraform state with changes made via the API outside of Terraform
-func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
+func resourceDatabaseRead(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	databaseID := int64(d.Get("database_id").(int))
+	var diags diag.Diagnostics
 
 	database, err := client.GetDatabase(databaseID)
 	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when completing the request.",
+			Detail:   "There was an error when trying to find the database.",
+		})
 		log.Println(err)
-		return err
+		return diags
 	}
 
 	if database.Deleted {
 		d.SetId("")
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Database was deleted outside terraform.",
+			Detail:   "Database with ID: " + strconv.Itoa(int(databaseID)) + " was deleted outside of Terraform. Now removing it from Terraform state.",
+		})
 		log.Println("Database with ID: " + strconv.Itoa(int(databaseID)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
-		return nil
+		return diags
 	}
 
 	_ = d.Set("container_size", database.ContainerSize)
@@ -143,20 +170,26 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceDatabaseImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceDatabaseImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	databaseID, _ := strconv.Atoi(d.Id())
 	_ = d.Set("database_id", databaseID)
-	err := resourceDatabaseRead(d, meta)
-	return []*schema.ResourceData{d}, err
+	var diags diag.Diagnostics
+
+	diags = append(diags, resourceDatabaseRead(ctx, d, meta)...)
+	if diags.HasError() {
+		return nil, errors.New("unable to read existing resources")
+	}
+	return []*schema.ResourceData{d}, nil
 }
 
 // changes state of actual resource based on changes made in a Terraform config file
-func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	databaseID := int64(d.Get("database_id").(int))
 	containerSize := int64(d.Get("container_size").(int))
 	diskSize := int64(d.Get("disk_size").(int))
 	handle := d.Get("handle").(string)
+	var diags diag.Diagnostics
 
 	updates := aptible.DBUpdates{}
 
@@ -179,24 +212,40 @@ func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	err := client.UpdateDatabase(databaseID, updates)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when completing the request.",
+			Detail:   "There was an error when trying to update the database.",
+		})
+		return diags
 	}
 
 	if d.HasChange("handle") {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "You must restart the database to see changes",
+			Detail:   fmt.Sprintf("In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.", handle),
+		})
 		log.Printf(fmt.Sprintf("[WARN] In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.", handle))
 	}
 
-	return resourceDatabaseRead(d, meta)
+	return append(diags, resourceDatabaseRead(ctx, d, meta)...)
 }
 
-func resourceDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceDatabaseDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	databaseID := int64(d.Get("database_id").(int))
+	var diags diag.Diagnostics
 
 	err := client.DeleteDatabase(databaseID)
 	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when completing the request.",
+			Detail:   "There was an error when trying to delete the database.",
+		})
 		log.Println(err)
-		return err
+		return diags
 	}
 
 	d.SetId("")
