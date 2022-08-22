@@ -1,6 +1,7 @@
 package aptible
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 
@@ -28,7 +29,6 @@ func resourceDatabase() *schema.Resource {
 			"handle": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"database_type": {
 				Type:         schema.TypeString,
@@ -157,6 +157,7 @@ func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 	databaseID := int64(d.Get("database_id").(int))
 	containerSize := int64(d.Get("container_size").(int))
 	diskSize := int64(d.Get("disk_size").(int))
+	handle := d.Get("handle").(string)
 
 	updates := aptible.DBUpdates{}
 
@@ -168,9 +169,22 @@ func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 		updates.DiskSize = diskSize
 	}
 
+	if d.HasChange("handle") {
+		log.Printf("Updating handle to %s\n", handle)
+		updates.Handle = handle
+	}
+
+	if !d.HasChangesExcept("handle") {
+		updates.OnlyChangingHandle = true
+	}
+
 	err := client.UpdateDatabase(databaseID, updates)
 	if err != nil {
 		return err
+	}
+
+	if d.HasChange("handle") {
+		log.Printf(fmt.Sprintf("[WARN] In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.", handle))
 	}
 
 	return resourceDatabaseRead(d, meta)

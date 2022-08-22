@@ -1,6 +1,7 @@
 package aptible
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 
@@ -28,7 +29,6 @@ func resourceApp() *schema.Resource {
 			"handle": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"config": {
 				Type:     schema.TypeMap,
@@ -183,6 +183,18 @@ func resourceAppUpdate(d *schema.ResourceData, meta interface{}) error {
 	err := scaleServices(d, meta)
 	if err != nil {
 		return err
+	}
+
+	handle := d.Get("handle").(string)
+	if d.HasChange("handle") {
+		updates := aptible.AppUpdates{
+			Handle: handle,
+		}
+		log.Printf("Updating handle to %s\n", handle)
+		if err := client.UpdateApp(appID, updates); err != nil {
+			return err
+		}
+		log.Printf(fmt.Sprintf("[WARN] In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.", handle))
 	}
 
 	return resourceAppRead(d, meta)
