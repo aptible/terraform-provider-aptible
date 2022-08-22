@@ -1,22 +1,27 @@
 package aptible
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"log"
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceApp() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAppCreate, // POST
-		Read:   resourceAppRead,   // GET
-		Update: resourceAppUpdate, // PUT
-		Delete: resourceAppDelete, // DELETE
+		CreateContext: resourceAppCreate, // POST
+		ReadContext:   resourceAppRead,   // GET
+		UpdateContext: resourceAppUpdate, // PUT
+		DeleteContext: resourceAppDelete, // DELETE
 		Importer: &schema.ResourceImporter{
-			State: resourceAppImport,
+			StateContext: resourceAppImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -72,15 +77,21 @@ func resourceApp() *schema.Resource {
 	}
 }
 
-func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	envID := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
+	var diags diag.Diagnostics
 
 	app, err := client.CreateApp(handle, envID)
 	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when completing the request.",
+			Detail:   "There was an error when trying to create the app.",
+		})
 		log.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
-		return err
+		return diags
 	}
 	d.SetId(strconv.Itoa(int(app.ID)))
 	_ = d.Set("app_id", app.ID)
@@ -90,8 +101,13 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	if len(config) != 0 {
 		err := client.DeployApp(config, app.ID)
 		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when completing the request.",
+				Detail:   "There was an error when trying to deploy the app.",
+			})
 			log.Println("There was an error when completing the request to configure the app.\n[ERROR] -", err)
-			return err
+			return diags
 		}
 	}
 
@@ -101,32 +117,43 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	// which I'm not prepared to do quite yet. So instead we're handling scaling after deployment, rather than
 	// at the time of deployment.
 	// TODO: We can check for services scaled to 1 GB/1 container before scaling.
-	err = scaleServices(d, meta)
+	diags = append(diags, scaleServices(d, meta)...)
 	if err != nil {
-		return err
+		return diags
 	}
 
-	return resourceAppRead(d, meta)
+	return resourceAppRead(ctx, d, meta)
 }
 
-func resourceAppImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceAppImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	appID, _ := strconv.Atoi(d.Id())
 	_ = d.Set("app_id", appID)
-	err := resourceAppRead(d, meta)
-	return []*schema.ResourceData{d}, err
+	var diags diag.Diagnostics
+
+	diags = append(diags, resourceAppRead(ctx, d, meta)...)
+	if diags.HasError() {
+		return nil, errors.New("unable to read existing resources")
+	}
+	return []*schema.ResourceData{d}, nil
 }
 
 // syncs Terraform state with changes made via the API outside of Terraform
-func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAppRead(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	appID := int64(d.Get("app_id").(int))
+	var diags diag.Diagnostics
 
 	log.Println("Getting App with ID: " + strconv.Itoa(int(appID)))
 
 	app, err := client.GetApp(appID)
 	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when completing the request.",
+			Detail:   "There was an error when trying to deploy the app.",
+		})
 		log.Println(err)
-		return err
+		return diags
 	}
 	if app.Deleted {
 		d.SetId("")
@@ -154,19 +181,11 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAppUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	appID := int64(d.Get("app_id").(int))
-	handle := d.Get("handle").(string)
 
-	if d.HasChange("handle") {
-		updates := aptible.AppUpdates{
-			Handle: handle,
-		}
-		if err := client.UpdateApp(appID, updates); err != nil {
-			return err
-		}
-	}
+	var diags diag.Diagnostics
 
 	if d.HasChange("config") {
 		o, c := d.GetChange("config")
@@ -184,21 +203,57 @@ func resourceAppUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		err := client.DeployApp(config, appID)
 		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when completing the request.",
+				Detail:   "There was an error when trying to deploy the app.",
+			})
 			log.Println("There was an error when completing the request.\n[ERROR] -", err)
-			return err
+			return diags
 		}
 	}
 
 	err := scaleServices(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when completing the request.",
+			Detail:   "There was an error when trying to scale services.",
+		})
+		return diags
 	}
 
-	return resourceAppRead(d, meta)
+	handle := d.Get("handle").(string)
+	if d.HasChange("handle") {
+		updates := aptible.AppUpdates{
+			Handle: handle,
+		}
+		log.Printf("Updating handle to %s\n", handle)
+		if err := client.UpdateApp(appID, updates); err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when completing the request.",
+				Detail:   "There was an error when trying to update the handle.",
+			})
+			return diags
+		}
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "You must restart the app to see changes",
+			Detail:   fmt.Sprintf("In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.", handle),
+		})
+		log.Printf(fmt.Sprintf("[WARN] In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.", handle))
+	}
+
+	diags = append(diags, resourceAppRead(ctx, d, meta)...)
+
+	return diags
 }
 
-func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
-	readErr := resourceAppRead(d, meta)
+func resourceAppDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	readErr := resourceAppRead(ctx, d, meta)
 	if readErr == nil {
 		appID := int64(d.Get("app_id").(int))
 		client := meta.(*aptible.Client)
@@ -208,17 +263,23 @@ func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when completing the request.",
+				Detail:   "There was an error when trying to destroy the app.",
+			})
 			log.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
-			return err
+			return diags
 		}
 	}
 	d.SetId("")
 	return nil
 }
 
-func scaleServices(d *schema.ResourceData, meta interface{}) error {
+func scaleServices(d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	appID := int64(d.Get("app_id").(int))
+	var diags diag.Diagnostics
 
 	services := d.Get("service").(*schema.Set).List()
 
@@ -240,13 +301,23 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("Updating %s service to count: %d and limit: %d\n", processType, containerCount, memoryLimit)
 		service, err := client.GetServiceForAppByName(appID, processType)
 		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when completing the request.",
+				Detail:   "There was an error when trying to retrieve the app by name for scaling.",
+			})
 			log.Println("There was an error when finding the service \n[ERROR] -", err)
-			return err
+			return diags
 		}
 		err = client.ScaleService(service.ID, containerCount, memoryLimit)
 		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when completing the request.",
+				Detail:   "There was an error when trying to delete the app.",
+			})
 			log.Println("There was an error when scaling the service \n[ERROR] -", err)
-			return err
+			return diags
 		}
 
 	}

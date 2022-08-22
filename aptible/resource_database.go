@@ -1,12 +1,12 @@
 package aptible
 
 import (
-	"log"
-	"strconv"
-
+	"fmt"
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"log"
+	"strconv"
 )
 
 func resourceDatabase() *schema.Resource {
@@ -169,16 +169,21 @@ func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("handle") {
+		log.Printf("Updating handle to %s\n", handle)
 		updates.Handle = handle
 	}
 
-	if !d.HasChange("container_size") && !d.HasChangesExcept("disk_size") {
+	if !d.HasChangesExcept("handle") {
 		updates.OnlyChangingHandle = true
 	}
 
 	err := client.UpdateDatabase(databaseID, updates)
 	if err != nil {
 		return err
+	}
+
+	if d.HasChange("handle") {
+		log.Printf(fmt.Sprintf("[WARN] In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.", handle))
 	}
 
 	return resourceDatabaseRead(d, meta)

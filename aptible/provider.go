@@ -1,7 +1,11 @@
 package aptible
 
 import (
+	"context"
+	"log"
+
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -16,14 +20,22 @@ func Provider() *schema.Provider {
 		DataSourcesMap: map[string]*schema.Resource{
 			"aptible_environment": dataSourceEnvironment(),
 		},
-		ConfigureFunc: providerConfigure,
+		ConfigureContextFunc: providerConfigureWithContext,
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigureWithContext(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
 	client, err := aptible.SetUpClient()
 	if err != nil {
-		return nil, err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when initializing the provider.",
+			Detail:   "There was an error when initializing the provider.",
+		})
+		log.Println("[ERR] Error in attempting to start the provider", err)
+		return nil, diags
 	}
 	return client, nil
 }
