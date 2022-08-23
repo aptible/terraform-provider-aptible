@@ -9,6 +9,11 @@ that the [cli](https://www.aptible.com/documentation/deploy/cli.html) uses.
 Therefore, you should log into the account you want to use Terraform with using
 the `aptible login` CLI command before running any Terraform commands.
 
+As another option the environment variables `APTIBLE_USERNAME` and
+`APTIBLE_PASSWORD` can be set for the provider to use. In this case it is
+strongly recommended that a robot account be used, especially as MFA needs to
+be disabled for truly automated runs.
+
 ### Determining the Environment ID
 
 Each resource managed via Terraform requires an Environment ID specifying which
