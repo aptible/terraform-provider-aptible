@@ -1,7 +1,6 @@
 package aptible
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 
@@ -194,7 +193,7 @@ func resourceAppUpdate(d *schema.ResourceData, meta interface{}) error {
 		if err := client.UpdateApp(appID, updates); err != nil {
 			return err
 		}
-		log.Printf(fmt.Sprintf("[WARN] In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.", handle))
+		log.Printf("[WARN] In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.\n", handle)
 	}
 
 	return resourceAppRead(d, meta)

@@ -1,7 +1,6 @@
 package aptible
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 
@@ -184,7 +183,7 @@ func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("handle") {
-		log.Printf(fmt.Sprintf("[WARN] In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.", handle))
+		log.Printf("[WARN] In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.\n", handle)
 	}
 
 	return resourceDatabaseRead(d, meta)
