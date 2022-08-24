@@ -1,20 +1,23 @@
 package aptible
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceDatabase() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceDatabaseCreate, // POST
-		Read:   resourceDatabaseRead,   // GET
-		Update: resourceDatabaseUpdate, // PUT
-		Delete: resourceDatabaseDelete, // DELETE
+		Create:        resourceDatabaseCreate, // POST
+		Read:          resourceDatabaseRead,   // GET
+		UpdateContext: resourceDatabaseUpdate, // PUT
+		Delete:        resourceDatabaseDelete, // DELETE
 		Importer: &schema.ResourceImporter{
 			State: resourceDatabaseImport,
 		},
@@ -151,19 +154,19 @@ func resourceDatabaseImport(d *schema.ResourceData, meta interface{}) ([]*schema
 }
 
 // changes state of actual resource based on changes made in a Terraform config file
-func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	databaseID := int64(d.Get("database_id").(int))
 	containerSize := int64(d.Get("container_size").(int))
 	diskSize := int64(d.Get("disk_size").(int))
 	handle := d.Get("handle").(string)
+	var diags diag.Diagnostics
 
 	updates := aptible.DBUpdates{}
 
 	if d.HasChange("container_size") {
 		updates.ContainerSize = containerSize
 	}
-
 	if d.HasChange("disk_size") {
 		updates.DiskSize = diskSize
 	}
@@ -179,14 +182,32 @@ func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	err := client.UpdateDatabase(databaseID, updates)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when completing the request.",
+			Detail:   "There was an error when trying to update the database.",
+		})
+		return diags
 	}
 
 	if d.HasChange("handle") {
-		log.Printf("[WARN] In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.\n", handle)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "You must restart the database to see changes",
+			Detail:   fmt.Sprintf("In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.", handle),
+		})
+		log.Printf(fmt.Sprintf("[WARN] In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.", handle))
 	}
 
-	return resourceDatabaseRead(d, meta)
+	if err := resourceDatabaseRead(d, meta); err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when completing the request.",
+			Detail:   "There was an error when trying to retrieve the updated state of the database.",
+		})
+	}
+
+	return diags
 }
 
 func resourceDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
