@@ -196,7 +196,7 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 			Summary:  "You must restart the database to see changes",
 			Detail:   fmt.Sprintf("In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.", handle),
 		})
-		log.Printf(fmt.Sprintf("[WARN] In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.", handle))
+		log.Printf("[WARN] In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.\n", handle)
 	}
 
 	if err := resourceDatabaseRead(d, meta); err != nil {

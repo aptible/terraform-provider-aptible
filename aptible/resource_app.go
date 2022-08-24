@@ -217,7 +217,7 @@ func resourceAppUpdate(_ context.Context, d *schema.ResourceData, meta interface
 			Summary:  "You must restart the app to see changes",
 			Detail:   fmt.Sprintf("In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.", handle),
 		})
-		log.Printf(fmt.Sprintf("[WARN] In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.", handle))
+		log.Printf("[WARN] In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.\n", handle)
 	}
 
 	if err = resourceAppRead(d, meta); err != nil {
