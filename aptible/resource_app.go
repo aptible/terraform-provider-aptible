@@ -214,8 +214,7 @@ func resourceAppUpdate(_ context.Context, d *schema.ResourceData, meta interface
 		}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
-			Summary:  "You must restart the app to see changes",
-			Detail:   fmt.Sprintf("In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.", handle),
+			Summary:  fmt.Sprintf("You must restart the app to see changes. In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.", handle),
 		})
 		log.Printf("[WARN] In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.\n", handle)
 	}
