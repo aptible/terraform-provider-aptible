@@ -172,12 +172,14 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	if d.HasChange("handle") {
-		log.Printf("Updating handle to %s\n", handle)
+		log.Printf("[INFO] Updating handle to %s\n", handle)
 		updates.Handle = handle
 	}
 
+	// if only changing the handle, you can skip running an operation needlessly
+	// below can be hard to read, but it basically means if nothing besides handle was changed
 	if !d.HasChangesExcept("handle") {
-		updates.OnlyChangingHandle = true
+		updates.SkipOperationUpdate = true
 	}
 
 	err := client.UpdateDatabase(databaseID, updates)

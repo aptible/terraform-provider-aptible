@@ -203,7 +203,7 @@ func resourceAppUpdate(_ context.Context, d *schema.ResourceData, meta interface
 		updates := aptible.AppUpdates{
 			Handle: handle,
 		}
-		log.Printf("Updating handle to %s\n", handle)
+		log.Printf("[INFO] Updating handle to %s\n", handle)
 		if err := client.UpdateApp(appID, updates); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
