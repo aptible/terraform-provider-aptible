@@ -7,11 +7,11 @@ import (
 	"github.com/aptible/go-deploy/models"
 )
 
-type ClientError struct {
+type clientError struct {
 	Payload *models.InlineResponseDefault
 }
 
-func GenerateErrorFromClientError(abstractedError interface{}) error {
+func generateErrorFromClientError(abstractedError interface{}) error {
 	/**
 	Warning - we are using encoding/decoding to extract values from generated go-swagger client code pointers
 
@@ -24,7 +24,7 @@ func GenerateErrorFromClientError(abstractedError interface{}) error {
 		return fmt.Errorf("Unable to properly decode error in marshal from client - %s\n", err.Error())
 	}
 
-	var out ClientError
+	var out clientError
 	if err := json.Unmarshal(data, &out); err != nil {
 		return fmt.Errorf("Unable to properly decode error in unmarshal from client - %s\n", err.Error())
 	}

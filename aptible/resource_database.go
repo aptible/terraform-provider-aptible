@@ -99,7 +99,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 		image, err := client.GetDatabaseImageByTypeAndVersion(databaseType, version)
 		if err != nil {
 			log.Println(err)
-			return err
+			return generateErrorFromClientError(err)
 		}
 		attrs.DatabaseImageID = image.ID
 	}
@@ -107,7 +107,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	database, err := client.CreateDatabase(envID, attrs)
 	if err != nil {
 		log.Println(err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	_ = d.Set("database_id", database.ID)
@@ -124,7 +124,7 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	database, err := client.GetDatabase(databaseID)
 	if err != nil {
 		log.Println(err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	if database.Deleted {
@@ -186,8 +186,8 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "There was an error when completing the request.",
-			Detail:   "There was an error when trying to update the database.",
+			Summary:  "There was an error when trying to update the database.",
+			Detail:   generateErrorFromClientError(err).Error(),
 		})
 		return diags
 	}
@@ -203,8 +203,8 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	if err := resourceDatabaseRead(d, meta); err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "There was an error when completing the request.",
-			Detail:   "There was an error when trying to retrieve the updated state of the database.",
+			Summary:  "There was an error when trying to retrieve the updated state of the database.",
+			Detail:   generateErrorFromClientError(err).Error(),
 		})
 	}
 
@@ -218,7 +218,7 @@ func resourceDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	err := client.DeleteDatabase(databaseID)
 	if err != nil {
 		log.Println(err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	d.SetId("")
