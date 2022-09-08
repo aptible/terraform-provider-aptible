@@ -2,7 +2,9 @@ package aptible
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 
 	"github.com/aptible/go-deploy/models"
 )
@@ -19,6 +21,16 @@ func generateErrorFromClientError(abstractedError interface{}) error {
 	https://github.com/go-swagger/go-swagger/issues/1007
 	https://github.com/go-swagger/go-swagger/issues/2590
 	*/
+	var errorString string
+
+	defer func() {
+		// encoding/json library can potentially error with a panic, causing poorly handled errors
+		if err := recover(); err != nil {
+			errorString = "[ERROR] panic occurred in marshal or unmarshalling of json client"
+			log.Println(errorString, err)
+		}
+	}()
+
 	data, err := json.Marshal(&abstractedError)
 	if err != nil {
 		return fmt.Errorf("Unable to properly decode error in marshal from client - %s\n", err.Error())
@@ -48,6 +60,12 @@ func generateErrorFromClientError(abstractedError interface{}) error {
 			errString,
 		)
 	}
+	errorString = fmt.Sprintf(
+		"Error with status code: %d. %s - %s\n",
+		*out.Payload.Code,
+		*out.Payload.Error,
+		*out.Payload.Message,
+	)
 
-	return fmt.Errorf("Error with status code: %d. %s - %s\n", *out.Payload.Code, *out.Payload.Error, *out.Payload.Message)
+	return errors.New(errorString)
 }
