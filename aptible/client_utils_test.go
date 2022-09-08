@@ -71,6 +71,22 @@ func TestGenerateErrorFromClientError(t *testing.T) {
 			wantErr:   true,
 			errorBody: "unable to properly decode error (missing fields to properly generate error) status code (400) error message (resource not found)",
 		},
+		{
+			name: "return a marshalable error (if server sends back garbled response)",
+			args: args{
+				abstractedError: nil,
+			},
+			wantErr:   true,
+			errorBody: "Unable to properly decode error in marshal from client - json: cannot unmarshal string into Go value of type aptible.clientError\n",
+		},
+		{
+			name: "return a unmarshalable error (but unmarshalable into expected type)",
+			args: args{
+				abstractedError: "{",
+			},
+			wantErr:   true,
+			errorBody: "Unable to properly decode error in unmarshal from client - json: cannot unmarshal string into Go value of type aptible.clientError\n",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
