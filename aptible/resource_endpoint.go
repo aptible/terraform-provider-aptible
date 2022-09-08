@@ -143,7 +143,7 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	endpointType, err := aptible.GetEndpointType(humanReadableEndpointType)
 	if err != nil {
 		log.Println(err)
-		return generateErrorFromClientError(err)
+		return err
 	}
 
 	defaultDomain := d.Get("default_domain").(bool)

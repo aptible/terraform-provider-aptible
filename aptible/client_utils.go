@@ -26,8 +26,8 @@ func generateErrorFromClientError(abstractedError interface{}) error {
 	defer func() {
 		// encoding/json library can potentially error with a panic, causing poorly handled errors
 		if err := recover(); err != nil {
-			errorString = "[ERROR] panic occurred in marshal or unmarshalling of json client"
-			log.Println(errorString, err)
+			errorString = "panic occurred in marshal or unmarshalling of json client"
+			log.Println(fmt.Sprintf("[ERROR] %s", errorString), err)
 		}
 	}()
 
