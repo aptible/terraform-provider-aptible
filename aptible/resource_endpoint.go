@@ -125,13 +125,13 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 		service, err = client.GetServiceForAppByName(resourceID, processType)
 		if err != nil {
 			log.Println(err)
-			return err
+			return generateErrorFromClientError(err)
 		}
 	} else {
 		database, err := client.GetDatabase(resourceID)
 		if err != nil {
 			log.Println(err)
-			return err
+			return generateErrorFromClientError(err)
 		}
 		service = database.Service
 	}
@@ -180,7 +180,7 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	endpoint, err := client.CreateEndpoint(service, attrs)
 	if err != nil {
 		log.Println("There was an error when completing the request to create the endpoint.\n[ERROR] -", err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	_ = d.Set("endpoint_id", endpoint.ID)
@@ -203,7 +203,7 @@ func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
 	endpoint, err := client.GetEndpoint(endpointID)
 	if err != nil {
 		log.Println(err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 	if endpoint.Deleted {
 		d.SetId("")
@@ -261,7 +261,7 @@ func resourceEndpointUpdate(d *schema.ResourceData, meta interface{}) error {
 	err := client.UpdateEndpoint(endpointID, updates)
 	if err != nil {
 		log.Println("There was an error when completing the request.\n[ERROR] -", err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	return resourceEndpointRead(d, meta)
@@ -273,7 +273,7 @@ func resourceEndpointDelete(d *schema.ResourceData, meta interface{}) error {
 	err := client.DeleteEndpoint(endpointID)
 	if err != nil {
 		log.Println(err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	d.SetId("")

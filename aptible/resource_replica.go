@@ -74,7 +74,7 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 	replica, err := client.CreateReplica(attrs)
 	if err != nil {
 		log.Println(err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	_ = d.Set("replica_id", replica.ID)
@@ -97,7 +97,7 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 	replica, err := client.GetReplica(replicaID)
 	if err != nil {
 		log.Println(err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 	if replica.Deleted {
 		d.SetId("")
@@ -135,7 +135,7 @@ func resourceReplicaUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	err := client.UpdateReplica(replicaID, updates)
 	if err != nil {
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	return resourceReplicaRead(d, meta)
@@ -147,7 +147,7 @@ func resourceReplicaDelete(d *schema.ResourceData, meta interface{}) error {
 	err := client.DeleteReplica(replicaID)
 	if err != nil {
 		log.Println(err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	d.SetId("")

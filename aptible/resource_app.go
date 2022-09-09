@@ -83,7 +83,7 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	app, err := client.CreateApp(handle, envID)
 	if err != nil {
 		log.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 	d.SetId(strconv.Itoa(int(app.ID)))
 	_ = d.Set("app_id", app.ID)
@@ -94,7 +94,7 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 		err := client.DeployApp(config, app.ID)
 		if err != nil {
 			log.Println("There was an error when completing the request to configure the app.\n[ERROR] -", err)
-			return err
+			return generateErrorFromClientError(err)
 		}
 	}
 
@@ -106,7 +106,7 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	// TODO: We can check for services scaled to 1 GB/1 container before scaling.
 	err = scaleServices(d, meta)
 	if err != nil {
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	return resourceAppRead(d, meta)
@@ -180,8 +180,8 @@ func resourceAppUpdate(_ context.Context, d *schema.ResourceData, meta interface
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
-				Summary:  "There was an error when completing the request.",
-				Detail:   "There was an error when trying to deploy the app.",
+				Summary:  "There was an error when trying to deploy the app.",
+				Detail:   generateErrorFromClientError(err).Error(),
 			})
 			log.Println("There was an error when completing the request.\n[ERROR] -", err)
 			return diags
@@ -192,8 +192,8 @@ func resourceAppUpdate(_ context.Context, d *schema.ResourceData, meta interface
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "There was an error when completing the request.",
-			Detail:   "There was an error when trying to scale services.",
+			Summary:  "There was an error when trying to scale services.",
+			Detail:   generateErrorFromClientError(err).Error(),
 		})
 		return diags
 	}
@@ -207,8 +207,8 @@ func resourceAppUpdate(_ context.Context, d *schema.ResourceData, meta interface
 		if err := client.UpdateApp(appID, updates); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
-				Summary:  "There was an error when completing the request.",
-				Detail:   "There was an error when trying to update the handle.",
+				Summary:  "There was an error when trying to update the handle.",
+				Detail:   generateErrorFromClientError(err).Error(),
 			})
 			return diags
 		}
@@ -222,8 +222,8 @@ func resourceAppUpdate(_ context.Context, d *schema.ResourceData, meta interface
 	if err = resourceAppRead(d, meta); err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "There was an error when completing the request.",
-			Detail:   "There was an error when trying to retrieve the updated state of the app.",
+			Summary:  "There was an error when trying to retrieve the updated state of the app.",
+			Detail:   generateErrorFromClientError(err).Error(),
 		})
 	}
 
@@ -242,7 +242,7 @@ func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 		if err != nil {
 			log.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
-			return err
+			return generateErrorFromClientError(err)
 		}
 	}
 	d.SetId("")
@@ -259,8 +259,8 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 	// try to scale ones that actually change
 	if d.HasChange("service") {
 		log.Println("Detected change in services")
-		old, neue := d.GetChange("service")
-		services = neue.(*schema.Set).Difference(old.(*schema.Set)).List()
+		oldService, newService := d.GetChange("service")
+		services = newService.(*schema.Set).Difference(oldService.(*schema.Set)).List()
 	}
 
 	for _, s := range services {
@@ -274,12 +274,12 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 		service, err := client.GetServiceForAppByName(appID, processType)
 		if err != nil {
 			log.Println("There was an error when finding the service \n[ERROR] -", err)
-			return err
+			return generateErrorFromClientError(err)
 		}
 		err = client.ScaleService(service.ID, containerCount, memoryLimit)
 		if err != nil {
 			log.Println("There was an error when scaling the service \n[ERROR] -", err)
-			return err
+			return generateErrorFromClientError(err)
 		}
 
 	}
