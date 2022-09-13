@@ -106,7 +106,7 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	// TODO: We can check for services scaled to 1 GB/1 container before scaling.
 	err = scaleServices(d, meta)
 	if err != nil {
-		return generateErrorFromClientError(err)
+		return err
 	}
 
 	return resourceAppRead(d, meta)
@@ -193,7 +193,7 @@ func resourceAppUpdate(_ context.Context, d *schema.ResourceData, meta interface
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "There was an error when trying to scale services.",
-			Detail:   generateErrorFromClientError(err).Error(),
+			Detail:   err.Error(),
 		})
 		return diags
 	}
