@@ -56,7 +56,9 @@ func resourceLogDrain() *schema.Resource {
 			"drain_password": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true, // The API generates a password if one isn't provided
 				ForceNew: true,
+				//Sensitive: true,
 			},
 			"drain_port": {
 				Type:     schema.TypeInt,
@@ -159,6 +161,8 @@ func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.SetId(strconv.Itoa(int(logDrain.ID)))
 	_ = d.Set("log_drain_id", logDrain.ID)
+	// The API generates a password if one isn't provided so we need to set it after creation
+	_ = d.Set("drain_password", logDrain.DrainPassword)
 
 	return resourceLogDrainRead(d, meta)
 }
