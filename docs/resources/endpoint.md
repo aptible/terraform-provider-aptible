@@ -38,7 +38,7 @@ resource "aptible_endpoint" "example_endpoint" {
 - `endpoint_type` - The type of Endpoint. Valid options are `https` or
   `tcp`.
 - `internal` - (Optional) Whether the Endpoint should be available
-  exclusively internally. Default is `false`.
+  exclusively internally. Changing this can be a destructive operation; when this is changed the resource will be destroyed and recreated. Default is `false`.
 - `managed` - (Optional, App only) Whether or not Aptible should manage
   the HTTPS certificate for the Endpoint.
 - `platform` - (Optional) Whether to use an [ALB or ELB](https://www.aptible.com/documentation/deploy/reference/apps/endpoints/https-endpoints/alb-elb.html#alb-elb).
