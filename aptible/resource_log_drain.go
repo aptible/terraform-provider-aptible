@@ -54,11 +54,11 @@ func resourceLogDrain() *schema.Resource {
 				ForceNew: true,
 			},
 			"drain_password": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true, // The API generates a password if one isn't provided
-				ForceNew: true,
-				//Sensitive: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true, // The API generates a password if one isn't provided
+				ForceNew:  true,
+				Sensitive: true,
 			},
 			"drain_port": {
 				Type:     schema.TypeInt,
