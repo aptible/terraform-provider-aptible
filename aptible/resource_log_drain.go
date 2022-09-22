@@ -157,7 +157,7 @@ func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 	logDrain, err := client.CreateLogDrain(handle, accountID, data)
 	if err != nil {
 		log.Println("There was an error when completing the request to create the log drain.\n[ERROR] -", err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 	d.SetId(strconv.Itoa(int(logDrain.ID)))
 	_ = d.Set("log_drain_id", logDrain.ID)
@@ -176,7 +176,7 @@ func resourceLogDrainRead(d *schema.ResourceData, meta interface{}) error {
 	logDrain, err := client.GetLogDrain(logDrainID)
 	if err != nil {
 		log.Println(err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 	if logDrain.Deleted {
 		d.SetId("")
@@ -216,7 +216,7 @@ func resourceLogDrainDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 		if err != nil {
 			log.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
-			return err
+			return generateErrorFromClientError(err)
 		}
 	}
 	d.SetId("")
