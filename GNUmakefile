@@ -4,17 +4,21 @@ PKG_NAME=aptible
 TEST_COUNT?=1
 CUR_DIR = $(shell echo "${PWD}")
 TARGET=darwin_amd64
+LOCAL_TARGET=darwin_$(shell uname -p)64
 
 default: build
 
 build: fmtcheck
 	go build
 
-local-install: build
-	@mkdir -p "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(TARGET)"
+build_local:
+	TARGET=$(LOCAL_TARGET) go build
+
+local-install: build_local
+	@mkdir -p "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(LOCAL_TARGET)"
 	@# If the file isn't explicitly deleted before the copy then terraform fails to load when changes are made
-	@rm "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(TARGET)/terraform-provider-aptible"
-	@cp terraform-provider-aptible "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(TARGET)"
+	@rm "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(LOCAL_TARGET)/terraform-provider-aptible"
+	@cp terraform-provider-aptible "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(LOCAL_TARGET)"
 	@echo "Installed as provider aptible.com/aptible/aptible version 0.0.0+local"
 
 gen:

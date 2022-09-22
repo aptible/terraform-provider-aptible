@@ -24,7 +24,7 @@ resource "aptible_app" "example_app" {
 Application with defined services to control scaling through Terraform
 
 ```hcl
-resource "aptible_app" "APP_HANDLE" {
+resource "aptible_app" "APP" {
     env_id = ENVIRONMENT_ID
     handle = "APP_HANDLE"
     service {

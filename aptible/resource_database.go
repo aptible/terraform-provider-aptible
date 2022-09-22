@@ -1,20 +1,23 @@
 package aptible
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceDatabase() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceDatabaseCreate, // POST
-		Read:   resourceDatabaseRead,   // GET
-		Update: resourceDatabaseUpdate, // PUT
-		Delete: resourceDatabaseDelete, // DELETE
+		Create:        resourceDatabaseCreate, // POST
+		Read:          resourceDatabaseRead,   // GET
+		UpdateContext: resourceDatabaseUpdate, // PUT
+		Delete:        resourceDatabaseDelete, // DELETE
 		Importer: &schema.ResourceImporter{
 			State: resourceDatabaseImport,
 		},
@@ -28,7 +31,6 @@ func resourceDatabase() *schema.Resource {
 			"handle": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"database_type": {
 				Type:         schema.TypeString,
@@ -54,8 +56,9 @@ func resourceDatabase() *schema.Resource {
 				Computed: true,
 			},
 			"default_connection_url": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:      schema.TypeString,
+				Computed:  true,
+				Sensitive: true,
 			},
 			"version": {
 				Type:             schema.TypeString,
@@ -67,8 +70,9 @@ func resourceDatabase() *schema.Resource {
 				Computed: true,
 			},
 			"connection_urls": {
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:      schema.TypeList,
+				Computed:  true,
+				Sensitive: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -95,7 +99,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 		image, err := client.GetDatabaseImageByTypeAndVersion(databaseType, version)
 		if err != nil {
 			log.Println(err)
-			return err
+			return generateErrorFromClientError(err)
 		}
 		attrs.DatabaseImageID = image.ID
 	}
@@ -103,7 +107,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	database, err := client.CreateDatabase(envID, attrs)
 	if err != nil {
 		log.Println(err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	_ = d.Set("database_id", database.ID)
@@ -120,7 +124,7 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	database, err := client.GetDatabase(databaseID)
 	if err != nil {
 		log.Println(err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	if database.Deleted {
@@ -150,28 +154,61 @@ func resourceDatabaseImport(d *schema.ResourceData, meta interface{}) ([]*schema
 }
 
 // changes state of actual resource based on changes made in a Terraform config file
-func resourceDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	databaseID := int64(d.Get("database_id").(int))
 	containerSize := int64(d.Get("container_size").(int))
 	diskSize := int64(d.Get("disk_size").(int))
+	handle := d.Get("handle").(string)
+	var diags diag.Diagnostics
 
 	updates := aptible.DBUpdates{}
 
 	if d.HasChange("container_size") {
 		updates.ContainerSize = containerSize
 	}
-
 	if d.HasChange("disk_size") {
 		updates.DiskSize = diskSize
 	}
 
-	err := client.UpdateDatabase(databaseID, updates)
-	if err != nil {
-		return err
+	if d.HasChange("handle") {
+		log.Printf("[INFO] Updating handle to %s\n", handle)
+		updates.Handle = handle
 	}
 
-	return resourceDatabaseRead(d, meta)
+	// if only changing the handle, you can skip running an operation needlessly
+	// below can be hard to read, but it basically means if nothing besides handle was changed
+	if !d.HasChangesExcept("handle") {
+		updates.SkipOperationUpdate = true
+	}
+
+	err := client.UpdateDatabase(databaseID, updates)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when trying to update the database.",
+			Detail:   generateErrorFromClientError(err).Error(),
+		})
+		return diags
+	}
+
+	if d.HasChange("handle") {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  fmt.Sprintf("You must reload the database to see changes. In order for the new database name (%s) to appear in log drain and metric drain destinations, you must reload the database.  You can use the CLI to do this with: 'aptible db:reload %s'", handle, handle),
+		})
+		log.Printf("[WARN] In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.\n", handle)
+	}
+
+	if err := resourceDatabaseRead(d, meta); err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when trying to retrieve the updated state of the database.",
+			Detail:   generateErrorFromClientError(err).Error(),
+		})
+	}
+
+	return diags
 }
 
 func resourceDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
@@ -181,7 +218,7 @@ func resourceDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	err := client.DeleteDatabase(databaseID)
 	if err != nil {
 		log.Println(err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	d.SetId("")

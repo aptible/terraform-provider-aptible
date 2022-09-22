@@ -9,6 +9,11 @@ that the [cli](https://www.aptible.com/documentation/deploy/cli.html) uses.
 Therefore, you should log into the account you want to use Terraform with using
 the `aptible login` CLI command before running any Terraform commands.
 
+As another option the environment variables `APTIBLE_USERNAME` and
+`APTIBLE_PASSWORD` can be set for the provider to use. In this case it is
+strongly recommended that a robot account be used, especially as MFA needs to
+be disabled for truly automated runs.
+
 ### Determining the Environment ID
 
 Each resource managed via Terraform requires an Environment ID specifying which
@@ -41,7 +46,7 @@ data "aptible_app" "techo-app" {
 created using the `terraform_aptible_app` resource.
 
 ```hcl
-data "aptible_app" "APP_HANDLE" {
+data "aptible_app" "APP" {
     handle = "APP_HANDLE"
 }
 ```
@@ -54,7 +59,7 @@ Docker images hosted in a Docker image registry.
 Apps configurations can be managed via the nested `config` element.
 
 ```hcl
-resource "aptible_app" "APP_HANDLE" {
+resource "aptible_app" "APP" {
     env_id = ENVIRONMENT_ID
     handle = "APP_HANDLE"
     config = {
@@ -71,7 +76,7 @@ private repositories can be provided using the
 `APTIBLE_PRIVATE_REGISTRY_PASSWORD` configuration values.
 
 ```hcl
-resource "aptible_app" "APP_HANDLE" {
+resource "aptible_app" "APP" {
     env_id = ENVIRONMENT_ID
     handle = "APP_HANDLE"
     config = {
@@ -101,7 +106,7 @@ Service name used in the Procfile. If you are not using a Procfile,
 you will have a single Service with the `process_type` of `cmd`
 
 ```hcl
-resource "aptible_app" "APP_HANDLE" {
+resource "aptible_app" "APP" {
     env_id = ENVIRONMENT_ID
     handle = "APP_HANDLE"
     service {
@@ -129,7 +134,7 @@ can be managed using the `terraform_aptible_endpoint` resource.
 resource "aptible_endpoint" "EXAMPLE" {
     env_id = ENVIONMENT_ID
     process_type = "SERVICE_NAME"
-    resource_id = aptible_app.APP_HANDLE.app_id
+    resource_id = aptible_app.APP.app_id
     default_domain = true
     endpoint_type = "https"
     internal = false
@@ -144,7 +149,7 @@ resource "aptible_endpoint" "EXAMPLE" {
 can be managed using the `terraform_aptible_database` resource.
 
 ```hcl
-resource "aptible_database" "DATABASE_HANDLE" {
+resource "aptible_database" "DATABASE" {
     env_id = ENVIRONMENT_ID
     handle = "DATABASE_HANDLE"
     database_type = "redis"
@@ -162,7 +167,7 @@ can be created using the `terraform_aptible_replica` resource.
 ```hcl
 resource "aptible_replica" "REPLICA_HANDLE" {
     env_id = ENVIRONMENT_ID
-    primary_database_id = aptible_database.DATABASE_HANDLE.database_id
+    primary_database_id = aptible_database.DATABASE.database_id
     handle = "REPLICA_HANDLE"
     disk_size = 30
 }

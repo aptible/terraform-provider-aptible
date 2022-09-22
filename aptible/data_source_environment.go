@@ -26,7 +26,7 @@ func resourceEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
 	handle := d.Get("handle").(string)
 	id, err := client.GetEnvironmentIDFromHandle(handle)
 	if err != nil {
-		return err
+		return generateErrorFromClientError(err)
 	}
 
 	_ = d.Set("env_id", id)

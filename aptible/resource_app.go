@@ -1,20 +1,23 @@
 package aptible
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceApp() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAppCreate, // POST
-		Read:   resourceAppRead,   // GET
-		Update: resourceAppUpdate, // PUT
-		Delete: resourceAppDelete, // DELETE
+		Create:        resourceAppCreate, // POST
+		Read:          resourceAppRead,   // GET
+		UpdateContext: resourceAppUpdate, // PUT
+		Delete:        resourceAppDelete, // DELETE
 		Importer: &schema.ResourceImporter{
 			State: resourceAppImport,
 		},
@@ -28,7 +31,6 @@ func resourceApp() *schema.Resource {
 			"handle": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"config": {
 				Type:     schema.TypeMap,
@@ -81,7 +83,7 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	app, err := client.CreateApp(handle, envID)
 	if err != nil {
 		log.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
-		return err
+		return generateErrorFromClientError(err)
 	}
 	d.SetId(strconv.Itoa(int(app.ID)))
 	_ = d.Set("app_id", app.ID)
@@ -92,7 +94,7 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 		err := client.DeployApp(config, app.ID)
 		if err != nil {
 			log.Println("There was an error when completing the request to configure the app.\n[ERROR] -", err)
-			return err
+			return generateErrorFromClientError(err)
 		}
 	}
 
@@ -155,15 +157,16 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAppUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAppUpdate(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	appID := int64(d.Get("app_id").(int))
+
+	var diags diag.Diagnostics
 
 	if d.HasChange("config") {
 		o, c := d.GetChange("config")
 		old := o.(map[string]interface{})
 		config := c.(map[string]interface{})
-
 		// Set any old keys that are not present to an empty string.
 		// The API will then clear them during normalization otherwise
 		// the old values will be merged with the new
@@ -175,17 +178,56 @@ func resourceAppUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		err := client.DeployApp(config, appID)
 		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when trying to deploy the app.",
+				Detail:   generateErrorFromClientError(err).Error(),
+			})
 			log.Println("There was an error when completing the request.\n[ERROR] -", err)
-			return err
+			return diags
 		}
 	}
 
 	err := scaleServices(d, meta)
 	if err != nil {
-		return err
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when trying to scale services.",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 
-	return resourceAppRead(d, meta)
+	handle := d.Get("handle").(string)
+	if d.HasChange("handle") {
+		updates := aptible.AppUpdates{
+			Handle: handle,
+		}
+		log.Printf("[INFO] Updating handle to %s\n", handle)
+		if err := client.UpdateApp(appID, updates); err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when trying to update the handle.",
+				Detail:   generateErrorFromClientError(err).Error(),
+			})
+			return diags
+		}
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  fmt.Sprintf("You must restart the app to see changes. In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app. You can use the CLI to do this with: 'aptible restart --app=%s'.", handle, handle),
+		})
+		log.Printf("[WARN] In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.\n", handle)
+	}
+
+	if err = resourceAppRead(d, meta); err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when trying to retrieve the updated state of the app.",
+			Detail:   generateErrorFromClientError(err).Error(),
+		})
+	}
+
+	return diags
 }
 
 func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
@@ -200,7 +242,7 @@ func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 		if err != nil {
 			log.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
-			return err
+			return generateErrorFromClientError(err)
 		}
 	}
 	d.SetId("")
@@ -217,8 +259,8 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 	// try to scale ones that actually change
 	if d.HasChange("service") {
 		log.Println("Detected change in services")
-		old, neue := d.GetChange("service")
-		services = neue.(*schema.Set).Difference(old.(*schema.Set)).List()
+		oldService, newService := d.GetChange("service")
+		services = newService.(*schema.Set).Difference(oldService.(*schema.Set)).List()
 	}
 
 	for _, s := range services {
@@ -232,12 +274,12 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 		service, err := client.GetServiceForAppByName(appID, processType)
 		if err != nil {
 			log.Println("There was an error when finding the service \n[ERROR] -", err)
-			return err
+			return generateErrorFromClientError(err)
 		}
 		err = client.ScaleService(service.ID, containerCount, memoryLimit)
 		if err != nil {
 			log.Println("There was an error when scaling the service \n[ERROR] -", err)
-			return err
+			return generateErrorFromClientError(err)
 		}
 
 	}

@@ -32,6 +32,9 @@ resource "aptible_endpoint" "example_endpoint" {
 - `default_domain` - (Optional, App only) Whether or not we should create
   a domain using our default on-aptible.com URL for the Endpoint. Only one
   Endpoint using a default domain is permitted per App.
+- `domain` - (Optional, App only) Managed TLS Hostname. Required when using
+  Managed TLS (`managed`). Not compatible with Default Domain. Must match
+  hostname of certificate if present.
 - `endpoint_type` - The type of Endpoint. Valid options are `https` or
   `tcp`.
 - `internal` - (Optional) Whether the Endpoint should be available
