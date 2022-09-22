@@ -204,7 +204,7 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "There was an error when trying to retrieve the updated state of the database.",
-			Detail:   generateErrorFromClientError(err).Error(),
+			Detail:   err.Error(),
 		})
 	}
 
