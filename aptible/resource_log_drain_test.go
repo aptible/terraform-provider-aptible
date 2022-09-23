@@ -129,6 +129,91 @@ func TestAccResourceLogDrain_datadog(t *testing.T) {
 	})
 }
 
+func TestAccResourceLogDrain_sumologic(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLogDrainDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleLogDrainSumologic(rHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_type", "sumologic"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "handle", rHandle),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "url", "https://www.sumologic.com"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_apps", "true"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_databases", "true"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_ephemeral_sessions", "true"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_proxies", "false"),
+				),
+			}, {
+				ResourceName:      "aptible_log_drain.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccResourceLogDrain_logdna(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLogDrainDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleLogDrainLogdna(rHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_type", "logdna"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "handle", rHandle),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_username", "test_username"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_apps", "true"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_databases", "true"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_ephemeral_sessions", "true"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_proxies", "false"),
+				),
+			}, {
+				ResourceName:      "aptible_log_drain.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccResourceLogDrain_papertrail(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLogDrainDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleLogDrainPapertrail(rHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_type", "papertrail"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "handle", rHandle),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_host", "www.papertrail.com"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_port", "1234"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_apps", "true"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_databases", "true"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_ephemeral_sessions", "true"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_proxies", "false"),
+				),
+			}, {
+				ResourceName:      "aptible_log_drain.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccResourceLogDrain_fields(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
@@ -244,6 +329,40 @@ resource "aptible_log_drain" "test" {
     drain_type = "datadog"
     token = "test_username"
     tags = "test_token"
+}
+`, testEnvironmentId, handle)
+}
+
+func testAccAptibleLogDrainSumologic(handle string) string {
+	return fmt.Sprintf(`
+resource "aptible_log_drain" "test" {
+    env_id = %d
+    handle = "%v"
+    drain_type = "sumologic"
+		url = "https://www.sumologic.com"
+}
+`, testEnvironmentId, handle)
+}
+
+func testAccAptibleLogDrainLogdna(handle string) string {
+	return fmt.Sprintf(`
+resource "aptible_log_drain" "test" {
+    env_id = %d
+    handle = "%v"
+    drain_type = "logdna"
+    drain_username = "test_username"
+}
+`, testEnvironmentId, handle)
+}
+
+func testAccAptibleLogDrainPapertrail(handle string) string {
+	return fmt.Sprintf(`
+resource "aptible_log_drain" "test" {
+    env_id = %d
+    handle = "%v"
+    drain_type = "papertrail"
+    drain_host = "www.papertrail.com"
+    drain_port = "1234"
 }
 `, testEnvironmentId, handle)
 }

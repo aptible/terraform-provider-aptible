@@ -67,10 +67,11 @@ func resourceLogDrain() *schema.Resource {
 				ForceNew: true,
 			},
 			"logging_token": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true,
+				ForceNew:  true,
+				Sensitive: true,
 			},
 			"url": {
 				Type:     schema.TypeString,
@@ -103,10 +104,11 @@ func resourceLogDrain() *schema.Resource {
 			},
 			// aliases
 			"token": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true,
+				ForceNew:  true,
+				Sensitive: true,
 			},
 			"pipeline": {
 				Type:     schema.TypeString,
