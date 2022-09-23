@@ -46,6 +46,7 @@ func resourceLogDrain() *schema.Resource {
 			"drain_username": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"drain_host": {
@@ -68,6 +69,7 @@ func resourceLogDrain() *schema.Resource {
 			"logging_token": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"url": {
@@ -103,16 +105,19 @@ func resourceLogDrain() *schema.Resource {
 			"token": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"pipeline": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"tags": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 		},
@@ -163,6 +168,9 @@ func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("log_drain_id", logDrain.ID)
 	// The API generates a password if one isn't provided so we need to set it after creation
 	_ = d.Set("drain_password", logDrain.DrainPassword)
+	// alias support
+	_ = d.Set("drain_username", logDrain.DrainUsername)
+	_ = d.Set("logging_token", logDrain.LoggingToken)
 
 	return resourceLogDrainRead(d, meta)
 }
