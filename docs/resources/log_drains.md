@@ -55,15 +55,15 @@ necessarily set up properly in Aptible.
 - `drain_ephemeral_sessions` - (Optional, default `False`) The configuration for sending logs from ephemeral sessions.
 - `database_id` - The database id used for log drains
 - `drain_host` - The host destination where log drains will be sent
-- `drain_password` - The password for the host destination where log drains
+- `drain_password` - The password for the host destination where logs
   will be sent
 - `drain_port` - The port for the host destination where logs drains will be
   sent
-- `logging_token` - Tag for syslog, logdna, or datadog
+- `logging_token` - Tag for syslog
 - `url` - The destination url where the logs will be sent
-- `tags` - (alias for `logging_token`) tags for logdna or datadog
-- `token` - (alias for `drain_username`) API token used for logdna or datadog
-- `pipeline` - (alias for `logging_token`) used for elasticsearch
+- `tags` - Tags for logdna or datadog
+- `token` - API token used for logdna or datadog
+- `pipeline` - The elasticsearch pipeline to use
 
 ### Arguments based on `drain_type`
 
