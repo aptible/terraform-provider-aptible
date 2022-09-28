@@ -17,7 +17,7 @@ build_local:
 local-install: build_local
 	@mkdir -p "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(LOCAL_TARGET)"
 	@# If the file isn't explicitly deleted before the copy then terraform fails to load when changes are made
-	@rm "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(LOCAL_TARGET)/terraform-provider-aptible"
+	@rm "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(LOCAL_TARGET)/terraform-provider-aptible" || true
 	@cp terraform-provider-aptible "$$HOME/.terraform.d/plugins/aptible.com/aptible/aptible/0.0.0+local/$(LOCAL_TARGET)"
 	@echo "Installed as provider aptible.com/aptible/aptible version 0.0.0+local"
 

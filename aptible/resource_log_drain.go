@@ -104,23 +104,23 @@ func resourceLogDrain() *schema.Resource {
 			},
 			// aliases
 			"token": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				ForceNew:  true,
-				Sensitive: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"drain_username"},
 			},
 			"pipeline": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"logging_token"},
 			},
 			"tags": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"logging_token"},
 			},
 		},
 	}
@@ -168,11 +168,6 @@ func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.SetId(strconv.Itoa(int(logDrain.ID)))
 	_ = d.Set("log_drain_id", logDrain.ID)
-	// The API generates a password if one isn't provided so we need to set it after creation
-	_ = d.Set("drain_password", logDrain.DrainPassword)
-	// alias support
-	_ = d.Set("drain_username", logDrain.DrainUsername)
-	_ = d.Set("logging_token", logDrain.LoggingToken)
 
 	return resourceLogDrainRead(d, meta)
 }
@@ -207,9 +202,16 @@ func resourceLogDrainRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("drain_apps", logDrain.DrainApps)
 	_ = d.Set("env_id", logDrain.AccountID)
 	_ = d.Set("database_id", logDrain.DatabaseID)
-	_ = d.Set("token", logDrain.DrainUsername)
-	_ = d.Set("tags", logDrain.LoggingToken)
-	_ = d.Set("pipeline", logDrain.LoggingToken)
+
+	// alias support
+	if logDrain.DrainType == "elasticsearch_database" {
+		_ = d.Set("pipeline", logDrain.LoggingToken)
+	}
+
+	if logDrain.DrainType == "datadog" || logDrain.DrainType == "logdna" {
+		_ = d.Set("token", logDrain.DrainUsername)
+		_ = d.Set("tags", logDrain.LoggingToken)
+	}
 
 	return nil
 }
