@@ -55,11 +55,11 @@ isn't necessarily set up properly in Aptible.
 - `drain_ephemeral_sessions` - (Optional, default `False`) If the drain should
   collect logs from SSH sessions.
 - `database_id` - The ID of the elasticsearch database that
-`elasticsearch_database` drains should send logs to.
+  `elasticsearch_database` drains should send logs to.
 - `drain_host` - The host name of the destination to send logs to.
-- `drain_password` - The password for the destination where logs will be sent.
 - `drain_port` - The port for the destination where logs drains will be sent.
-- `logging_token` - The logging token prepended logs by `syslog` drains.
+- `logging_token` - The logging token prepended to logs by `syslog` and
+  `papertrail` drains.
 - `url` - The destination url where the logs will be sent.
 - `tags` - A comma-separated list of additional tags to apply logs collected by
   `logdna` and `datadog` drains.
@@ -83,6 +83,7 @@ The following arguments are required for all log drains:
 
 - `drain_host` (Required)
 - `drain_port` (Required)
+- `logging_token` (Optional)
 
 #### `elasticsearch_database`
 
@@ -107,13 +108,13 @@ The following arguments are required for all log drains:
 
 - `token` (Required)
 - `drain_host` (Optional)
-- `drain_password` (Optional)
 - `tags` (Optional)
 
 #### `papertrail`
 
 - `drain_host` (Required)
 - `drain_port` (Required)
+- `logging_token` (Optional)
 
 ## Attribute Reference
 
