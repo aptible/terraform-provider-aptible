@@ -1,4 +1,4 @@
-# Aptible App Resource
+# Aptible Endpoint Resource
 
 This resource is used to create and manage endpoints for
 [Apps](https://www.aptible.com/documentation/deploy/reference/apps/endpoints.html)
@@ -25,7 +25,7 @@ resource "aptible_endpoint" "example_endpoint" {
 ## Argument Reference
 
 - `env_id` - The ID of the environment you would like to deploy your
-  App in. See main provider documentation for more on how to determine what
+  Endpoint in. See main provider documentation for more on how to determine what
   you should use for `env_id`.
 - `container_port` - (Optional, Apps only) The port on the container which
   the Endpoint should forward traffic to.

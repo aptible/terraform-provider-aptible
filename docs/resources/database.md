@@ -26,7 +26,7 @@ resource "aptible_database" "example_database" {
 ## Argument Reference
 
 - `env_id` - The ID of the environment you would like to deploy your
-  App in. See main provider documentation for more on how to determine what
+  Database in. See main provider documentation for more on how to determine what
   you should use for `env_id`.
 - `handle` - The handle for the Database. This must be all lower case, and
   only contain letters, numbers, `-`, `_`, or `.`
