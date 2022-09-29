@@ -22,8 +22,8 @@ resource "aptible_replica" "example_database_replica" {
 ## Argument Reference
 
 - `env_id` - The ID of the environment you would like to deploy your
-  App in. The Environment does not have to be the same as the primary database,
-  but the Environment does have to be in the same
+  Database in. The Environment does not have to be the same as the primary
+  database, but the Environment does have to be in the same
   [stack](https://www.aptible.com/documentation/deploy/reference/stacks.html)
   as the primary Database. See main provider documentation for more on how to
   determine what you should use for `env_id`.
