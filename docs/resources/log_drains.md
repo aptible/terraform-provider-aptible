@@ -32,17 +32,17 @@ resource "aptible_log_drain" "http_log_drain" {
 The required arguments vary based on `drain_type`.
 
 Because we support a lot of different destinations for log drains, we could not
-properly validate all the required fields for each `drain_type`
-within terraform.
+properly validate all the required fields for each `drain_type` within
+terraform.
 
 It's entirely possible that terraform will pass its linting but the log drain
 isn't necessarily set up properly in Aptible.
 
-- `env_id` (Required) - The ID of the Environment you would like to create your
+- `env_id` (Required) - The ID of the environment you would like to create your
   Log Drain in. See main provider documentation for more on how to determine
   what you should use for `env_id`.
 - `handle` (Required) - The handle for the log drain. This must be all lower
-case, and only contain letters, numbers, `-`, `_`, or `.`.
+  case, and only contain letters, numbers, `-`, `_`, or `.`.
 - `drain_type` (Required) - The type of log drain: `syslog_tls_tcp`,
   `elasticsearch_database`, `https_post`, `sumologic`, `logdna`, `datadog`,
   `papertrail`.
