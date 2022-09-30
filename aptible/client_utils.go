@@ -48,9 +48,6 @@ func generateErrorFromClientError(abstractedError interface{}) error {
 			"Error without a valid payload: ", abstractedError, "\n",
 		)
 	} else if out.Payload.Code == nil || out.Payload.Error == nil {
-		if err != nil {
-			errorString = fmt.Sprintf("- %s", err.Error())
-		}
 		if out.Payload.Code != nil && *out.Payload.Code >= 400 {
 			errorString += fmt.Sprintf(" status code (%d)", *out.Payload.Code)
 		}
