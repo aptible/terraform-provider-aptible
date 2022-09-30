@@ -81,7 +81,7 @@ func TestGenerateErrorFromClientError(t *testing.T) {
 			errorBody: "Error without a valid payload: <nil>\n",
 		},
 		{
-			name: "return a unmarshalable error (but unmarshalable into expected type)",
+			name: "return a unmarshalable error (invalid json)",
 			args: args{
 				abstractedError: "{",
 			},
@@ -89,7 +89,7 @@ func TestGenerateErrorFromClientError(t *testing.T) {
 			errorBody: "Unable to properly decode error in unmarshal from client - json: cannot unmarshal string into Go value of type aptible.clientError\n",
 		},
 		{
-			name: "return a unmarshalable error (but unmarshalable into expected type)",
+			name: "return a marshalable error but without a payload (regular errors, non-swagger client)",
 			args: args{
 				abstractedError: errors.New("any old error that is not json type"),
 			},
