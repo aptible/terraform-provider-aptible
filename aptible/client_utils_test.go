@@ -100,8 +100,12 @@ func TestGenerateErrorFromClientError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := generateErrorFromClientError(tt.args.abstractedError)
-			wantErr := err == nil
-			if wantErr == tt.wantErr && tt.errorBody != err.Error() {
+			gotErr := err != nil
+			if tt.wantErr != gotErr {
+				t.Errorf("wanted an error (tt.wantErr), but did not get an error (gotErr) OR didn't want an error" +
+					"and got an error!")
+			}
+			if tt.wantErr == gotErr && tt.errorBody != err.Error() {
 				t.Errorf("generateErrorFromClientError() error = %v, wantErr %v, errorBody %s", err, tt.wantErr, tt.errorBody)
 			}
 		})
