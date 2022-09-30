@@ -99,7 +99,9 @@ func TestGenerateErrorFromClientError(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := generateErrorFromClientError(tt.args.abstractedError); (err != nil) == tt.wantErr && tt.errorBody != err.Error() {
+			err := generateErrorFromClientError(tt.args.abstractedError)
+			wantErr := err == nil
+			if wantErr == tt.wantErr && tt.errorBody != err.Error() {
 				t.Errorf("generateErrorFromClientError() error = %v, wantErr %v, errorBody %s", err, tt.wantErr, tt.errorBody)
 			}
 		})
