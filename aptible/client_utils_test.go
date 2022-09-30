@@ -105,7 +105,7 @@ func TestGenerateErrorFromClientError(t *testing.T) {
 				t.Errorf("wanted an error (tt.wantErr), but did not get an error (gotErr) OR didn't want an error" +
 					"and got an error!")
 			}
-			if tt.wantErr == gotErr && tt.errorBody != err.Error() {
+			if gotErr && tt.errorBody != err.Error() {
 				t.Errorf("generateErrorFromClientError() error = %v, wantErr %v, errorBody %s", err, tt.wantErr, tt.errorBody)
 			}
 		})
