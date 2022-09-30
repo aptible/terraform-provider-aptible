@@ -31,6 +31,7 @@ func generateErrorFromClientError(abstractedError interface{}) error {
 		}
 	}()
 
+	log.Println("[ERROR] error received and being processed", abstractedError)
 	data, err := json.Marshal(&abstractedError)
 	if err != nil {
 		return fmt.Errorf("Unable to properly decode error in marshal from client - %s\n", err.Error())
@@ -41,31 +42,37 @@ func generateErrorFromClientError(abstractedError interface{}) error {
 		return fmt.Errorf("Unable to properly decode error in unmarshal from client - %s\n", err.Error())
 	}
 
-	if out.Payload.Code == nil || out.Payload.Error == nil {
-		var errString string
-		if err != nil {
-			errString = fmt.Sprintf("- %s", err.Error())
-		}
+	// payload is a pointer and can be nil, but we don't have all our information from a http code, so we construct it
+	if out.Payload == nil {
+		errorString = fmt.Sprint(
+			"Error without a valid payload: ", abstractedError, "\n",
+		)
+	} else if out.Payload.Code == nil || out.Payload.Error == nil {
 		if out.Payload.Code != nil && *out.Payload.Code >= 400 {
-			errString += fmt.Sprintf(" status code (%d)", *out.Payload.Code)
+			errorString += fmt.Sprintf(" status code (%d)", *out.Payload.Code)
 		}
+
 		if out.Payload.Error != nil && len(*out.Payload.Error) > 0 {
-			errString += fmt.Sprintf(" error (%s)", *out.Payload.Error)
+			errorString += fmt.Sprintf(" error (%s)", *out.Payload.Error)
 		}
+
 		if out.Payload.Message != nil && len(*out.Payload.Message) > 0 {
-			errString += fmt.Sprintf(" error message (%s)", *out.Payload.Message)
+			errorString += fmt.Sprintf(" error message (%s)", *out.Payload.Message)
 		}
+
 		return fmt.Errorf(
-			"unable to properly decode error (missing fields to properly generate error)%s",
-			errString,
+			"unable to properly decode error (missing fields to properly generate error) - %s\n",
+			errorString,
+		)
+	} else {
+		// payload is not nil, and fully populated
+		errorString = fmt.Sprintf(
+			"Error with status code: %d. %s - %s\n",
+			*out.Payload.Code,
+			*out.Payload.Error,
+			*out.Payload.Message,
 		)
 	}
-	errorString = fmt.Sprintf(
-		"Error with status code: %d. %s - %s\n",
-		*out.Payload.Code,
-		*out.Payload.Error,
-		*out.Payload.Message,
-	)
 
 	return errors.New(errorString)
 }

@@ -1,6 +1,7 @@
 package aptible
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -55,7 +56,7 @@ func TestGenerateErrorFromClientError(t *testing.T) {
 				},
 			},
 			wantErr:   true,
-			errorBody: "unable to properly decode error (missing fields to properly generate error) error (not_found) error message (resource not found)",
+			errorBody: "unable to properly decode error (missing fields to properly generate error) -  error (not_found) error message (resource not found)\n",
 		},
 		{
 			name: "return a pre-baked error when error code not found",
@@ -69,28 +70,42 @@ func TestGenerateErrorFromClientError(t *testing.T) {
 				},
 			},
 			wantErr:   true,
-			errorBody: "unable to properly decode error (missing fields to properly generate error) status code (400) error message (resource not found)",
+			errorBody: "unable to properly decode error (missing fields to properly generate error) -  status code (400) error message (resource not found)\n",
 		},
 		{
-			name: "return a marshalable error (if server sends back garbled response)",
+			name: "return a marshalable error with a nil payload should break early",
 			args: args{
 				abstractedError: nil,
 			},
 			wantErr:   true,
-			errorBody: "Unable to properly decode error in marshal from client - json: cannot unmarshal string into Go value of type aptible.clientError\n",
+			errorBody: "Error without a valid payload: <nil>\n",
 		},
 		{
-			name: "return a unmarshalable error (but unmarshalable into expected type)",
+			name: "return a unmarshalable error (invalid json)",
 			args: args{
 				abstractedError: "{",
 			},
 			wantErr:   true,
 			errorBody: "Unable to properly decode error in unmarshal from client - json: cannot unmarshal string into Go value of type aptible.clientError\n",
 		},
+		{
+			name: "return a marshalable error but without a payload (regular errors, non-swagger client)",
+			args: args{
+				abstractedError: errors.New("any old error that is not json type"),
+			},
+			wantErr:   true,
+			errorBody: "Error without a valid payload: any old error that is not json type\n",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := generateErrorFromClientError(tt.args.abstractedError); (err != nil) == tt.wantErr && tt.errorBody != err.Error() {
+			err := generateErrorFromClientError(tt.args.abstractedError)
+			gotErr := err != nil
+			if tt.wantErr != gotErr {
+				t.Errorf("wanted an error (tt.wantErr), but did not get an error (gotErr) OR didn't want an error" +
+					"and got an error!")
+			}
+			if gotErr && tt.errorBody != err.Error() {
 				t.Errorf("generateErrorFromClientError() error = %v, wantErr %v, errorBody %s", err, tt.wantErr, tt.errorBody)
 			}
 		})
