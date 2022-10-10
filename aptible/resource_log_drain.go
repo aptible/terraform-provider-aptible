@@ -227,7 +227,7 @@ func resourceLogDrainDelete(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 		if err != nil {
-			log.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
+			log.Println("There was an error when completing the request to destroy the log drain.\n[ERROR] -", err)
 			return generateErrorFromClientError(err)
 		}
 	}
