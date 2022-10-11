@@ -45,7 +45,7 @@ func TestAccResourceMetricDrain_influxdb(t *testing.T) {
 		CheckDestroy: testAccCheckMetricDrainDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAptibleMetricDrainDatadog(rHandle),
+				Config: testAccAptibleMetricDrainInfluxDB(rHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "handle", rHandle),
@@ -73,7 +73,7 @@ func TestAccResourceMetricDrain_datadog(t *testing.T) {
 		CheckDestroy: testAccCheckMetricDrainDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAptibleMetricDrainInfluxDB(rHandle),
+				Config: testAccAptibleMetricDrainDatadog(rHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "handle", rHandle),
@@ -154,7 +154,7 @@ resource "aptible_metric_drain" "test" {
     handle = "%v"
     drain_type = "datadog"
     api_key = "test_api_key"
-		site_url = "https://test.aptible.com:2022"
+		series_url = "https://test.aptible.com:2022"
 }
 `, testEnvironmentId, handle)
 }

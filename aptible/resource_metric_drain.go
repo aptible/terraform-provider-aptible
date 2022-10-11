@@ -1,7 +1,6 @@
 package aptible
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
@@ -15,10 +14,9 @@ import (
 
 func resourceMetricDrain() *schema.Resource {
 	return &schema.Resource{
-		Create:        resourceMetricDrainCreate,
-		Read:          resourceMetricDrainRead,
-		Delete:        resourceMetricDrainDelete,
-		CustomizeDiff: resourceMetricDrainValidate,
+		Create: resourceMetricDrainCreate,
+		Read:   resourceMetricDrainRead,
+		Delete: resourceMetricDrainDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceMetricDrainImport,
 		},
@@ -86,13 +84,13 @@ func resourceMetricDrain() *schema.Resource {
 	}
 }
 
-func resourceMetricDrainValidate(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+func resourceMetricDrainValidate(d *schema.ResourceData) error {
 	var err error
 
 	switch d.Get("drain_type").(string) {
 	case "influxdb_database":
 		if _, ok := d.GetOk("database_id"); !ok {
-			err = multierror.Append(err, errors.New("database is required when drain_type = \"influxdb_database\""))
+			err = multierror.Append(err, errors.New("database_id is required when drain_type = \"influxdb_database\""))
 		}
 
 		// These are technically ignored by go-deploy for influxdb_database drains
@@ -117,6 +115,10 @@ func resourceMetricDrainValidate(_ context.Context, d *schema.ResourceDiff, _ in
 }
 
 func resourceMetricDrainCreate(d *schema.ResourceData, meta interface{}) error {
+	if err := resourceMetricDrainValidate(d); err != nil {
+		return err
+	}
+
 	client := meta.(*aptible.Client)
 	handle := d.Get("handle").(string)
 	accountID := int64(d.Get("env_id").(int))
