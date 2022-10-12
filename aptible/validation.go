@@ -2,13 +2,8 @@ package aptible
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"net/url"
 )
-
-type ResourceDiff struct {
-	*schema.ResourceDiff
-}
 
 // Modified IsURLWithScheme to simply check for a URL
 // https://github.com/hashicorp/terraform-plugin-sdk/blob/v1.17.2/helper/validation/web.go#L22
@@ -41,9 +36,4 @@ func ValidateURL(i interface{}, k string) (_ []string, errors []error) {
 	}
 
 	return
-}
-
-func (d *ResourceDiff) IsProvided(attr string) bool {
-	_, ok := d.GetOkExists(attr)
-	return ok || !d.NewValueKnown(attr)
 }

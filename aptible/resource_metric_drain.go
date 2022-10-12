@@ -10,7 +10,7 @@ import (
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -88,31 +88,36 @@ func resourceMetricDrain() *schema.Resource {
 	}
 }
 
+var resourceMetricDrainAttrs = map[string]ResourceAttrs{
+	"influxdb_database": {
+		Required:   []string{"database_id"},
+		NotAllowed: []string{"url", "username", "password", "database", "api_key", "series_url"},
+	},
+	"influxdb": {
+		Required:   []string{"url", "username", "password", "database"},
+		NotAllowed: []string{"database_id"},
+	},
+	"datadog": {
+		Required:   []string{"api_key"},
+		NotAllowed: []string{"database_id"},
+	},
+}
+
 func resourceMetricDrainValidate(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
 	d := ResourceDiff{ResourceDiff: diff}
+	drainType := d.Get("drain_type").(string)
 	var err error
 
-	switch d.Get("drain_type").(string) {
-	case "influxdb_database":
-		if !d.IsProvided("database_id") {
-			err = multierror.Append(err, errors.New("database_id is required when drain_type = \"influxdb_database\""))
-		}
+	allowedAttrs := resourceMetricDrainAttrs[drainType]
 
-		// These are technically ignored by go-deploy for influxdb_database drains
-		for _, attr := range []string{"url", "username", "password", "database", "api_key", "series_url"} {
-			if d.IsProvided(attr) {
-				err = multierror.Append(err, errors.New(fmt.Sprintf("%s is not allowed when drain_type = \"influxdb_database\"", attr)))
-			}
+	for _, attr := range allowedAttrs.Required {
+		if !d.HasRequired(attr) {
+			err = multierror.Append(err, errors.New(fmt.Sprintf("%s is required when drain_type = \"%s\"", attr, drainType)))
 		}
-	case "influxdb":
-		for _, attr := range []string{"url", "username", "password", "database"} {
-			if !d.IsProvided(attr) {
-				err = multierror.Append(err, errors.New(fmt.Sprintf("%s is required when drain_type = \"influxdb\"", attr)))
-			}
-		}
-	case "datadog":
-		if !d.IsProvided("api_key") {
-			err = multierror.Append(err, errors.New("api_key is required when drain_type = \"datadog\""))
+	}
+	for _, attr := range allowedAttrs.NotAllowed {
+		if d.HasOptional(attr) {
+			err = multierror.Append(err, errors.New(fmt.Sprintf("%s is not allowed when drain_type = \"%s\"", attr, drainType)))
 		}
 	}
 

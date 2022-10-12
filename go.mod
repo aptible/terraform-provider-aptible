@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/storage v1.15.0 // indirect
 	github.com/Djarvur/go-err113 v0.1.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/aptible/go-deploy v0.1.16-0.20221007185712-d9c2eb51b9a0
+	github.com/aptible/go-deploy v0.2.0
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.38.67 // indirect
 	github.com/bflad/tfproviderdocs v0.9.1
@@ -29,7 +29,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-getter v1.5.4 // indirect
 	github.com/hashicorp/go-hclog v0.16.1 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.4.2 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
 	github.com/hashicorp/hcl/v2 v2.10.0 // indirect
