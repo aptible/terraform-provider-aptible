@@ -5,10 +5,10 @@ import (
 	"net/url"
 )
 
-// Modified validation.IsURLWithScheme to simply check for a URL that has a scheme and host.
+// Modified validation.IsURLWithScheme to simply check for a URL that has any scheme and a host.
 //
 // Ignore linter rule complaining about reimplementing validation.StringNotInSlice.
-//lintignore:V013
+// lintignore:V013
 func validateURL(i interface{}, k string) (_ []string, errors []error) {
 	v, ok := i.(string)
 	if !ok {
