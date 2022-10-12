@@ -5,7 +5,6 @@ import (
 	"net/url"
 )
 
-// validateURL
 // Modified validation.IsURLWithScheme to simply check for a URL that has a scheme and host.
 //
 // Ignore linter rule complaining about reimplementing validation.StringNotInSlice.

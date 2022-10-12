@@ -12,7 +12,8 @@ type ResourceDiff struct {
 }
 
 // HasRequired
-// Returns a true if the attribute's value is not known or if it is known to not be null.
+// returns true if the attribute's value is not known or if it is known to be not null.
+//
 // Designed to be used to conditionally test for required attributes in a CustomizeDiff.
 func (d *ResourceDiff) HasRequired(attr string) bool {
 	_, ok := d.GetOkExists(attr)
@@ -20,7 +21,8 @@ func (d *ResourceDiff) HasRequired(attr string) bool {
 }
 
 // HasOptional
-// Returns true if the attribute's value is not known or if it is known to not be null or zero.
+// returns true if the attribute's value is not known or if it is known to be not null or zero.
+//
 // Designed to be used to conditionally test if for attributes that are not allowed in a CustomizeDiff.
 func (d *ResourceDiff) HasOptional(attr string) bool {
 	_, ok := d.GetOk(attr)
