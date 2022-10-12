@@ -15,7 +15,7 @@ func ValidateURL(i interface{}, k string) (_ []string, errors []error) {
 	}
 
 	if v == "" {
-		errors = append(errors, fmt.Errorf("expected %q url to not be empty, got %v", k, i))
+		errors = append(errors, fmt.Errorf("expected %q url to not be empty", k))
 		return
 	}
 
