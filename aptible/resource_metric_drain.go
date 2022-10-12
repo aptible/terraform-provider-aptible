@@ -2,7 +2,6 @@ package aptible
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -113,12 +112,12 @@ func resourceMetricDrainValidate(_ context.Context, diff *schema.ResourceDiff, _
 
 	for _, attr := range allowedAttrs.Required {
 		if !d.HasRequired(attr) {
-			err = multierror.Append(err, errors.New(fmt.Sprintf("%s is required when drain_type = \"%s\"", attr, drainType)))
+			err = multierror.Append(err, fmt.Errorf("%s is required when drain_type = \"%s\"", attr, drainType))
 		}
 	}
 	for _, attr := range allowedAttrs.NotAllowed {
 		if d.HasOptional(attr) {
-			err = multierror.Append(err, errors.New(fmt.Sprintf("%s is not allowed when drain_type = \"%s\"", attr, drainType)))
+			err = multierror.Append(err, fmt.Errorf("%s is not allowed when drain_type = \"%s\"", attr, drainType))
 		}
 	}
 
