@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 

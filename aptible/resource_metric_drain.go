@@ -3,15 +3,15 @@ package aptible
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"log"
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/go-openapi/strfmt"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceMetricDrain() *schema.Resource {

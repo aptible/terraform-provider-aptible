@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"log"
 
 	"github.com/aptible/go-deploy/models"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 )
 
 type clientError struct {
