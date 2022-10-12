@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"log"
 	"strconv"
@@ -16,12 +17,12 @@ import (
 
 func resourceMetricDrain() *schema.Resource {
 	return &schema.Resource{
-		Create:        resourceMetricDrainCreate,
+		CreateContext: resourceMetricDrainCreate,
 		Read:          resourceMetricDrainRead,
 		Delete:        resourceMetricDrainDelete,
 		CustomizeDiff: resourceMetricDrainValidate,
 		Importer: &schema.ResourceImporter{
-			State: resourceMetricDrainImport,
+			StateContext: resourceMetricDrainImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -124,7 +125,7 @@ func resourceMetricDrainValidate(_ context.Context, diff *schema.ResourceDiff, _
 	return err
 }
 
-func resourceMetricDrainCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceMetricDrainCreate(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	handle := d.Get("handle").(string)
 	accountID := int64(d.Get("env_id").(int))
@@ -142,12 +143,19 @@ func resourceMetricDrainCreate(d *schema.ResourceData, meta interface{}) error {
 	metricDrain, err := client.CreateMetricDrain(handle, accountID, data)
 	if err != nil {
 		log.Println("There was an error when completing the request to create the metric drain.\n[ERROR] -", err)
-		return generateErrorFromClientError(err)
+		return generateDiagnosticsFromClientError(err)
 	}
 	d.SetId(strconv.Itoa(int(metricDrain.ID)))
 	_ = d.Set("metric_drain_id", metricDrain.ID)
 
-	return resourceMetricDrainRead(d, meta)
+	if err := resourceMetricDrainRead(d, meta); err != nil {
+		return diag.Diagnostics{diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  err.Error(),
+		}}
+	}
+
+	return diag.Diagnostics{}
 }
 
 func resourceMetricDrainRead(d *schema.ResourceData, meta interface{}) error {
@@ -199,7 +207,7 @@ func resourceMetricDrainDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceMetricDrainImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceMetricDrainImport(_ context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	metricDrainID, _ := strconv.Atoi(d.Id())
 	_ = d.Set("metric_drain_id", metricDrainID)
 	err := resourceMetricDrainRead(d, meta)

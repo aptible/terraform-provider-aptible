@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"log"
 
 	"github.com/aptible/go-deploy/models"
@@ -75,4 +76,13 @@ func generateErrorFromClientError(abstractedError interface{}) error {
 	}
 
 	return errors.New(errorString)
+}
+
+func generateDiagnosticsFromClientError(abstractedError interface{}) diag.Diagnostics {
+	return diag.Diagnostics{
+		{
+			Severity: diag.Error,
+			Summary:  generateErrorFromClientError(abstractedError).Error(),
+		},
+	}
 }
