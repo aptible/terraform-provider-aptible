@@ -1,9 +1,11 @@
 package aptible
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"log"
 	"strconv"
 
@@ -14,9 +16,10 @@ import (
 
 func resourceMetricDrain() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceMetricDrainCreate,
-		Read:   resourceMetricDrainRead,
-		Delete: resourceMetricDrainDelete,
+		Create:        resourceMetricDrainCreate,
+		Read:          resourceMetricDrainRead,
+		Delete:        resourceMetricDrainDelete,
+		CustomizeDiff: resourceMetricDrainValidate,
 		Importer: &schema.ResourceImporter{
 			State: resourceMetricDrainImport,
 		},
@@ -37,9 +40,10 @@ func resourceMetricDrain() *schema.Resource {
 				ForceNew: true,
 			},
 			"drain_type": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"influxdb_database", "influxdb", "datadog"}, false),
 			},
 			"database_id": {
 				Type:     schema.TypeInt,
@@ -50,7 +54,7 @@ func resourceMetricDrain() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: IsURL,
+				ValidateFunc: ValidateURL,
 			},
 			"username": {
 				Type:     schema.TypeString,
@@ -78,35 +82,36 @@ func resourceMetricDrain() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: IsURL,
+				ValidateFunc: ValidateURL,
 			},
 		},
 	}
 }
 
-func resourceMetricDrainValidate(d *schema.ResourceData) error {
+func resourceMetricDrainValidate(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
+	d := ResourceDiff{ResourceDiff: diff}
 	var err error
 
 	switch d.Get("drain_type").(string) {
 	case "influxdb_database":
-		if _, ok := d.GetOk("database_id"); !ok {
+		if !d.IsProvided("database_id") {
 			err = multierror.Append(err, errors.New("database_id is required when drain_type = \"influxdb_database\""))
 		}
 
 		// These are technically ignored by go-deploy for influxdb_database drains
 		for _, attr := range []string{"url", "username", "password", "database", "api_key", "series_url"} {
-			if _, ok := d.GetOk(attr); ok {
+			if d.IsProvided(attr) {
 				err = multierror.Append(err, errors.New(fmt.Sprintf("%s is not allowed when drain_type = \"influxdb_database\"", attr)))
 			}
 		}
 	case "influxdb":
 		for _, attr := range []string{"url", "username", "password", "database"} {
-			if _, ok := d.GetOk(attr); !ok {
+			if !d.IsProvided(attr) {
 				err = multierror.Append(err, errors.New(fmt.Sprintf("%s is required when drain_type = \"influxdb\"", attr)))
 			}
 		}
 	case "datadog":
-		if _, ok := d.GetOk("api_key"); !ok {
+		if !d.IsProvided("api_key") {
 			err = multierror.Append(err, errors.New("api_key is required when drain_type = \"datadog\""))
 		}
 	}
@@ -115,10 +120,6 @@ func resourceMetricDrainValidate(d *schema.ResourceData) error {
 }
 
 func resourceMetricDrainCreate(d *schema.ResourceData, meta interface{}) error {
-	if err := resourceMetricDrainValidate(d); err != nil {
-		return err
-	}
-
 	client := meta.(*aptible.Client)
 	handle := d.Get("handle").(string)
 	accountID := int64(d.Get("env_id").(int))
