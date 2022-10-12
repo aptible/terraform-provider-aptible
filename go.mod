@@ -11,7 +11,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.38.67 // indirect
 	github.com/bflad/tfproviderdocs v0.9.1
-	github.com/bflad/tfproviderlint v0.26.0
+	github.com/bflad/tfproviderlint v0.28.1
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/daixiang0/gci v0.2.9 // indirect
 	github.com/go-critic/go-critic v0.5.7 // indirect

@@ -79,10 +79,5 @@ func generateErrorFromClientError(abstractedError interface{}) error {
 }
 
 func generateDiagnosticsFromClientError(abstractedError interface{}) diag.Diagnostics {
-	return diag.Diagnostics{
-		{
-			Severity: diag.Error,
-			Summary:  generateErrorFromClientError(abstractedError).Error(),
-		},
-	}
+	return errorToDiagnostics(generateErrorFromClientError(abstractedError))
 }

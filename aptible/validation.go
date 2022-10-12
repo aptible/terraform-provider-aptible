@@ -5,9 +5,12 @@ import (
 	"net/url"
 )
 
-// Modified IsURLWithScheme to simply check for a URL
-// https://github.com/hashicorp/terraform-plugin-sdk/blob/v1.17.2/helper/validation/web.go#L22
-func ValidateURL(i interface{}, k string) (_ []string, errors []error) {
+// validateURL
+// Modified validation.IsURLWithScheme to simply check for a URL that has a scheme and host.
+//
+// Ignore linter rule complaining about reimplementing validation.StringNotInSlice.
+//lintignore:V013
+func validateURL(i interface{}, k string) (_ []string, errors []error) {
 	v, ok := i.(string)
 	if !ok {
 		errors = append(errors, fmt.Errorf("expected type of %q to be string", k))

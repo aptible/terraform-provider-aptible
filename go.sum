@@ -158,6 +158,8 @@ github.com/bflad/tfproviderdocs v0.9.1 h1:C9Rkh61PgaQnRLbgfuBKRGCS8C8d8yEla3gpTo
 github.com/bflad/tfproviderdocs v0.9.1/go.mod h1:gC+fjQ+tT1x1bqq+2yZ9G/y9VjRI24c6HDi+uEdgBG4=
 github.com/bflad/tfproviderlint v0.26.0 h1:Xd+hbVlSQhKlXifpqmHPvlcnOK1lRS4IZf+cXBAUpCs=
 github.com/bflad/tfproviderlint v0.26.0/go.mod h1:7Z9Pyl1Z1UWJcPBuyjN89D2NaJGpjReQb5NoaaQCthQ=
+github.com/bflad/tfproviderlint v0.28.1 h1:7f54/ynV6/lK5/1EyG7tHtc4sMdjJSEFGjZNRJKwBs8=
+github.com/bflad/tfproviderlint v0.28.1/go.mod h1:7Z9Pyl1Z1UWJcPBuyjN89D2NaJGpjReQb5NoaaQCthQ=
 github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d h1:xDfNPAt8lFiC1UJrqV3uuy861HCTo708pDMbjHHdCas=
 github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d/go.mod h1:6QX/PXZ00z/TKoufEY6K/a0k6AhaJrQKdFe6OfVXsa4=
 github.com/bgentry/speakeasy v0.1.0 h1:ByYyxL9InA1OWqxJqqp2A5pYHUrCiAL6K3J+LKSsQkY=

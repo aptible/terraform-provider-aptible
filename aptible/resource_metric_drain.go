@@ -17,8 +17,8 @@ import (
 func resourceMetricDrain() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceMetricDrainCreate,
-		Read:          resourceMetricDrainRead,
-		Delete:        resourceMetricDrainDelete,
+		ReadContext:   resourceMetricDrainRead,
+		DeleteContext: resourceMetricDrainDelete,
 		CustomizeDiff: resourceMetricDrainValidate,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceMetricDrainImport,
@@ -54,7 +54,7 @@ func resourceMetricDrain() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: ValidateURL,
+				ValidateFunc: validateURL,
 			},
 			"username": {
 				Type:     schema.TypeString,
@@ -82,7 +82,7 @@ func resourceMetricDrain() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: ValidateURL,
+				ValidateFunc: validateURL,
 			},
 		},
 	}
@@ -124,7 +124,7 @@ func resourceMetricDrainValidate(_ context.Context, diff *schema.ResourceDiff, _
 	return err
 }
 
-func resourceMetricDrainCreate(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceMetricDrainCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	handle := d.Get("handle").(string)
 	accountID := int64(d.Get("env_id").(int))
@@ -147,17 +147,10 @@ func resourceMetricDrainCreate(_ context.Context, d *schema.ResourceData, meta i
 	d.SetId(strconv.Itoa(int(metricDrain.ID)))
 	_ = d.Set("metric_drain_id", metricDrain.ID)
 
-	if err := resourceMetricDrainRead(d, meta); err != nil {
-		return diag.Diagnostics{diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  err.Error(),
-		}}
-	}
-
-	return diag.Diagnostics{}
+	return resourceMetricDrainRead(ctx, d, meta)
 }
 
-func resourceMetricDrainRead(d *schema.ResourceData, meta interface{}) error {
+func resourceMetricDrainRead(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	metricDrainID := int64(d.Get("metric_drain_id").(int))
 
@@ -166,7 +159,7 @@ func resourceMetricDrainRead(d *schema.ResourceData, meta interface{}) error {
 	metricDrain, err := client.GetMetricDrain(metricDrainID)
 	if err != nil {
 		log.Println(err)
-		return generateErrorFromClientError(err)
+		return generateDiagnosticsFromClientError(err)
 	}
 	if metricDrain.Deleted {
 		d.SetId("")
@@ -187,9 +180,9 @@ func resourceMetricDrainRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceMetricDrainDelete(d *schema.ResourceData, meta interface{}) error {
-	readErr := resourceMetricDrainRead(d, meta)
-	if readErr == nil {
+func resourceMetricDrainDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	readDiags := resourceMetricDrainRead(ctx, d, meta)
+	if !readDiags.HasError() {
 		metricDrainID := int64(d.Get("metric_drain_id").(int))
 		client := meta.(*aptible.Client)
 		deleted, err := client.DeleteMetricDrain(metricDrainID)
@@ -199,16 +192,18 @@ func resourceMetricDrainDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 		if err != nil {
 			log.Println("There was an error when completing the request to destroy the metric drain.\n[ERROR] -", err)
-			return generateErrorFromClientError(err)
+			return generateDiagnosticsFromClientError(err)
 		}
 	}
 	d.SetId("")
 	return nil
 }
 
-func resourceMetricDrainImport(_ context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceMetricDrainImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	metricDrainID, _ := strconv.Atoi(d.Id())
 	_ = d.Set("metric_drain_id", metricDrainID)
-	err := resourceMetricDrainRead(d, meta)
-	return []*schema.ResourceData{d}, err
+	if err := diagnosticsToError(resourceMetricDrainRead(ctx, d, meta)); err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
 }

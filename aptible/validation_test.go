@@ -50,12 +50,12 @@ func TestValidateURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErrors := ValidateURL(tt.args.i, tt.args.k)
+			got, gotErrors := validateURL(tt.args.i, tt.args.k)
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ValidateURL() got = %v, want %v", got, tt.want)
+				t.Errorf("validateURL() got = %v, want %v", got, tt.want)
 			}
 			if !reflect.DeepEqual(gotErrors, tt.wantErrors) {
-				t.Errorf("ValidateURL() gotErrors = %v, want %v", gotErrors, tt.wantErrors)
+				t.Errorf("validateURL() gotErrors = %v, want %v", gotErrors, tt.wantErrors)
 			}
 		})
 	}
