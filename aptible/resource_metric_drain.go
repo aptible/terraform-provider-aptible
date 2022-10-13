@@ -43,7 +43,7 @@ func resourceMetricDrain() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice([]string{"influxdb_database", "influxdb", "datadog"}, false),
+				ValidateFunc: validation.StringInSlice(validMetricDrainTypes, false),
 			},
 			"database_id": {
 				Type:     schema.TypeInt,
@@ -88,7 +88,9 @@ func resourceMetricDrain() *schema.Resource {
 	}
 }
 
-var resourceMetricDrainAttrs = map[string]ResourceAttrs{
+var validMetricDrainTypes = []string{"influxdb_database", "influxdb", "datadog"}
+
+var metricDrainAttrs = map[string]ResourceAttrs{
 	"influxdb_database": {
 		Required:   []string{"database_id"},
 		NotAllowed: []string{"url", "username", "password", "database", "api_key", "series_url"},
@@ -108,16 +110,19 @@ func resourceMetricDrainValidate(_ context.Context, diff *schema.ResourceDiff, _
 	drainType := d.Get("drain_type").(string)
 	var err error
 
-	allowedAttrs := resourceMetricDrainAttrs[drainType]
+	allowedAttrs, ok := metricDrainAttrs[drainType]
+	if !ok {
+		return fmt.Errorf("error during validation: drain_type %q not found", drainType)
+	}
 
 	for _, attr := range allowedAttrs.Required {
 		if !d.HasRequired(attr) {
-			err = multierror.Append(err, fmt.Errorf("%s is required when drain_type = \"%s\"", attr, drainType))
+			err = multierror.Append(err, fmt.Errorf("%s is required when drain_type = %q", attr, drainType))
 		}
 	}
 	for _, attr := range allowedAttrs.NotAllowed {
 		if d.HasOptional(attr) {
-			err = multierror.Append(err, fmt.Errorf("%s is not allowed when drain_type = \"%s\"", attr, drainType))
+			err = multierror.Append(err, fmt.Errorf("%s is not allowed when drain_type = %q", attr, drainType))
 		}
 	}
 
