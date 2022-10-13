@@ -141,7 +141,7 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	_ = d.Set("container_size", database.ContainerSize)
-	_ = d.Set("container_size", database.ContainerProfile)
+	_ = d.Set("container_profile", database.ContainerProfile)
 	_ = d.Set("disk_size", database.DiskSize)
 	_ = d.Set("default_connection_url", database.DefaultConnection)
 	_ = d.Set("connection_urls", database.ConnectionURLs)
