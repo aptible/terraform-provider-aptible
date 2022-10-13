@@ -12,11 +12,17 @@ var testEnvironmentId int
 
 var testAccProviders map[string]*schema.Provider
 var testAccProvider *schema.Provider
+var testAccProviderFactories map[string]func() (*schema.Provider, error)
 
 func init() {
 	testAccProvider = Provider()
 	testAccProviders = map[string]*schema.Provider{
 		"aptible": testAccProvider,
+	}
+	testAccProviderFactories = map[string]func() (*schema.Provider, error){
+		"aptible": func() (*schema.Provider, error) {
+			return testAccProvider, nil
+		},
 	}
 
 	i := os.Getenv("APTIBLE_ENVIRONMENT_ID")

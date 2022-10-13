@@ -117,12 +117,12 @@ func resourceMetricDrainValidate(_ context.Context, diff *schema.ResourceDiff, _
 
 	for _, attr := range allowedAttrs.Required {
 		if !d.HasRequired(attr) {
-			err = multierror.Append(err, fmt.Errorf("%s is required when drain_type = %q", attr, drainType))
+			err = multierror.Append(err, fmt.Errorf("%q is required when drain_type = %q", attr, drainType))
 		}
 	}
 	for _, attr := range allowedAttrs.NotAllowed {
 		if d.HasOptional(attr) {
-			err = multierror.Append(err, fmt.Errorf("%s is not allowed when drain_type = %q", attr, drainType))
+			err = multierror.Append(err, fmt.Errorf("%q is not allowed when drain_type = %q", attr, drainType))
 		}
 	}
 
