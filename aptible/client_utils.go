@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/aptible/go-deploy/models"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 )
 
 type clientError struct {
@@ -75,4 +76,8 @@ func generateErrorFromClientError(abstractedError interface{}) error {
 	}
 
 	return errors.New(errorString)
+}
+
+func generateDiagnosticsFromClientError(abstractedError interface{}) diag.Diagnostics {
+	return errorToDiagnostics(generateErrorFromClientError(abstractedError))
 }
