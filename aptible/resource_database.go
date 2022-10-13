@@ -176,7 +176,6 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	if d.HasChange("container_size") {
 		updates.ContainerSize = containerSize
 	}
-
 	if d.HasChange("container_profile") {
 		updates.ContainerProfile = containerProfile
 	}
