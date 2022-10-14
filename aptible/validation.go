@@ -42,6 +42,7 @@ func validateURL(i interface{}, k string) (_ []string, errors []error) {
 	return
 }
 
+// lintignore:SA1019
 func errorsToWarnings(validator schema.SchemaValidateFunc) schema.SchemaValidateFunc {
 	return func(i interface{}, k string) ([]string, []error) {
 		warns, errs := validator(i, k)
