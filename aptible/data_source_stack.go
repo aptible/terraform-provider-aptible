@@ -34,7 +34,7 @@ func dataSourceStackRead(d *schema.ResourceData, meta interface{}) error {
 		return generateErrorFromClientError(err)
 	}
 
-	_ = d.Set("org_id": stack.OrganizationID)
-	_ = d.Set("name": stack.Name)
+	_ = d.Set("org_id", stack.OrganizationID)
+	_ = d.Set("name", stack.Name)
 	return nil
 }
