@@ -48,7 +48,7 @@ func resourceDatabase() *schema.Resource {
 			"container_profile": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validation.StringInSlice(validContainerProfiles, false),
+				ValidateFunc: errorsToWarnings(validation.StringInSlice(validContainerProfiles, false)),
 				Default:      "m4",
 			},
 			"disk_size": {

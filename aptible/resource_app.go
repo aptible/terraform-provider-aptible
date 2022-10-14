@@ -72,7 +72,7 @@ func resourceApp() *schema.Resource {
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      "m4",
-							ValidateFunc: validation.StringInSlice(validContainerProfiles, false),
+							ValidateFunc: errorsToWarnings(validation.StringInSlice(validContainerProfiles, false)),
 						},
 					},
 				},

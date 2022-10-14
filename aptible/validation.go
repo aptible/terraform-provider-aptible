@@ -3,6 +3,8 @@ package aptible
 import (
 	"fmt"
 	"net/url"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // Modified validation.IsURLWithScheme to simply check for a URL that has any scheme and a host.
@@ -38,4 +40,18 @@ func validateURL(i interface{}, k string) (_ []string, errors []error) {
 	}
 
 	return
+}
+
+// nolint:staticcheck
+func errorsToWarnings(validator schema.SchemaValidateFunc) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) ([]string, []error) {
+		warns, errs := validator(i, k)
+		for _, err := range errs {
+			if err != nil {
+				warns = append(warns, err.Error())
+			}
+		}
+
+		return warns, nil
+	}
 }
