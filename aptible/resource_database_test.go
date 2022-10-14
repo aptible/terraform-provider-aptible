@@ -215,6 +215,7 @@ resource "aptible_database" "test" {
     env_id = %d
 	handle = "%v"
   database_type = "redis"
+	container_profile = "m4"
 }
 `, testEnvironmentId, dbHandle)
 }
