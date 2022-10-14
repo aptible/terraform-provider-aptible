@@ -65,7 +65,7 @@ func TestValidateURL(t *testing.T) {
 
 func Test_errorsToWarnings(t *testing.T) {
 	type args struct {
-		// lintignore:SA1019
+		// nolint:staticcheck
 		validator schema.SchemaValidateFunc
 	}
 	tests := []struct {
