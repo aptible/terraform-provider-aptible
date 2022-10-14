@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestValidateURL(t *testing.T) {
@@ -63,7 +65,7 @@ func TestValidateURL(t *testing.T) {
 
 func Test_errorsToWarnings(t *testing.T) {
 	type args struct {
-		validator func(i interface{}, k string) ([]string, []error)
+		validator schema.SchemaValidateFunc
 	}
 	tests := []struct {
 		name       string
