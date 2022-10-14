@@ -45,6 +45,12 @@ func resourceDatabase() *schema.Resource {
 				ValidateFunc: validation.IntInSlice(validContainerSizes),
 				Default:      1024,
 			},
+			"container_profile": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice(validContainerProfiles, false),
+				Default:      "m4",
+			},
 			"disk_size": {
 				Type:         schema.TypeInt,
 				Optional:     true,
@@ -89,10 +95,11 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	databaseType := d.Get("database_type").(string)
 
 	attrs := aptible.DBCreateAttrs{
-		Handle:        &handle,
-		Type:          databaseType,
-		ContainerSize: int64(d.Get("container_size").(int)),
-		DiskSize:      int64(d.Get("disk_size").(int)),
+		Handle:           &handle,
+		Type:             databaseType,
+		ContainerSize:    int64(d.Get("container_size").(int)),
+		ContainerProfile: d.Get("container_profile").(string),
+		DiskSize:         int64(d.Get("disk_size").(int)),
 	}
 
 	if version != "" {
@@ -134,6 +141,7 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	_ = d.Set("container_size", database.ContainerSize)
+	_ = d.Set("container_profile", database.ContainerProfile)
 	_ = d.Set("disk_size", database.DiskSize)
 	_ = d.Set("default_connection_url", database.DefaultConnection)
 	_ = d.Set("connection_urls", database.ConnectionURLs)
@@ -158,6 +166,7 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	client := meta.(*aptible.Client)
 	databaseID := int64(d.Get("database_id").(int))
 	containerSize := int64(d.Get("container_size").(int))
+	containerProfile := d.Get("container_profile").(string)
 	diskSize := int64(d.Get("disk_size").(int))
 	handle := d.Get("handle").(string)
 	var diags diag.Diagnostics
@@ -166,6 +175,9 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 
 	if d.HasChange("container_size") {
 		updates.ContainerSize = containerSize
+	}
+	if d.HasChange("container_profile") {
+		updates.ContainerProfile = containerProfile
 	}
 	if d.HasChange("disk_size") {
 		updates.DiskSize = diskSize
