@@ -39,3 +39,16 @@ func validateURL(i interface{}, k string) (_ []string, errors []error) {
 
 	return
 }
+
+func errorsToWarnings(validator func(i interface{}, k string) ([]string, []error)) func(i interface{}, k string) ([]string, []error) {
+	return func(i interface{}, k string) ([]string, []error) {
+		warns, errs := validator(i, k)
+		for _, err := range errs {
+			if err != nil {
+				warns = append(warns, err.Error())
+			}
+		}
+
+		return warns, nil
+	}
+}
