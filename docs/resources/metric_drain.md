@@ -54,8 +54,8 @@ resource "aptible_metric_drain" "datadog_metric_drain" {
   [InfluxDB database](https://docs.influxdata.com/influxdb/v1.8/concepts/glossary/#database)
   for `influxdb` drains to send the metrics to.
 - `api_key` - The API key for `datadog` drains to use for authentication.
-- `series_url` - The series API URL for `datadog` drains to send metrics to.
-  Examples: `https://app.datadoghq.com/api/v1/series`,
+- `series_url` (Optional) - The series API URL for `datadog` drains to send
+  metrics to. Examples: `https://app.datadoghq.com/api/v1/series`,
   `https://us3.datadoghq.com/api/v1/series`,
   `https://app.datadoghq.eu/api/v1/series`,
   `https://app.ddog-gov.com/api/v1/series`
