@@ -6,8 +6,10 @@ running on Aptible Deploy.
 
 ## Example Usage
 
+### Aptible InfluxDB Database
+
 ```hcl
-resource "aptible_metric_drain" "influxdb_database_metric_drain" {
+resource "aptible_metric_drain" "influxdb_database_drain" {
   env_id      = data.aptible_environment.example.env_id
   database_id = aptible_database.example.database_id
   drain_type  = "influxdb_database"
@@ -15,8 +17,10 @@ resource "aptible_metric_drain" "influxdb_database_metric_drain" {
 }
 ```
 
+### InfluxDB
+
 ```hcl
-resource "aptible_metric_drain" "influxdb_metric_drain" {
+resource "aptible_metric_drain" "influxdb_drain" {
   env_id     = data.aptible_environment.example.env_id
   drain_type = "influxdb"
   handle     = "influxdb-metric-drain"
@@ -27,8 +31,10 @@ resource "aptible_metric_drain" "influxdb_metric_drain" {
 }
 ```
 
+### Datadog
+
 ```hcl
-resource "aptible_metric_drain" "datadog_metric_drain" {
+resource "aptible_metric_drain" "datadog_drain" {
   env_id     = data.aptible_environment.example.env_id
   drain_type = "datadog"
   api_key    = "xxxxx-xxxxx-xxxxx"
