@@ -54,20 +54,25 @@ resource "aptible_app" "APP" {
 
 The `service` block supports:
 
-- `process_type` - The `process_type` maps directly to the Service name used in
-  the Procfile. If you are not using a Procfile, you will have a single Service
-  with the `process_type` of `cmd`
-- `container_count` - (Optional) The number of unique containers running the
-  service for horizontal scaling
-- `container_memory_limit` - (Optional) Increase the memory limit of each
-  container in the service for vertical scaling
+- `process_type` - (Default: `cmd`) The `process_type` maps directly to the
+  Service name used in the Procfile. If you are not using a Procfile, you will
+  have a single Service with the `process_type` of `cmd`.
+- `container_count` - (Default: 1) The number of unique containers running the
+  service.
+- `container_memory_limit` - (Default: 1024) The memory limit (in MB) of the
+  service's containers.
+- `container_profile` - (Default: `m4`) Changes the CPU:RAM ratio of the
+  service's containers.
+  - `m4` - General Purpose (1 CPU : 4 GB RAM)
+  - `c5` - CPU Optimized (1 CPU : 2 GB RAM)
+  - `r5` - Memory Optimized (1 CPU : 8 GB RAM)
 
 ## Attribute Reference
 
 In addition to all arguments above, the following attributes are exported:
 
-- `app_id` - The unique ID of the application
-- `git_repo` - The git remote associated with the application
+- `app_id` - The unique ID of the application.
+- `git_repo` - The git remote associated with the application.
 
 ## Import
 
