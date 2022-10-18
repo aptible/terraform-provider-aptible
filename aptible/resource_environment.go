@@ -2,10 +2,10 @@ package aptible
 
 import (
 	"context"
-	"github.com/aptible/go-deploy/aptible"
 	"log"
 	"strconv"
 
+	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -27,10 +27,12 @@ func resourceEnvironment() *schema.Resource {
 			"org_id": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"stack_id": {
 				Type:     schema.TypeInt,
 				Required: true,
+				ForceNew: true,
 			},
 			"handle": {
 				Type:     schema.TypeString,
@@ -59,7 +61,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta
 	d.SetId(strconv.Itoa(int(environment.ID)))
 	_ = d.Set("env_id", environment.ID)
 
-	return nil
+	return resourceEnvironmentRead(ctx, d, meta)
 }
 
 func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -80,29 +82,28 @@ func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, meta i
 
 	_ = d.Set("handle", environment.Handle)
 	_ = d.Set("env_id", int(environment.ID))
+	_ = d.Set("stack_id", environment.StackID)
+	_ = d.Set("org_id", environment.OrganizationID)
 	return nil
 }
 
 func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
+	handle := d.Get("handle").(string)
+	envId := int64(d.Get("env_id").(int))
+	environmentUpdates := aptible.EnvironmentUpdates{
+		Handle: handle,
+	}
+
+	if err := client.UpdateEnvironment(envId, environmentUpdates); err != nil {
+		log.Println("There was an error when completing the request to update the environment.\n[ERROR] -", err)
+		return generateDiagnosticsFromClientError(err)
+	}
 
 	readDiags := resourceEnvironmentRead(ctx, d, meta)
 	if readDiags.HasError() {
 		return readDiags
 	}
-
-	env_id := int64(d.Get("env_id").(int))
-	handle := d.Get("handle").(string)
-	environmentUpdates := aptible.EnvironmentUpdates{
-		Handle: handle,
-	}
-
-	if err := client.UpdateEnvironment(env_id, environmentUpdates); err != nil {
-		log.Println("There was an error when completing the request to update the environment.\n[ERROR] -", err)
-		return generateDiagnosticsFromClientError(err)
-	}
-
-	_ = d.Set("handle", handle)
 	return nil
 }
 
