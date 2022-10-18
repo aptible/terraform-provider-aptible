@@ -7,7 +7,7 @@ import (
 
 func dataSourceEnvironment() *schema.Resource {
 	return &schema.Resource{
-		Read: resourceEnvironmentRead,
+		Read: dataSourceEnvironmentRead,
 		Schema: map[string]*schema.Schema{
 			"handle": {
 				Type:     schema.TypeString,
@@ -21,7 +21,7 @@ func dataSourceEnvironment() *schema.Resource {
 	}
 }
 
-func resourceEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	handle := d.Get("handle").(string)
 	id, err := client.GetEnvironmentIDFromHandle(handle)

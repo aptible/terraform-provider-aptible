@@ -46,6 +46,19 @@ data "aptible_app" "techo-app" {
 }
 ```
 
+You can also specify the environment as a resource. You will need to pass in an `org_id`
+(ex: `dashboard.aptible.com/organizations/<ORG_ID>/members`) and `stack_id` 
+(ex: `dashboard.aptible.com/stack/<STACK_ID>/accounts`) which you can get from the 
+Aptible dashboard (on the settings/members panel (`org_id`) or on the stack view pages (`stack_id`)):
+
+```hcl
+resource "aptible_environment" "techco-test-environment" {
+    org_id = "some-uuid-that-represents-your-org"
+    stack_id = "your_stack_id"
+    handle = "techco-test-environment"
+}
+```
+
 ### Apps
 
 [Apps](https://www.aptible.com/documentation/deploy/reference/apps.html) can be

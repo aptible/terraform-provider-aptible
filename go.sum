@@ -115,14 +115,8 @@ github.com/apparentlymart/go-textseg v1.0.0/go.mod h1:z96Txxhf3xSFMPmb5X/1W05FF/
 github.com/apparentlymart/go-textseg/v12 v12.0.0/go.mod h1:S/4uRK2UtaQttw1GenVJEynmyUenKwP++x/+DdGV/Ec=
 github.com/apparentlymart/go-textseg/v13 v13.0.0 h1:Y+KvPE1NYz0xl601PVImeQfFyEy6iT90AvPUL1NNfNw=
 github.com/apparentlymart/go-textseg/v13 v13.0.0/go.mod h1:ZK2fH7c4NqDTLtiYLvIkEghdlcqw7yxLeM89kiTRPUo=
-github.com/aptible/go-deploy v0.1.14 h1:ygf03EwXsFCbgBWPJ1V/P/PL1kVCucEEOf0yyvXPVZ0=
-github.com/aptible/go-deploy v0.1.14/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
-github.com/aptible/go-deploy v0.1.16-0.20221007185712-d9c2eb51b9a0 h1:vWN+ptYJHDdsh9DOeghsdStKsS2/TBRpvzpVAKS+2Qw=
-github.com/aptible/go-deploy v0.1.16-0.20221007185712-d9c2eb51b9a0/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
-github.com/aptible/go-deploy v0.2.0 h1:gkpcupC0gJjkwYp2QB9pn5Ipp4u43fbzmLf2WiHPH54=
-github.com/aptible/go-deploy v0.2.0/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
-github.com/aptible/go-deploy v0.2.1 h1:t7KLiyLIbPKTzogjRiNgtgH855mTIJ2vwpMniFmv45w=
-github.com/aptible/go-deploy v0.2.1/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
+github.com/aptible/go-deploy v0.3.1 h1:P3nk41tRimKgeDipRYmGucayS9bCtWsE40q9WsBqX9E=
+github.com/aptible/go-deploy v0.3.1/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
@@ -158,8 +152,6 @@ github.com/bflad/gopaniccheck v0.1.0 h1:tJftp+bv42ouERmUMWLoUn/5bi/iQZjHPznM00cP
 github.com/bflad/gopaniccheck v0.1.0/go.mod h1:ZCj2vSr7EqVeDaqVsWN4n2MwdROx1YL+LFo47TSWtsA=
 github.com/bflad/tfproviderdocs v0.9.1 h1:C9Rkh61PgaQnRLbgfuBKRGCS8C8d8yEla3gpToC+b+o=
 github.com/bflad/tfproviderdocs v0.9.1/go.mod h1:gC+fjQ+tT1x1bqq+2yZ9G/y9VjRI24c6HDi+uEdgBG4=
-github.com/bflad/tfproviderlint v0.26.0 h1:Xd+hbVlSQhKlXifpqmHPvlcnOK1lRS4IZf+cXBAUpCs=
-github.com/bflad/tfproviderlint v0.26.0/go.mod h1:7Z9Pyl1Z1UWJcPBuyjN89D2NaJGpjReQb5NoaaQCthQ=
 github.com/bflad/tfproviderlint v0.28.1 h1:7f54/ynV6/lK5/1EyG7tHtc4sMdjJSEFGjZNRJKwBs8=
 github.com/bflad/tfproviderlint v0.28.1/go.mod h1:7Z9Pyl1Z1UWJcPBuyjN89D2NaJGpjReQb5NoaaQCthQ=
 github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d h1:xDfNPAt8lFiC1UJrqV3uuy861HCTo708pDMbjHHdCas=

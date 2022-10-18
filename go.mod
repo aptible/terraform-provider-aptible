@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/storage v1.15.0 // indirect
 	github.com/Djarvur/go-err113 v0.1.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/aptible/go-deploy v0.2.1
+	github.com/aptible/go-deploy v0.3.1
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.38.67 // indirect
 	github.com/bflad/tfproviderdocs v0.9.1
