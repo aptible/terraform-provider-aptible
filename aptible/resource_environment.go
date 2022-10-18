@@ -102,11 +102,7 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, meta
 		return generateDiagnosticsFromClientError(err)
 	}
 
-	readDiags := resourceEnvironmentRead(ctx, d, meta)
-	if readDiags.HasError() {
-		return readDiags
-	}
-	return nil
+	return resourceEnvironmentRead(ctx, d, meta)
 }
 
 func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
