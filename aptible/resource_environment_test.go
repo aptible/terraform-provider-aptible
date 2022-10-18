@@ -58,9 +58,9 @@ func testAccCheckEnvironmentDestroy(s *terraform.State) error {
 			return err
 		}
 
-		metricDrain, err := client.GetEnvironment(int64(envID))
-		log.Println("Deleted? ", metricDrain.Deleted)
-		if !metricDrain.Deleted {
+		environment, err := client.GetEnvironment(int64(envID))
+		log.Println("Deleted? ", environment.Deleted)
+		if !environment.Deleted {
 			return fmt.Errorf("environment %v not removed", envID)
 		}
 
