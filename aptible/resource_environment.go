@@ -2,6 +2,7 @@ package aptible
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"log"
 	"strconv"
 
@@ -25,9 +26,10 @@ func resourceEnvironment() *schema.Resource {
 				Computed: true,
 			},
 			"org_id": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.IsUUID,
 			},
 			"stack_id": {
 				Type:     schema.TypeInt,

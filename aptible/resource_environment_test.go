@@ -26,6 +26,18 @@ func TestAccResourceEnvironment_validation(t *testing.T) {
 		})
 	}
 
+	testSteps = append(testSteps, resource.TestStep{
+		PlanOnly: true,
+		Config: fmt.Sprintf(`
+				resource "aptible_environment" "test" {
+					handle = "%s"
+					org_id = "%s"
+					stack_id = "%v"
+				}
+			`, "test", "invalid-uuid", testStackId),
+		ExpectError: regexp.MustCompile(fmt.Sprintf(`expected %q to be a valid UUID, got invalid-uuid`, "org_id")),
+	})
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
