@@ -15,7 +15,7 @@ resource "aptible_environment" "example_environment" {
 ## Argument Reference
 
 - `stack_id` (Required) - The id of the [stack](https://www.aptible.com/documentation/deploy/reference/stacks.html) you would like the environment to be provisioned on.  
-- `org_id` (Required) - The id of the [organization]() you would like the environment to be provisioned on
+- `org_id` (Required) - The id of the [organization](https://deploy-docs.aptible.com/docs/organizations) you would like the environment to be provisioned on
 - `handle` - The handle for the environment.
 
 ## Attribute Reference
