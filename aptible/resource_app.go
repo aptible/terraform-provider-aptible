@@ -68,6 +68,12 @@ func resourceApp() *schema.Resource {
 							Default:      1024,
 							ValidateFunc: validation.IntInSlice(validContainerSizes),
 						},
+						"container_profile": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      "m4",
+							ValidateFunc: errorsToWarnings(validation.StringInSlice(validContainerProfiles, false)),
+						},
 					},
 				},
 			},
@@ -146,6 +152,7 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 		service := make(map[string]interface{})
 		service["container_count"] = s.ContainerCount
 		service["container_memory_limit"] = s.ContainerMemoryLimitMb
+		service["container_profile"] = s.ContainerProfile
 		service["process_type"] = s.ProcessType
 		services[i] = service
 	}
@@ -264,25 +271,28 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	for _, s := range services {
-
 		serviceInterface := s.(map[string]interface{})
 		memoryLimit := int64(serviceInterface["container_memory_limit"].(int))
+		containerProfile := serviceInterface["container_profile"].(string)
 		containerCount := int64(serviceInterface["container_count"].(int))
 		processType := serviceInterface["process_type"].(string)
 
-		log.Printf("Updating %s service to count: %d and limit: %d\n", processType, containerCount, memoryLimit)
+		log.Printf(
+			"Updating %s service to count: %d, limit: %d, and container profile: %s\n",
+			processType, containerCount, memoryLimit, containerProfile,
+		)
 		service, err := client.GetServiceForAppByName(appID, processType)
 		if err != nil {
 			log.Println("There was an error when finding the service \n[ERROR] -", err)
 			return generateErrorFromClientError(err)
 		}
-		err = client.ScaleService(service.ID, containerCount, memoryLimit)
+		err = client.ScaleService(service.ID, containerCount, memoryLimit, containerProfile)
 		if err != nil {
 			log.Println("There was an error when scaling the service \n[ERROR] -", err)
 			return generateErrorFromClientError(err)
 		}
-
 	}
+
 	return nil
 }
 
@@ -297,4 +307,10 @@ var validContainerSizes = []int{
 	61440,
 	153600,
 	245760,
+}
+
+var validContainerProfiles = []string{
+	"m4",
+	"r5",
+	"c5",
 }

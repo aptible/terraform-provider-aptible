@@ -33,8 +33,13 @@ resource "aptible_database" "example_database" {
 - `database_type` - The type of Database.
 - `version` - (Optional) The version of the Database. If none is specified,
   this defaults to the latest recommended version.
-- `container_size` - The size of container used for the Database, in MB
-  of RAM.
+- `container_size` - (Default: 1024) The size of container used for the
+  Database, in MB of RAM.
+- `container_profile` - (Default: `m4`) Changes the CPU:RAM ratio of the
+  Database container.
+  - `m4` - General Purpose (1 CPU : 4 GB RAM)
+  - `c5` - CPU Optimized (1 CPU : 2 GB RAM)
+  - `r5` - Memory Optimized (1 CPU : 8 GB RAM)
 - `disk_size` - The disk size of the Database, in GB.
 
 ## Attribute Reference

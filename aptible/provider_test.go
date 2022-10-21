@@ -1,6 +1,7 @@
 package aptible
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"testing"
@@ -9,10 +10,18 @@ import (
 )
 
 var testEnvironmentId int
+var testOrganizationId string
+var testStackId int
 
 var testAccProviders map[string]*schema.Provider
 var testAccProvider *schema.Provider
 var testAccProviderFactories map[string]func() (*schema.Provider, error)
+
+const (
+	AptibleEnvironmentId  = "APTIBLE_ENVIRONMENT_ID"
+	AptibleStackId        = "APTIBLE_STACK_ID"
+	AptibleOrganizationId = "APTIBLE_ORGANIZATION_ID"
+)
 
 func init() {
 	testAccProvider = Provider()
@@ -25,11 +34,16 @@ func init() {
 		},
 	}
 
-	i := os.Getenv("APTIBLE_ENVIRONMENT_ID")
+	// see testAccPreCheck for more details on this being set ahead of time for dx
+	envIdStr := os.Getenv(AptibleEnvironmentId)
+	envId, _ := strconv.Atoi(envIdStr)
+	testEnvironmentId = envId
 
-	// Precheck confirms this will work
-	id, _ := strconv.Atoi(i)
-	testEnvironmentId = id
+	testOrganizationId = os.Getenv(AptibleOrganizationId)
+
+	stackIdStr := os.Getenv(AptibleStackId)
+	stackId, _ := strconv.Atoi(stackIdStr)
+	testStackId = stackId
 }
 
 // Ensure we're pointing at a sandbox before we run and a token is provided
@@ -44,12 +58,24 @@ func testAccPreCheck(t *testing.T) {
 		t.Fatal("APTIBLE_ACCESS_TOKEN must be set for acceptance tests")
 	}
 
-	id := os.Getenv("APTIBLE_ENVIRONMENT_ID")
+	id := os.Getenv(AptibleEnvironmentId)
 	if id == "" {
-		t.Fatal("APTIBLE_ENVIRONMENT_ID must be set for acceptance tests")
+		t.Fatal(fmt.Sprintf("%s must be set for acceptance tests", AptibleEnvironmentId))
 	}
 	if _, err := strconv.Atoi(id); err != nil {
-		t.Fatal("APTIBLE_ENVIRONMENT_ID is not a valid integer value")
+		t.Fatal(fmt.Sprintf("%s is not a valid integer value", AptibleEnvironmentId))
+	}
+
+	if v := os.Getenv(AptibleOrganizationId); v == "" {
+		t.Fatal(fmt.Sprintf("%s must be set for acceptance tests", AptibleOrganizationId))
+	}
+
+	stackId := os.Getenv(AptibleStackId)
+	if stackId == "" {
+		t.Fatal(fmt.Sprintf("%s must be set for acceptance tests", AptibleStackId))
+	}
+	if _, err := strconv.Atoi(stackId); err != nil {
+		t.Fatal(fmt.Sprintf("%s is not a valid integer value", AptibleStackId))
 	}
 }
 

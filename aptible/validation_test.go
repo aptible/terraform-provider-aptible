@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestValidateURL(t *testing.T) {
@@ -56,6 +58,49 @@ func TestValidateURL(t *testing.T) {
 			}
 			if !reflect.DeepEqual(gotErrors, tt.wantErrors) {
 				t.Errorf("validateURL() gotErrors = %v, want %v", gotErrors, tt.wantErrors)
+			}
+		})
+	}
+}
+
+func Test_errorsToWarnings(t *testing.T) {
+	type args struct {
+		// nolint:staticcheck
+		validator schema.SchemaValidateFunc
+	}
+	tests := []struct {
+		name       string
+		args       args
+		want       []string
+		wantErrors []error
+	}{
+		{
+			name: "appends errors to warnings",
+			args: args{
+				validator: func(_ interface{}, _ string) ([]string, []error) {
+					return []string{"warning 1", "warning 2"}, []error{fmt.Errorf("error 1"), fmt.Errorf("error 2")}
+				},
+			},
+			want: []string{"warning 1", "warning 2", "error 1", "error 2"},
+		},
+		{
+			name: "skips nil errors",
+			args: args{
+				validator: func(_ interface{}, _ string) ([]string, []error) {
+					return []string{"warning 1", "warning 2"}, []error{fmt.Errorf("error 1"), nil, fmt.Errorf("error 2")}
+				},
+			},
+			want: []string{"warning 1", "warning 2", "error 1", "error 2"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotWarnings, gotErrors := errorsToWarnings(tt.args.validator)(nil, "don't worry about it")
+			if !reflect.DeepEqual(gotWarnings, tt.want) {
+				t.Errorf("warnings = %v, want %v", gotWarnings, tt.want)
+			}
+			if !reflect.DeepEqual(gotErrors, tt.wantErrors) {
+				t.Errorf("errors = %v, want %v", gotErrors, tt.wantErrors)
 			}
 		})
 	}
