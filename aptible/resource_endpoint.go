@@ -154,6 +154,9 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	if defaultDomain && managed {
 		return fmt.Errorf("do not specify Managed HTTPS if using the Default Domain")
 	}
+	if managed && domain == "" {
+		return fmt.Errorf("Managed endpoints must specify a domain")
+	}
 	if defaultDomain && domain != "" {
 		return fmt.Errorf("cannot specify domain when using Default Domain")
 	}
