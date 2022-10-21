@@ -177,6 +177,10 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 				Config:      testAccAptibleEndpointInvalidPlatform(),
 				ExpectError: regexp.MustCompile(`expected platform to be one of .*, got should-error`),
 			},
+			{
+				Config:      testAccAptibleEndpointInvalidDomain(),
+				ExpectError: regexp.MustCompile(`managed endpoints must specify a domain`),
+			},
 		},
 	})
 }
@@ -376,6 +380,22 @@ resource "aptible_endpoint" "test" {
 	process_type = "cmd"
 	default_domain = true
 	platform = "should-error"
+	}`, testEnvironmentId)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidDomain() string {
+	output := fmt.Sprintf(`
+resource "aptible_endpoint" "test" {
+	env_id = %d
+	resource_id = 1
+	resource_type = "app"
+	process_type = "cmd"
+	default_domain = false
+	platform = "alb"
+	managed = true
+	domain = ""
 	}`, testEnvironmentId)
 	log.Println("HCL generated: ", output)
 	return output
