@@ -121,6 +121,21 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	processType := d.Get("process_type").(string)
 	resourceID := int64(d.Get("resource_id").(int))
 	resourceType := d.Get("resource_type").(string)
+	interfaceSlice := d.Get("ip_filtering").([]interface{})
+	ipWhitelist, _ := aptible.MakeStringSlice(interfaceSlice)
+	defaultDomain := d.Get("default_domain").(bool)
+	managed := d.Get("managed").(bool)
+	domain := d.Get("domain").(string)
+
+	if defaultDomain && managed {
+		return fmt.Errorf("do not specify Managed HTTPS if using the Default Domain")
+	}
+	if managed && domain == "" {
+		return fmt.Errorf("managed endpoints must specify a domain")
+	}
+	if defaultDomain && domain != "" {
+		return fmt.Errorf("cannot specify domain when using Default Domain")
+	}
 
 	if resourceType == "app" {
 		service, err = client.GetServiceForAppByName(resourceID, processType)
@@ -137,35 +152,18 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 		service = database.Service
 	}
 
-	interfaceSlice := d.Get("ip_filtering").([]interface{})
-	ipWhitelist, _ := aptible.MakeStringSlice(interfaceSlice)
+	if service.ResourceType == "database" && defaultDomain {
+		return fmt.Errorf("cannot use Default Domain on Databases")
+	}
+	if service.ResourceType == "database" && domain != "" {
+		return fmt.Errorf("cannot specify domain on Databases")
+	}
 
 	humanReadableEndpointType := d.Get("endpoint_type").(string)
 	endpointType, err := aptible.GetEndpointType(humanReadableEndpointType)
 	if err != nil {
 		log.Println(err)
 		return err
-	}
-
-	defaultDomain := d.Get("default_domain").(bool)
-	managed := d.Get("managed").(bool)
-	domain := d.Get("domain").(string)
-
-	if defaultDomain && managed {
-		return fmt.Errorf("do not specify Managed HTTPS if using the Default Domain")
-	}
-	if managed && domain == "" {
-		return fmt.Errorf("Managed endpoints must specify a domain")
-	}
-	if defaultDomain && domain != "" {
-		return fmt.Errorf("cannot specify domain when using Default Domain")
-	}
-
-	if service.ResourceType == "database" && defaultDomain {
-		return fmt.Errorf("cannot use Default Domain on Databases")
-	}
-	if service.ResourceType == "database" && domain != "" {
-		return fmt.Errorf("cannot specify domain on Databases")
 	}
 
 	attrs := aptible.EndpointCreateAttrs{
