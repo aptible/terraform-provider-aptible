@@ -22,6 +22,7 @@ func Provider() *schema.Provider {
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"aptible_environment": dataSourceEnvironment(),
+			"aptible_stack":       dataSourceStack(),
 		},
 		ConfigureContextFunc: providerConfigureWithContext,
 	}

@@ -1,6 +1,8 @@
-**/.terraform/*
+*.terraform
 *tfstate*
-**/.terraform.lock.hcl
+*.terraform.lock.hcl
+*.auto.tfvars
+!example.auto.tfvars
 .vscode
 .DS_Store
 terraform-provider-aptible
