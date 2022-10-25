@@ -36,6 +36,6 @@ resource "aptible_environment" "test-env" {
 
 In addition to all arguments above, the following attributes are exported:
 
-- `id` - The unique ID for an Stack suitable for use in `stack_id` attributes
+- `stack_id` - The unique ID for an Stack suitable for use in `stack_id` attributes
 - `org_id` - If the stack is a [dedicated stack](https://deploy-docs.aptible.com/docs/shared-dedicated#dedicated-stacks),
 you will also receive an id that corresponds to that organization. If it is a shared stack, this value will be empty.
