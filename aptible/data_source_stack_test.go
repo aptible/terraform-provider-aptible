@@ -40,7 +40,6 @@ func TestAccDataSourceStack_deploy(t *testing.T) {
 				t.Fatalf("Unable to generate and setup client for stacks test - %s", err.Error())
 				return
 			}
-
 			stacks, err = client.GetStacks()
 			if err != nil {
 				t.Fatalf("Unable to retrieve stacks for test - %s", err.Error())
@@ -51,6 +50,7 @@ func TestAccDataSourceStack_deploy(t *testing.T) {
 				return
 			}
 		},
+		Providers:         testAccProviders,
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckEnvironmentDestroy,
 		Steps: []resource.TestStep{
