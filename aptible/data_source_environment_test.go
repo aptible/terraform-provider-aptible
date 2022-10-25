@@ -2,7 +2,6 @@ package aptible
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strconv"
 	"testing"
@@ -31,36 +30,34 @@ func TestAccDataSourceEnvironment_validation(t *testing.T) {
 }
 
 func TestAccDataSourceEnvironment_basic(t *testing.T) {
-	if os.Getenv("TEST_ACC") == "1" {
-		rHandle := acctest.RandString(10)
+	rHandle := acctest.RandString(10)
 
-		resource.Test(t, resource.TestCase{
-			PreCheck:          func() { testAccPreCheck(t) },
-			ProviderFactories: testAccProviderFactories,
-			Providers:         testAccProviders,
-			CheckDestroy:      testAccCheckEnvironmentDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: testAccAptibleEnvironment(rHandle),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_environment.test", "handle", rHandle),
-						resource.TestCheckResourceAttr("aptible_environment.test", "org_id", testOrganizationId),
-						resource.TestCheckResourceAttr("aptible_environment.test", "stack_id", strconv.Itoa(testStackId)),
-					),
-				}, {
-					ResourceName:      "aptible_environment.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-				},
-				{
-					Config: testDataAccAptibleEnvironment(rHandle),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("data.aptible_environment.test", "handle", rHandle),
-					),
-				},
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		Providers:         testAccProviders,
+		CheckDestroy:      testAccCheckEnvironmentDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleEnvironment(rHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_environment.test", "handle", rHandle),
+					resource.TestCheckResourceAttr("aptible_environment.test", "org_id", testOrganizationId),
+					resource.TestCheckResourceAttr("aptible_environment.test", "stack_id", strconv.Itoa(testStackId)),
+				),
+			}, {
+				ResourceName:      "aptible_environment.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
-		})
-	}
+			{
+				Config: testDataAccAptibleEnvironment(rHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.aptible_environment.test", "handle", rHandle),
+				),
+			},
+		},
+	})
 }
 
 func testDataAccAptibleEnvironment(handle string) string {
