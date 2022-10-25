@@ -29,25 +29,28 @@ func TestAccDataSourceStack_validation(t *testing.T) {
 	})
 }
 
-func TestAccDataSourceStack_basic(t *testing.T) {
-	client, err := aptible.SetUpClient()
-	if err != nil {
-		t.Fatalf("Unable to generate and setup client for stacks test - %s", err.Error())
-		return
-	}
-
-	stacks, err := client.GetStacks()
-	if err != nil {
-		t.Fatalf("Unable to retrieve stacks for test - %s", err.Error())
-		return
-	}
-	if len(stacks) == 0 {
-		t.Fatal("Unable to find stacks with a zero length")
-		return
-	}
+func TestAccDataSourceStack_deploy(t *testing.T) {
+	var stacks []aptible.Stack
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			client, err := aptible.SetUpClient()
+			if err != nil {
+				t.Fatalf("Unable to generate and setup client for stacks test - %s", err.Error())
+				return
+			}
+
+			stacks, err = client.GetStacks()
+			if err != nil {
+				t.Fatalf("Unable to retrieve stacks for test - %s", err.Error())
+				return
+			}
+			if len(stacks) == 0 {
+				t.Fatal("Unable to find stacks with a zero length")
+				return
+			}
+		},
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckEnvironmentDestroy,
 		Steps: []resource.TestStep{

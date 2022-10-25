@@ -29,7 +29,7 @@ func TestAccDataSourceEnvironment_validation(t *testing.T) {
 	})
 }
 
-func TestAccDataSourceEnvironment_basic(t *testing.T) {
+func TestAccDataSourceEnvironment_deploy(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
