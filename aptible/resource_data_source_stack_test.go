@@ -2,15 +2,16 @@ package aptible
 
 import (
 	"fmt"
-	"github.com/aptible/go-deploy/aptible"
 	"regexp"
 	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
+	"github.com/aptible/go-deploy/aptible"
 )
 
-func TestAccDataSourceStack_validation(t *testing.T) {
+func TestAccStackDataSource_validation(t *testing.T) {
 	requiredAttrs := []string{"name"}
 	var testSteps []resource.TestStep
 
@@ -29,7 +30,7 @@ func TestAccDataSourceStack_validation(t *testing.T) {
 	})
 }
 
-func TestAccDataSourceStack_deploy(t *testing.T) {
+func TestAccStackDataSource_deploy(t *testing.T) {
 	var stacks []aptible.Stack
 
 	resource.Test(t, resource.TestCase{
