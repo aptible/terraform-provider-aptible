@@ -22,7 +22,8 @@ For example, when defining an environment:
 
 ```hcl
 resource "aptible_environment" "test-env" {
-    env_id = data.aptible_stack.test-stack.stack_id
+    stack_id = data.aptible_stack.test-stack.stack_id
+    org_id = data.aptible_stack.test-stack.org_id
     name = "test-env"
 }
 ```
