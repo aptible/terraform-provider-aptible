@@ -33,6 +33,9 @@ func TestAccStackDataSource_validation(t *testing.T) {
 
 func TestAccStackDataSource_deploy(t *testing.T) {
 	if os.Getenv("TF_ACC") == "1" {
+		// This guard is set because the below code should only evaluate if running in an integration test
+		// setting. Typically this is honored by Terraform, but this occurs outside the context of the resource.Test
+		// which must be done as values set in PreCheck are discarded and/or run in an entirely different context
 		var stacks []aptible.Stack
 		client, err := aptible.SetUpClient()
 		if err != nil {
