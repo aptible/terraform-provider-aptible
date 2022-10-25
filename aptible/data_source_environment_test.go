@@ -29,7 +29,7 @@ func TestAccDataSourceEnvironment_validation(t *testing.T) {
 	})
 }
 
-func TestAccDataSourceEnvironment_deploy(t *testing.T) {
+func TestAccDataSourceEnvironment_basic(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
@@ -46,10 +46,9 @@ func TestAccDataSourceEnvironment_deploy(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_environment.test", "stack_id", strconv.Itoa(testStackId)),
 				),
 			}, {
-				ResourceName:            "aptible_environment.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"org_id", "stack_id"},
+				ResourceName:      "aptible_environment.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 			{
 				Config: testDataAccAptibleEnvironment(rHandle),

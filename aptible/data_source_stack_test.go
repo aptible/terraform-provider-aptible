@@ -52,7 +52,6 @@ func TestAccDataSourceStack_deploy(t *testing.T) {
 		},
 		Providers:         testAccProviders,
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckEnvironmentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testDataAccAptibleStack(stacks[0].Name),
