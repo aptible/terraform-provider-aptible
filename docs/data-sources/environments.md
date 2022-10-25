@@ -37,4 +37,4 @@ resource "aptible_app" "techo-app" {
 
 In addition to all arguments above, the following attributes are exported:
 
-- `id` - The unique ID for an Environment suitable for use in `env_id` attributes
+- `env_id` - The unique ID for an Environment suitable for use in `env_id` attributes
