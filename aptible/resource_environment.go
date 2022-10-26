@@ -2,13 +2,15 @@ package aptible
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"errors"
 	"log"
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceEnvironment() *schema.Resource {
@@ -27,7 +29,8 @@ func resourceEnvironment() *schema.Resource {
 			},
 			"org_id": {
 				Type:         schema.TypeString,
-				Required:     true,
+				Computed:     true,
+				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validation.IsUUID,
 			},
@@ -47,8 +50,40 @@ func resourceEnvironment() *schema.Resource {
 func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*aptible.Client)
 	handle := d.Get("handle").(string)
-	orgID := d.Get("org_id").(string)
 	stackID := int64(d.Get("stack_id").(int))
+
+	// there are a few  scenarios where org_id can be fully gathered from the data provided above
+	// 1. If it is provided explicitly
+	// 2. It is using a dedicated stack, and so when creating an environment, use the stack id to get stack
+	//    and check that stack's org id and use it
+	// 3. The user only belongs to one organization, so fall back to that. If they belong to multiple organizations
+	// 	  they will have to specify it explicitly at this point (if these points no longer work for inference.)
+	orgID := d.Get("org_id").(string) // scenario #1 outlined above
+	if orgID == "" {
+		stack, err := client.GetStack(stackID) // scenario #2 outlined above
+		if err != nil {
+			log.Println("There was an error trying to retrieve the stack with the stack id provided to determine"+
+				"an organization id.\n[Error] - ", err)
+			return generateDiagnosticsFromClientError(err)
+		}
+		orgID = stack.OrganizationID
+		if orgID == "" {
+			org, err := client.GetOrganization() // scenario #3 outlined above
+			if err != nil {
+				log.Println("There was an error trying to retrieve an organization id (org_id). You can "+
+					"either specify it explicitly or review the error message to attempt to fix the issue. "+
+					"\n[ERROR] - ", err)
+				return generateDiagnosticsFromClientError(err)
+			}
+			orgID = org.ID
+		}
+	}
+
+	if orgID == "" {
+		errorMessage := "[ERROR] - Unable to infer organization ID from stack or user. You may have to specify it explicitly"
+		log.Println(errorMessage)
+		return generateDiagnosticsFromClientError(errors.New(errorMessage))
+	}
 
 	data := aptible.EnvironmentCreateAttrs{
 		Handle: handle,
