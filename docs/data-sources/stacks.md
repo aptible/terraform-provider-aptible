@@ -28,6 +28,9 @@ resource "aptible_environment" "test-env" {
 }
 ```
 
+__Note__ - If your environment is meant to be created on a dedicated stack you can omit the `org_id`
+field in the example above.
+
 ## Argument Reference
 
 - `name` - The name of the Stack
