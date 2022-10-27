@@ -63,7 +63,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta
 		stack, err := client.GetStack(stackID) // scenario #2 outlined above
 		if err != nil {
 			log.Println("There was an error trying to retrieve the stack with the stack id provided to determine"+
-				"an organization id.\n[Error] - ", err)
+				"an organization id.\n[ERROR] - ", err)
 			return generateDiagnosticsFromClientError(err)
 		}
 		orgID = stack.OrganizationID
