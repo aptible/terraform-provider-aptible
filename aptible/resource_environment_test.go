@@ -96,6 +96,30 @@ func TestAccResourceEnvironment_basic(t *testing.T) {
 	})
 }
 
+func TestAccResourceEnvironment_basic_no_org(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckEnvironmentDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleEnvironmentWithoutOrg(rHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_environment.test", "handle", rHandle),
+					resource.TestCheckResourceAttr("aptible_environment.test", "stack_id", strconv.Itoa(testStackId)),
+				),
+			}, {
+				ResourceName:            "aptible_environment.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"org_id", "stack_id"},
+			},
+		},
+	})
+}
+
 func TestAccResourceEnvironment_update(t *testing.T) {
 	rHandle := acctest.RandString(10)
 	rUpdatedHandle := acctest.RandString(10)
@@ -135,4 +159,12 @@ resource "aptible_environment" "test" {
 	org_id = "%s"
 	stack_id = "%v"
 }`, handle, testOrganizationId, testStackId)
+}
+
+func testAccAptibleEnvironmentWithoutOrg(handle string) string {
+	return fmt.Sprintf(`
+resource "aptible_environment" "test" {
+	handle = "%s"
+	stack_id = "%v"
+}`, handle, testStackId)
 }
