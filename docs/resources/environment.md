@@ -15,9 +15,9 @@ resource "aptible_environment" "example_environment" {
 ## Argument Reference
 
 - `stack_id` (Required) - The id of the [stack](https://deploy-docs.aptible.com/docs/stacks) you would like the environment to be provisioned on.
-- `org_id` (Optional) - The id of the [organization](https://deploy-docs.aptible.com/docs/organizations) you would like the environment to be provisioned on. This is optional. If unspecified,
-we will try to determine this ID from the stack (if dedicated) and/or the user credentials's organizations to ensure they are only part of one organization.
-__This may be required if the following cases do not apply__ : you are using a dedicated stack or your user is part of more than one organization.
+- `org_id` (Optional) - The id of the [organization](https://deploy-docs.aptible.com/docs/organizations) you would like the environment to be provisioned on. 
+This is optional. If the `org_id` is not provided, the provider will attempt to determine it for you. 
+If you are only a member of a single Aptible organization or the environment is on a dedicated stack, it will certainly be able to.
 - `handle` - The handle for the environment.
 
 ## Attribute Reference
