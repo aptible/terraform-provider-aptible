@@ -15,7 +15,7 @@ import (
 )
 
 func TestAccResourceEnvironment_validation(t *testing.T) {
-	requiredAttrs := []string{"handle", "stack_id", "org_id"}
+	requiredAttrs := []string{"handle", "stack_id"}
 	var testSteps []resource.TestStep
 
 	for _, attr := range requiredAttrs {
@@ -32,7 +32,7 @@ func TestAccResourceEnvironment_validation(t *testing.T) {
 				resource "aptible_environment" "test" {
 					handle = "%s"
 					org_id = "%s"
-					stack_id = "%v"
+					stack_id = %d
 				}
 			`, "test", "invalid-uuid", testStackId),
 		ExpectError: regexp.MustCompile(fmt.Sprintf(`expected %q to be a valid UUID, got invalid-uuid`, "org_id")),
