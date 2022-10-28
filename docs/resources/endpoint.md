@@ -36,7 +36,7 @@ resource "aptible_endpoint" "example" {
 }
 
 data "aws_route53_zone" "example" {
-  name = "example.com."
+  name = "example.com"
 }
 
 resource "aws_route53_record" "www" {
