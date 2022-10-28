@@ -260,15 +260,16 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	appID := int64(d.Get("app_id").(int))
 
-	services := d.Get("service").(*schema.Set).List()
+	// If there are no changes to services, there's no reason to scale
+	if !d.HasChange("service") {
+		return nil
+	}
 
 	// If we're changing existing services, be sure we're using the "new" service definitions and only
 	// try to scale ones that actually change
-	if d.HasChange("service") {
-		log.Println("Detected change in services")
-		oldService, newService := d.GetChange("service")
-		services = newService.(*schema.Set).Difference(oldService.(*schema.Set)).List()
-	}
+	log.Println("Detected change in services")
+	oldService, newService := d.GetChange("service")
+	services := newService.(*schema.Set).Difference(oldService.(*schema.Set)).List()
 
 	for _, s := range services {
 		serviceInterface := s.(map[string]interface{})
