@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 // Modified validation.IsURLWithScheme to simply check for a URL that has any scheme and a host.
@@ -55,3 +56,26 @@ func errorsToWarnings(validator schema.SchemaValidateFunc) schema.SchemaValidate
 		return warns, nil
 	}
 }
+
+var validContainerSizes = []int{
+	512,
+	1024,
+	2048,
+	4096,
+	7168,
+	15360,
+	30720,
+	61440,
+	153600,
+	245760,
+}
+var validateContainerSize = validation.IntInSlice(validContainerSizes)
+
+var validContainerProfiles = []string{
+	"m4",
+	"r5",
+	"c5",
+}
+var validateContainerProfile = errorsToWarnings(validation.StringInSlice(validContainerProfiles, false))
+
+var validateDiskSize = validation.IntBetween(1, 16000)

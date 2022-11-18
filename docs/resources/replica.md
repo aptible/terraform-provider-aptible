@@ -31,8 +31,8 @@ resource "aptible_replica" "example_database_replica" {
   created from.
 - `handle` - The handle for the Database. This must be all lower case, and
   only contain letters, numbers, `-`, `_`, or `.`
-- `container_size` - The size of container used for the Database, in MB
-  of RAM.
+- `container_size` - (Default: 1024) The size of container used for the
+  Database, in MB of RAM.
 - `disk_size` - The disk size of the Database, in GB.
 
 ## Attribute Reference

@@ -105,7 +105,7 @@ func TestAccResourceReplica_expectError(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccAptibleReplicaInvalidContainerSize(replicaHandle),
-				ExpectError: regexp.MustCompile(`expected container_size to be in the range .*, got 0`),
+				ExpectError: regexp.MustCompile(`expected container_size to be one of .*, got 0`),
 			},
 			{
 				Config:      testAccAptibleReplicaInvalidDiskSize(replicaHandle),
@@ -160,7 +160,7 @@ func testAccCheckReplicaDestroy(s *terraform.State) error {
 }
 
 func testAccAptibleReplicaBasic(dbHandle string, replicaHandle string) string {
-	output := fmt.Sprintf(`
+	return fmt.Sprintf(`
 resource "aptible_database" "test" {
     env_id = %d
 	handle = "%v"
@@ -172,12 +172,10 @@ resource "aptible_replica" "test" {
 	primary_database_id = aptible_database.test.database_id
 }
 `, testEnvironmentId, dbHandle, testEnvironmentId, replicaHandle)
-	log.Println("HCL generated:", output)
-	return output
 }
 
 func testAccAptibleReplicaUpdate(dbHandle string, repHandle string) string {
-	output := fmt.Sprintf(`
+	return fmt.Sprintf(`
 	resource "aptible_database" "test" {
 		env_id = %d
 		handle = "%v"
@@ -191,8 +189,6 @@ func testAccAptibleReplicaUpdate(dbHandle string, repHandle string) string {
 		disk_size = %d
 	}
 `, testEnvironmentId, dbHandle, testEnvironmentId, repHandle, 512, 20)
-	log.Println("HCL generated:", output)
-	return output
 }
 
 func testAccAptibleReplicaInvalidContainerSize(replicaHandle string) string {

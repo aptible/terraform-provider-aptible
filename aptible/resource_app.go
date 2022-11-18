@@ -9,7 +9,6 @@ import (
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceApp() *schema.Resource {
@@ -66,13 +65,13 @@ func resourceApp() *schema.Resource {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							Default:      1024,
-							ValidateFunc: validation.IntInSlice(validContainerSizes),
+							ValidateFunc: validateContainerSize,
 						},
 						"container_profile": {
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      "m4",
-							ValidateFunc: errorsToWarnings(validation.StringInSlice(validContainerProfiles, false)),
+							ValidateFunc: validateContainerProfile,
 						},
 					},
 				},
@@ -295,23 +294,4 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
-}
-
-var validContainerSizes = []int{
-	512,
-	1024,
-	2048,
-	4096,
-	7168,
-	15360,
-	30720,
-	61440,
-	153600,
-	245760,
-}
-
-var validContainerProfiles = []string{
-	"m4",
-	"r5",
-	"c5",
 }
