@@ -42,19 +42,19 @@ func resourceDatabase() *schema.Resource {
 			"container_size": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				ValidateFunc: validation.IntInSlice(validContainerSizes),
+				ValidateFunc: validateContainerSize,
 				Default:      1024,
 			},
 			"container_profile": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: errorsToWarnings(validation.StringInSlice(validContainerProfiles, false)),
+				ValidateFunc: validateContainerProfile,
 				Default:      "m4",
 			},
 			"disk_size": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				ValidateFunc: validation.IntBetween(1, 16000),
+				ValidateFunc: validateDiskSize,
 				Default:      10,
 			},
 			"database_id": {

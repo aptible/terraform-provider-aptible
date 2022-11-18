@@ -104,11 +104,11 @@ func TestAccResourceReplica_expectError(t *testing.T) {
 		CheckDestroy: testAccCheckReplicaDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccAptibleReplicaInvalidContainerSize(replicaHandle),
-				ExpectError: regexp.MustCompile(`expected container_size to be in the range .*, got 0`),
+				Config:      testAccAptibleDatabaseInvalidContainerSize(replicaHandle),
+				ExpectError: regexp.MustCompile(`expected container_size to be one of .*, got 0`),
 			},
 			{
-				Config:      testAccAptibleReplicaInvalidDiskSize(replicaHandle),
+				Config:      testAccAptibleDatabaseInvalidDiskSize(replicaHandle),
 				ExpectError: regexp.MustCompile(`expected disk_size to be in the range .*, got 0`),
 			},
 		},
