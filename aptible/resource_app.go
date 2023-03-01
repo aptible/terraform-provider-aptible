@@ -32,11 +32,11 @@ func resourceApp() *schema.Resource {
 				Required: true,
 			},
 			"config": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type:      schema.TypeMap,
+				Optional:  true,
+				Sensitive: true,
 				Elem: &schema.Schema{
-					Type:      schema.TypeString,
-					Sensitive: true,
+					Type: schema.TypeString,
 				},
 			},
 			"app_id": {
