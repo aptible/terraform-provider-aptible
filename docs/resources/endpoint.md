@@ -60,7 +60,7 @@ resource "aws_route53_record" "dns01" {
   Endpoint in. See main provider documentation for more on how to determine what
   you should use for `env_id`.
 - `endpoint_type` - (Required) The type of Endpoint. Valid options are `https`,
-  `tls`, or `tcp`.
+  `tls`, or `tcp`. `tcp` should be used with `resource_type` of `database`.
 - `resource_type` - (Required) The type of resource you are adding the Endpoint
   to. Valid options are `app` or `database`.
 - `resource_id` - (Required) The ID of the resource you are adding the Endpoint
@@ -83,7 +83,7 @@ resource "aws_route53_record" "dns01" {
   . Changing this will force the resource to be recreated.
 - `platform` - (Default: `alb`) What type of 
   [load balancer](https://www.aptible.com/documentation/deploy/reference/apps/endpoints/https-endpoints/alb-elb.html#alb-elb)
-  the Endpoint should use. Valid options are `alb` or `elb`.
+  the Endpoint should use. Valid options are `alb` or `elb`. `resource_type` of `database` should use `elb`.
 - `ip_filtering` - (Optional) The list of IPv4 CIDRs that the Endpoint will
   allow traffic from. If not provided, the Endpoint will not filter traffic.
   See the [IP Filtering](https://deploy-docs.aptible.com/docs/ip-filtering)
