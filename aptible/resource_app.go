@@ -32,9 +32,8 @@ func resourceApp() *schema.Resource {
 				Required: true,
 			},
 			"config": {
-				Type:      schema.TypeMap,
-				Optional:  true,
-				Sensitive: true,
+				Type:     schema.TypeMap,
+				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
