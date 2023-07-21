@@ -71,6 +71,12 @@ func resourceEndpoint() *schema.Resource {
 				Default:  false,
 				ForceNew: true,
 			},
+			"container_ports": {
+				Type:         schema.TypeList,
+				Optional:     true,
+				Elem:
+				ValidateFunc: validation.IntBetween(1, 65535),
+			},
 			"container_port": {
 				Type:         schema.TypeInt,
 				Optional:     true,
@@ -123,9 +129,15 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	resourceType := d.Get("resource_type").(string)
 	interfaceSlice := d.Get("ip_filtering").([]interface{})
 	ipWhitelist, _ := aptible.MakeStringSlice(interfaceSlice)
+	interfaceContainerPortsSlice := d.Get("container_ports").([]interface{})
+	containerPorts, _ := aptible.MakeStringSlice(interfaceContainerPortsSlice)
 	defaultDomain := d.Get("default_domain").(bool)
 	managed := d.Get("managed").(bool)
 	domain := d.Get("domain").(string)
+	containerPort, _ := (d.Get("container_port").(int))
+	if containerPort != nil && containerPorts != nil {
+		return fmt.Errorf("do not specify container ports AND container port (see terraform docs)")
+	}
 
 	if defaultDomain && managed {
 		return fmt.Errorf("do not specify Managed HTTPS if using the Default Domain")
