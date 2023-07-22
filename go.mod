@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/storage v1.15.0 // indirect
 	github.com/Djarvur/go-err113 v0.1.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/aptible/go-deploy v0.4.1
+	github.com/aptible/go-deploy v0.4.2-0.20230721225144-5560e8fcf2fe
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.38.67 // indirect
 	github.com/bflad/tfproviderdocs v0.9.1
@@ -65,3 +65,5 @@ require (
 	google.golang.org/genproto v0.0.0-20210624195500-8bfb893ecb84 // indirect
 	mvdan.cc/unparam v0.0.0-20210520122750-2ac67f130a88 // indirect
 )
+
+replace github.com/aptible/go-deploy => ../../work/go-deploy
