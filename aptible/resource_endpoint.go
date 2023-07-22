@@ -72,10 +72,12 @@ func resourceEndpoint() *schema.Resource {
 				ForceNew: true,
 			},
 			"container_ports": {
-				Type:         schema.TypeList,
-				Optional:     true,
-				Elem:
-				ValidateFunc: validation.IntBetween(1, 65535),
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
+				},
+				ValidateDiagFunc: validateContainerPorts,
 			},
 			"container_port": {
 				Type:         schema.TypeInt,
@@ -130,12 +132,12 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	interfaceSlice := d.Get("ip_filtering").([]interface{})
 	ipWhitelist, _ := aptible.MakeStringSlice(interfaceSlice)
 	interfaceContainerPortsSlice := d.Get("container_ports").([]interface{})
-	containerPorts, _ := aptible.MakeStringSlice(interfaceContainerPortsSlice)
+	containerPorts, _ := aptible.MakeInt64Slice(interfaceContainerPortsSlice)
 	defaultDomain := d.Get("default_domain").(bool)
 	managed := d.Get("managed").(bool)
 	domain := d.Get("domain").(string)
 	containerPort, _ := (d.Get("container_port").(int))
-	if containerPort != nil && containerPorts != nil {
+	if containerPort != 0 && containerPorts != nil {
 		return fmt.Errorf("do not specify container ports AND container port (see terraform docs)")
 	}
 
@@ -179,13 +181,14 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	attrs := aptible.EndpointCreateAttrs{
-		Type:          &endpointType,
-		Internal:      d.Get("internal").(bool),
-		ContainerPort: int64(d.Get("container_port").(int)),
-		IPWhitelist:   ipWhitelist,
-		Platform:      d.Get("platform").(string),
-		Default:       defaultDomain,
-		Acme:          managed,
+		Type:           &endpointType,
+		Internal:       d.Get("internal").(bool),
+		ContainerPort:  int64(d.Get("container_port").(int)),
+		ContainerPorts: containerPorts,
+		IPWhitelist:    ipWhitelist,
+		Platform:       d.Get("platform").(string),
+		Default:        defaultDomain,
+		Acme:           managed,
 	}
 	if domain != "" {
 		attrs.UserDomain = domain
@@ -228,6 +231,7 @@ func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
 	service := endpoint.Service
 	if service.ResourceType == "app" {
 		_ = d.Set("container_port", endpoint.ContainerPort)
+		_ = d.Set("container_ports", endpoint.ContainerPorts)
 		_ = d.Set("platform", endpoint.Platform)
 		_ = d.Set("process_type", endpoint.Service.ProcessType)
 	}
@@ -265,11 +269,14 @@ func resourceEndpointUpdate(d *schema.ResourceData, meta interface{}) error {
 	endpointID := int64(d.Get("endpoint_id").(int))
 	interfaceSlice := d.Get("ip_filtering").([]interface{})
 	ipWhitelist, _ := aptible.MakeStringSlice(interfaceSlice)
+	interfaceContainerPortsSlice := d.Get("container_ports").([]interface{})
+	containerPorts, _ := aptible.MakeInt64Slice(interfaceContainerPortsSlice)
 
 	updates := aptible.EndpointUpdates{
-		ContainerPort: int64(d.Get("container_port").(int)),
-		IPWhitelist:   ipWhitelist,
-		Platform:      d.Get("platform").(string),
+		ContainerPort:  int64(d.Get("container_port").(int)),
+		ContainerPorts: containerPorts,
+		IPWhitelist:    ipWhitelist,
+		Platform:       d.Get("platform").(string),
 	}
 
 	err := client.UpdateEndpoint(endpointID, updates)
