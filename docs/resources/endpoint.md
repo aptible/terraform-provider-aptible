@@ -71,10 +71,11 @@ resource "aws_route53_record" "dns01" {
   is for. See main provider documentation for more information on how to
   determine the sevice name.
 - `container_port` - (Optional, App only) The port on the container which
-  the Endpoint should forward traffic to. Mutually exclusive from `container_ports`.
+  the Endpoint should forward traffic to. Mutually exclusive from `container_ports`. 
+  You should use this for `https` endpoints.
 - `container_ports` - (Optional, App only) The ports in array form on the container which
-  the Endpoint should forward traffic to. Mutually exclusive from `container_port`. Multiple
-  ports are only allowed on a `tcp` or `tls` endpoint.
+  the Endpoint should forward traffic to. Mutually exclusive from `container_port`.
+  Multiple container ports are only allowed on a `tcp` or `tls` endpoint.
 - `default_domain` - (App only, Default: false) If the Endpoint should use the
   App's default `on-aptible.com` domain. Only one Endpoint per App can use the
   default domain. Cannot be used with `managed`.
