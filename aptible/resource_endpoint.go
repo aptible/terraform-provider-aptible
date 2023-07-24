@@ -137,7 +137,7 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	managed := d.Get("managed").(bool)
 	domain := d.Get("domain").(string)
 	containerPort, _ := (d.Get("container_port").(int))
-	if containerPort != 0 && containerPorts != nil {
+	if containerPort != 0 && len(containerPorts) != 0 {
 		return fmt.Errorf("do not specify container ports AND container port (see terraform docs)")
 	}
 
@@ -271,6 +271,10 @@ func resourceEndpointUpdate(d *schema.ResourceData, meta interface{}) error {
 	ipWhitelist, _ := aptible.MakeStringSlice(interfaceSlice)
 	interfaceContainerPortsSlice := d.Get("container_ports").([]interface{})
 	containerPorts, _ := aptible.MakeInt64Slice(interfaceContainerPortsSlice)
+	containerPort, _ := (d.Get("container_port").(int))
+	if containerPort != 0 && len(containerPorts) != 0 {
+		return fmt.Errorf("do not specify container ports AND container port (see terraform docs)")
+	}
 
 	updates := aptible.EndpointUpdates{
 		ContainerPort:  int64(d.Get("container_port").(int)),
