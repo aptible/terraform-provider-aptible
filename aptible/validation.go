@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Modified validation.IsURLWithScheme to simply check for a URL that has any scheme and a host.
@@ -43,31 +41,6 @@ func validateURL(i interface{}, k string) (_ []string, errors []error) {
 	}
 
 	return
-}
-
-func validateContainerPorts(i interface{}, _ cty.Path) diag.Diagnostics {
-	var diags diag.Diagnostics
-	min, max := int64(1), int64(65536)
-	v, ok := i.([]int64)
-	if !ok {
-		diags = append(
-			diags,
-			diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  fmt.Sprintf("expected type of %q to be int64[]", "port"),
-			})
-	}
-
-	for _, port := range v {
-		if port < min || port > max {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  fmt.Sprintf("expected %s to be in the range (%d - %d), got %d", "port", min, max, v),
-			})
-		}
-	}
-
-	return diags
 }
 
 // nolint:staticcheck

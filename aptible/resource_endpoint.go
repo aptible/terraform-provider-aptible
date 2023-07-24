@@ -75,9 +75,9 @@ func resourceEndpoint() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
-					Type: schema.TypeInt,
+					Type:         schema.TypeInt,
+					ValidateFunc: validation.IntBetween(1, 65535),
 				},
-				ValidateDiagFunc: validateContainerPorts,
 			},
 			"container_port": {
 				Type:         schema.TypeInt,
