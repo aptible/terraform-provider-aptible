@@ -50,7 +50,7 @@ func TestAccResourceEndpoint_customDomain(t *testing.T) {
 	})
 }
 
-func TestAccResourceEndpoint_app(t *testing.T) {
+func TestAccResourceEndpoint_appContainerPort(t *testing.T) {
 	appHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
@@ -59,7 +59,7 @@ func TestAccResourceEndpoint_app(t *testing.T) {
 		CheckDestroy: testAccCheckEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAptibleEndpointApp(appHandle),
+				Config: testAccAptibleEndpointAppContainerPort(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
 					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
@@ -69,8 +69,48 @@ func TestAccResourceEndpoint_app(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(testEnvironmentId)),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "app"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "container_port", "80"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
+					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
+					resource.TestMatchResourceAttr("aptible_endpoint.test", "virtual_domain", regexp.MustCompile(`app-.*\.on-aptible\.com`)),
+					resource.TestMatchResourceAttr("aptible_endpoint.test", "external_hostname", regexp.MustCompile(`elb.*\.aptible\.in`)),
+					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_record"),
+					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_value"),
+				),
+			},
+			{
+				ResourceName:      "aptible_endpoint.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccResourceEndpoint_appContainerPorts(t *testing.T) {
+	appHandle := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleEndpointAppContainerPorts(appHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
+					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "app"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "tcp"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "container_ports.0", "80"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "container_ports.1", "443"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "elb"),
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
 					resource.TestMatchResourceAttr("aptible_endpoint.test", "virtual_domain", regexp.MustCompile(`app-.*\.on-aptible\.com`)),
 					resource.TestMatchResourceAttr("aptible_endpoint.test", "external_hostname", regexp.MustCompile(`elb.*\.aptible\.in`)),
@@ -129,7 +169,7 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 		CheckDestroy: testAccCheckEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAptibleEndpointApp(appHandle),
+				Config: testAccAptibleEndpointAppContainerPort(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
 					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
@@ -279,13 +319,13 @@ resource "aptible_endpoint" "test" {
 	return output
 }
 
-func testAccAptibleEndpointApp(appHandle string) string {
+func testAccAptibleEndpointAppContainerPort(appHandle string) string {
 	output := fmt.Sprintf(`
 resource "aptible_app" "test" {
 	env_id = %d
 	handle = "%v"
 	config = {
-		"APTIBLE_DOCKER_IMAGE" = "nginx"
+		"APTIBLE_DOCKER_IMAGE" = "caddy"
 	}
 	service {
 		process_type = "cmd"
@@ -299,10 +339,41 @@ resource "aptible_endpoint" "test" {
 	resource_id = aptible_app.test.app_id
 	resource_type = "app"
 	process_type = "cmd"
+	container_port = 80
 	endpoint_type = "https"
 	default_domain = true
 	internal = true
 	platform = "alb"
+}`, testEnvironmentId, appHandle, testEnvironmentId)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointAppContainerPorts(appHandle string) string {
+	output := fmt.Sprintf(`
+resource "aptible_app" "test" {
+	env_id = %d
+	handle = "%v"
+	config = {
+		"APTIBLE_DOCKER_IMAGE" = "caddy"
+	}
+	service {
+		process_type = "cmd"
+		container_memory_limit = 512
+		container_count = 1
+	}
+}
+
+resource "aptible_endpoint" "test" {
+	env_id = %d
+	resource_id = aptible_app.test.app_id
+	resource_type = "app"
+	process_type = "cmd"
+	container_ports = [80, 443]
+	endpoint_type = "tcp"
+	default_domain = true
+	internal = true
+	platform = "elb"
 }`, testEnvironmentId, appHandle, testEnvironmentId)
 	log.Println("HCL generated: ", output)
 	return output
