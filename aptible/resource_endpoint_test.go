@@ -181,6 +181,14 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 				Config:      testAccAptibleEndpointInvalidDomain(),
 				ExpectError: regexp.MustCompile(`managed endpoints must specify a domain`),
 			},
+			{
+				Config:      testAccAptibleEndpointInvalidContainerPort(),
+				ExpectError: regexp.MustCompile(`expected container_port to be in the range \(1 \- 65535\)`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidContainerPorts(),
+				ExpectError: regexp.MustCompile(`expected container_ports.0 to be in the range \(1 \- 65535\)`),
+			},
 		},
 	})
 }
@@ -396,6 +404,38 @@ resource "aptible_endpoint" "test" {
 	platform = "alb"
 	managed = true
 	domain = ""
+	}`, testEnvironmentId)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidContainerPort() string {
+	output := fmt.Sprintf(`
+resource "aptible_endpoint" "test" {
+	env_id = %d
+	resource_id = 1
+	resource_type = "app"
+	process_type = "cmd"
+	default_domain = false
+	platform = "alb"
+	managed = true
+	container_port = 99999
+	}`, testEnvironmentId)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidContainerPorts() string {
+	output := fmt.Sprintf(`
+resource "aptible_endpoint" "test" {
+	env_id = %d
+	resource_id = 1
+	resource_type = "app"
+	process_type = "cmd"
+	default_domain = false
+	platform = "alb"
+	managed = true
+	container_ports = [99999]
 	}`, testEnvironmentId)
 	log.Println("HCL generated: ", output)
 	return output
