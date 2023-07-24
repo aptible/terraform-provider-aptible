@@ -65,5 +65,3 @@ require (
 	google.golang.org/genproto v0.0.0-20210624195500-8bfb893ecb84 // indirect
 	mvdan.cc/unparam v0.0.0-20210520122750-2ac67f130a88 // indirect
 )
-
-replace github.com/aptible/go-deploy => ../../work/go-deploy
