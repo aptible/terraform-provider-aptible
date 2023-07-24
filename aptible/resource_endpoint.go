@@ -1,21 +1,24 @@
 package aptible
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
 
 	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceEndpoint() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceEndpointCreate, // POST
-		Read:   resourceEndpointRead,   // GET
-		Update: resourceEndpointUpdate, // PUT
-		Delete: resourceEndpointDelete, // DELETE
+		Create:        resourceEndpointCreate, // POST
+		Read:          resourceEndpointRead,   // GET
+		Update:        resourceEndpointUpdate, // PUT
+		Delete:        resourceEndpointDelete, // DELETE
+		CustomizeDiff: resourceEndpointValidate,
 		Importer: &schema.ResourceImporter{
 			State: resourceEndpointImport,
 		},
@@ -121,6 +124,27 @@ func resourceEndpoint() *schema.Resource {
 	}
 }
 
+func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
+	d := ResourceDiff{ResourceDiff: diff}
+	interfaceContainerPortsSlice := d.Get("container_ports").([]interface{})
+	containerPorts, _ := aptible.MakeInt64Slice(interfaceContainerPortsSlice)
+	containerPort, _ := (d.Get("container_port").(int))
+	endpointType := d.Get("endpoint_type").(string)
+	var err error
+
+	// container_port and container ports are mutually exclusive fields
+	if containerPort != 0 && len(containerPorts) != 0 {
+		err = multierror.Append(err, fmt.Errorf("do not specify container ports AND container port (see terraform docs)"))
+	}
+
+	// container ports can only be used with tls/tcp
+	if len(containerPorts) != 0 && (endpointType == "https" || endpointType == "HTTPS") {
+		err = multierror.Append(err, fmt.Errorf("do not specify container ports with https endpoint (see terraform docs)"))
+	}
+
+	return err
+}
+
 func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*aptible.Client)
 	service := aptible.Service{}
@@ -136,10 +160,6 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	defaultDomain := d.Get("default_domain").(bool)
 	managed := d.Get("managed").(bool)
 	domain := d.Get("domain").(string)
-	containerPort, _ := (d.Get("container_port").(int))
-	if containerPort != 0 && len(containerPorts) != 0 {
-		return fmt.Errorf("do not specify container ports AND container port (see terraform docs)")
-	}
 
 	if defaultDomain && managed {
 		return fmt.Errorf("do not specify Managed HTTPS if using the Default Domain")
@@ -271,10 +291,6 @@ func resourceEndpointUpdate(d *schema.ResourceData, meta interface{}) error {
 	ipWhitelist, _ := aptible.MakeStringSlice(interfaceSlice)
 	interfaceContainerPortsSlice := d.Get("container_ports").([]interface{})
 	containerPorts, _ := aptible.MakeInt64Slice(interfaceContainerPortsSlice)
-	containerPort, _ := (d.Get("container_port").(int))
-	if containerPort != 0 && len(containerPorts) != 0 {
-		return fmt.Errorf("do not specify container ports AND container port (see terraform docs)")
-	}
 
 	updates := aptible.EndpointUpdates{
 		ContainerPort:  int64(d.Get("container_port").(int)),
