@@ -226,6 +226,14 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 				ExpectError: regexp.MustCompile(`expected container_port to be in the range \(1 \- 65535\)`),
 			},
 			{
+				Config:      testAccAptibleEndpointInvalidContainerPortOnTcp(),
+				ExpectError: regexp.MustCompile(`do not specify container port with a tls or tcp endpoint`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidContainerPortOnTls(),
+				ExpectError: regexp.MustCompile(`do not specify container port with a tls or tcp endpoint`),
+			},
+			{
 				Config:      testAccAptibleEndpointInvalidContainerPorts(),
 				ExpectError: regexp.MustCompile(`expected container_ports.0 to be in the range \(1 \- 65535\)`),
 			},
@@ -499,6 +507,40 @@ resource "aptible_endpoint" "test" {
 	platform = "alb"
 	managed = true
 	container_port = 99999
+	}`, testEnvironmentId)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidContainerPortOnTcp() string {
+	output := fmt.Sprintf(`
+resource "aptible_endpoint" "test" {
+	env_id = %d
+	endpoint_type = "tcp"
+	resource_id = 1
+	resource_type = "app"
+	process_type = "cmd"
+	default_domain = false
+	platform = "alb"
+	managed = true
+	container_port = 3000
+	}`, testEnvironmentId)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidContainerPortOnTls() string {
+	output := fmt.Sprintf(`
+resource "aptible_endpoint" "test" {
+	env_id = %d
+	endpoint_type = "tls"
+	resource_id = 1
+	resource_type = "app"
+	process_type = "cmd"
+	default_domain = false
+	platform = "alb"
+	managed = true
+	container_port = 3000
 	}`, testEnvironmentId)
 	log.Println("HCL generated: ", output)
 	return output

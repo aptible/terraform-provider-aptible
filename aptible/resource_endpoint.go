@@ -137,8 +137,12 @@ func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ in
 		err = multierror.Append(err, fmt.Errorf("do not specify container ports AND container port (see terraform docs)"))
 	}
 
+	if containerPort != 0 && (endpointType == "tcp" || endpointType == "tls") {
+		err = multierror.Append(err, fmt.Errorf("do not specify container port with a tls or tcp endpoint"))
+	}
+
 	// container ports can only be used with tls/tcp
-	if len(containerPorts) != 0 && (endpointType == "https" || endpointType == "HTTPS") {
+	if len(containerPorts) != 0 && (endpointType == "https") {
 		err = multierror.Append(err, fmt.Errorf("do not specify container ports with https endpoint (see terraform docs)"))
 	}
 
