@@ -174,6 +174,13 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 		Platform:      d.Get("platform").(string),
 		Default:       defaultDomain,
 		Acme:          managed,
+<<<<<<< Updated upstream
+=======
+	}
+	if containerPorts != nil && len(containerPorts) > 0 {
+		// zero values for arrays give non-deterministic responses from backend
+		attrs.ContainerPorts = containerPorts
+>>>>>>> Stashed changes
 	}
 	if domain != "" {
 		attrs.UserDomain = domain
@@ -258,6 +265,13 @@ func resourceEndpointUpdate(d *schema.ResourceData, meta interface{}) error {
 		ContainerPort: int64(d.Get("container_port").(int)),
 		IPWhitelist:   ipWhitelist,
 		Platform:      d.Get("platform").(string),
+<<<<<<< Updated upstream
+=======
+	}
+	if containerPorts != nil && len(containerPorts) > 0 {
+		// zero values for arrays give non-deterministic responses from backend
+		updates.ContainerPorts = containerPorts
+>>>>>>> Stashed changes
 	}
 
 	err := client.UpdateEndpoint(endpointID, updates)
