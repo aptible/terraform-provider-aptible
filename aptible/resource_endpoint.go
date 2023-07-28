@@ -214,7 +214,7 @@ func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 		Default:        defaultDomain,
 		Acme:           managed,
 	}
-	if containerPorts != nil && len(containerPorts) > 0 {
+	if len(containerPorts) > 0 {
 		// zero values for arrays give non-deterministic responses from backend
 		attrs.ContainerPorts = containerPorts
 	}
@@ -306,7 +306,7 @@ func resourceEndpointUpdate(d *schema.ResourceData, meta interface{}) error {
 		IPWhitelist:    ipWhitelist,
 		Platform:       d.Get("platform").(string),
 	}
-	if containerPorts != nil && len(containerPorts) > 0 {
+	if len(containerPorts) > 0 {
 		// zero values for arrays give non-deterministic responses from backend
 		updates.ContainerPorts = containerPorts
 	}
