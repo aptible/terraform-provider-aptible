@@ -50,9 +50,6 @@ func TestAccResourceEndpoint_customDomain(t *testing.T) {
 	})
 }
 
-<<<<<<< Updated upstream
-func TestAccResourceEndpoint_app(t *testing.T) {
-=======
 func TestAccResourceEndpoint_appContainerNoPort(t *testing.T) {
 	appHandle := acctest.RandString(10)
 
@@ -91,7 +88,6 @@ func TestAccResourceEndpoint_appContainerNoPort(t *testing.T) {
 }
 
 func TestAccResourceEndpoint_appContainerPort(t *testing.T) {
->>>>>>> Stashed changes
 	appHandle := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
@@ -170,11 +166,7 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 		CheckDestroy: testAccCheckEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
-<<<<<<< Updated upstream
-				Config: testAccAptibleEndpointApp(appHandle),
-=======
 				Config: testAccAptibleEndpointAppContainerNoPort(appHandle),
->>>>>>> Stashed changes
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
 					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
@@ -337,8 +329,6 @@ resource "aptible_endpoint" "test" {
 	return output
 }
 
-<<<<<<< Updated upstream
-=======
 func testAccAptibleEndpointAppContainerNoPort(appHandle string) string {
 	output := fmt.Sprintf(`
 resource "aptible_app" "test" {
@@ -398,7 +388,6 @@ resource "aptible_endpoint" "test" {
 	return output
 }
 
->>>>>>> Stashed changes
 func testAccAptibleEndpointDatabase(dbHandle string) string {
 	output := fmt.Sprintf(`
 resource "aptible_database" "test" {
