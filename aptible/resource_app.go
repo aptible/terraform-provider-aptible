@@ -70,7 +70,7 @@ func resourceApp() *schema.Resource {
 						"container_profile": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							Default:      "m4",
+							Default:      "m5",
 							ValidateFunc: validateContainerProfile,
 						},
 					},

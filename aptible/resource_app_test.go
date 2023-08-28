@@ -184,7 +184,7 @@ func testAccAptibleAppDeploy(handle string) string {
 		}
     service {
 			process_type = "cmd"
-			container_profile = "m4"
+			container_profile = "m5"
 			container_memory_limit = 512
 			container_count = 1
 		}
