@@ -30,7 +30,7 @@ resource "aptible_app" "demo-app" {
   }
   service {
     process_type           = "background"
-    container_count        = 0
+    container_count        = 1
     container_memory_limit = 512
   }
 
