@@ -7,7 +7,6 @@ require (
 	cloud.google.com/go/storage v1.15.0 // indirect
 	github.com/Djarvur/go-err113 v0.1.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/PuerkitoBio/purell v1.2.0 // indirect
 	github.com/aptible/go-deploy v0.5.1
 	github.com/aws/aws-sdk-go v1.38.67 // indirect
