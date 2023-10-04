@@ -49,7 +49,7 @@ func resourceDatabase() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateContainerProfile,
-				Default:      "m4",
+				Default:      "m5",
 			},
 			"disk_size": {
 				Type:         schema.TypeInt,

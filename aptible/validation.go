@@ -73,6 +73,7 @@ var validateContainerSize = validation.IntInSlice(validContainerSizes)
 
 var validContainerProfiles = []string{
 	"m4",
+	"m5",
 	"r5",
 	"c5",
 }
