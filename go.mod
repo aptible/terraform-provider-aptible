@@ -53,14 +53,10 @@ require (
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/tomarrell/wrapcheck/v2 v2.2.0 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
-	github.com/yuin/goldmark v1.3.8 // indirect
 	github.com/yuin/goldmark-meta v1.0.0 // indirect
 	go.mongodb.org/mongo-driver v1.7.1 // indirect
-	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e // indirect
-	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
+	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20210622215436-a8dc77f794b6 // indirect
-	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/tools v0.1.4 // indirect
 	google.golang.org/api v0.49.0 // indirect
 	google.golang.org/genproto v0.0.0-20210624195500-8bfb893ecb84 // indirect
 	mvdan.cc/unparam v0.0.0-20210520122750-2ac67f130a88 // indirect
