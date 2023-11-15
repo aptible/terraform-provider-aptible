@@ -20,7 +20,7 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 	// Can't use an aptible_environment TF resource with databases because, when
 	// the destroy is attempted, the environment will not permit deletion due to
 	// the database's final backup
-	WithTestEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -53,7 +53,7 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 func TestAccResourceDatabase_redis(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	WithTestEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -88,7 +88,7 @@ func TestAccResourceDatabase_redis(t *testing.T) {
 func TestAccResourceDatabase_version(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	WithTestEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -121,7 +121,7 @@ func TestAccResourceDatabase_version(t *testing.T) {
 func TestAccResourceDatabase_update(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	WithTestEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -160,7 +160,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 func TestAccResourceDatabase_expectError(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	WithTestEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,

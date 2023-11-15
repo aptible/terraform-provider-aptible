@@ -3,6 +3,7 @@ package aptible
 import (
 	"errors"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -115,7 +116,11 @@ func TestGenerateErrorFromClientError(t *testing.T) {
 	}
 }
 
-func WithTestEnvironment(t *testing.T, f func(env aptible.Environment)) {
+func WithTestAccEnvironment(t *testing.T, f func(env aptible.Environment)) {
+	if os.Getenv("TF_ACC") != "1" {
+		return
+	}
+
 	client, err := aptible.SetUpClient()
 	if err != nil {
 		t.Fatalf("Failed to set up client for test environment - %s", err.Error())

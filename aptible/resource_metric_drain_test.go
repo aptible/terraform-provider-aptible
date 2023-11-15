@@ -108,7 +108,7 @@ func TestAccResourceMetricDrain_influxdb_database_validation(t *testing.T) {
 func TestAccResourceMetricDrain_influxdb_database(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { testAccPreCheck(t) },
 			ProviderFactories: testAccProviderFactories,

@@ -15,7 +15,7 @@ import (
 func TestAccResourceApp_basic(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -43,7 +43,7 @@ func TestAccResourceApp_basic(t *testing.T) {
 func TestAccResourceApp_deploy(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -73,7 +73,7 @@ func TestAccResourceApp_deploy(t *testing.T) {
 func TestAccResourceApp_updateConfig(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -112,7 +112,7 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 func TestAccResourceApp_scaleDown(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,

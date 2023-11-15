@@ -15,7 +15,7 @@ import (
 func TestAccResourceLogDrain_elasticsearch(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,

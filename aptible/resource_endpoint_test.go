@@ -168,7 +168,7 @@ func TestAccResourceEndpoint_appContainerPorts(t *testing.T) {
 func TestAccResourceEndpoint_db(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	WithTestEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
