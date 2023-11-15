@@ -17,7 +17,7 @@ import (
 func TestAccResourceEndpoint_customDomain(t *testing.T) {
 	appHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEndpointDestroy,
@@ -53,7 +53,7 @@ func TestAccResourceEndpoint_customDomain(t *testing.T) {
 func TestAccResourceEndpoint_appContainerNoPort(t *testing.T) {
 	appHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEndpointDestroy,
@@ -90,7 +90,7 @@ func TestAccResourceEndpoint_appContainerNoPort(t *testing.T) {
 func TestAccResourceEndpoint_appContainerPort(t *testing.T) {
 	appHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEndpointDestroy,
@@ -128,7 +128,7 @@ func TestAccResourceEndpoint_appContainerPort(t *testing.T) {
 func TestAccResourceEndpoint_appContainerPorts(t *testing.T) {
 	appHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEndpointDestroy,
@@ -167,7 +167,7 @@ func TestAccResourceEndpoint_appContainerPorts(t *testing.T) {
 func TestAccResourceEndpoint_db(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEndpointDestroy,
@@ -200,7 +200,7 @@ func TestAccResourceEndpoint_db(t *testing.T) {
 func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 	appHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEndpointDestroy,
@@ -237,7 +237,7 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 }
 
 func TestAccResourceEndpoint_expectError(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEndpointDestroy,

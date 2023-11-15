@@ -54,7 +54,7 @@ func TestAccResourceMetricDrain_validation(t *testing.T) {
 		})
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckMetricDrainDestroy,
@@ -97,7 +97,7 @@ func TestAccResourceMetricDrain_influxdb_database_validation(t *testing.T) {
 		})
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckMetricDrainDestroy,
@@ -108,7 +108,7 @@ func TestAccResourceMetricDrain_influxdb_database_validation(t *testing.T) {
 func TestAccResourceMetricDrain_influxdb_database(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckMetricDrainDestroy,
@@ -160,7 +160,7 @@ func TestAccResourceMetricDrain_influxdb_validation(t *testing.T) {
 		})
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckMetricDrainDestroy,
@@ -171,7 +171,7 @@ func TestAccResourceMetricDrain_influxdb_validation(t *testing.T) {
 func TestAccResourceMetricDrain_influxdb(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckMetricDrainDestroy,
@@ -226,7 +226,7 @@ func TestAccResourceMetricDrain_datadog_validation(t *testing.T) {
 		})
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckMetricDrainDestroy,
@@ -237,7 +237,7 @@ func TestAccResourceMetricDrain_datadog_validation(t *testing.T) {
 func TestAccResourceMetricDrain_datadog(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckMetricDrainDestroy,

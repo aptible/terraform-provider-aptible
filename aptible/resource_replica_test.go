@@ -18,7 +18,7 @@ func TestAccResourceReplica_basic(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 	replicaHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckReplicaDestroy,
@@ -55,7 +55,7 @@ func TestAccResourceReplica_update(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 	replicaHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckReplicaDestroy,
@@ -98,7 +98,7 @@ func TestAccResourceReplica_update(t *testing.T) {
 func TestAccResourceReplica_expectError(t *testing.T) {
 	replicaHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckReplicaDestroy,

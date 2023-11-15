@@ -24,7 +24,7 @@ func TestAccStackDataSource_validation(t *testing.T) {
 		})
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps:             testSteps,
@@ -52,7 +52,7 @@ func TestAccStackDataSource_basic(t *testing.T) {
 			return
 		}
 
-		resource.Test(t, resource.TestCase{
+		resource.ParallelTest(t, resource.TestCase{
 			PreCheck: func() {
 				testAccPreCheck(t)
 			},

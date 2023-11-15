@@ -15,7 +15,7 @@ import (
 func TestAccResourceApp_basic(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAppDestroy,
@@ -41,7 +41,7 @@ func TestAccResourceApp_basic(t *testing.T) {
 func TestAccResourceApp_deploy(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAppDestroy,
@@ -69,7 +69,7 @@ func TestAccResourceApp_deploy(t *testing.T) {
 func TestAccResourceApp_updateConfig(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAppDestroy,
@@ -106,7 +106,7 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 func TestAccResourceApp_scaleDown(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAppDestroy,

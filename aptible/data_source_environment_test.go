@@ -22,7 +22,7 @@ func TestAccDataSourceEnvironment_validation(t *testing.T) {
 		})
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps:             testSteps,
@@ -32,7 +32,7 @@ func TestAccDataSourceEnvironment_validation(t *testing.T) {
 func TestAccDataSourceEnvironment_basic(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Providers:         testAccProviders,

@@ -15,7 +15,7 @@ import (
 func TestAccResourceLogDrain_elasticsearch(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLogDrainDestroy,
@@ -44,7 +44,7 @@ func TestAccResourceLogDrain_elasticsearch(t *testing.T) {
 func TestAccResourceLogDrain_syslog(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLogDrainDestroy,
@@ -73,7 +73,7 @@ func TestAccResourceLogDrain_syslog(t *testing.T) {
 func TestAccResourceLogDrain_https(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLogDrainDestroy,
@@ -101,7 +101,7 @@ func TestAccResourceLogDrain_https(t *testing.T) {
 func TestAccResourceLogDrain_datadog(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLogDrainDestroy,
@@ -132,7 +132,7 @@ func TestAccResourceLogDrain_datadog(t *testing.T) {
 func TestAccResourceLogDrain_sumologic(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLogDrainDestroy,
@@ -160,7 +160,7 @@ func TestAccResourceLogDrain_sumologic(t *testing.T) {
 func TestAccResourceLogDrain_logdna(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLogDrainDestroy,
@@ -189,7 +189,7 @@ func TestAccResourceLogDrain_logdna(t *testing.T) {
 func TestAccResourceLogDrain_papertrail(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLogDrainDestroy,

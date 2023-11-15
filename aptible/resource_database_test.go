@@ -17,7 +17,7 @@ import (
 func TestAccResourceDatabase_basic(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDatabaseDestroy,
@@ -48,7 +48,7 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 func TestAccResourceDatabase_redis(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDatabaseDestroy,
@@ -81,7 +81,7 @@ func TestAccResourceDatabase_redis(t *testing.T) {
 func TestAccResourceDatabase_version(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDatabaseDestroy,
@@ -112,7 +112,7 @@ func TestAccResourceDatabase_version(t *testing.T) {
 func TestAccResourceDatabase_update(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDatabaseDestroy,
@@ -149,7 +149,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 func TestAccResourceDatabase_expectError(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDatabaseDestroy,
