@@ -652,7 +652,7 @@ func testAccAptibleEndpointInvalidContainerPortOnTls() string {
 }
 
 func testAccAptibleEndpointInvalidContainerPorts() string {
-	output := fmt.Sprintf(`
+	output := `
 	resource "aptible_endpoint" "test" {
 		env_id = -1
 		resource_id = 1
@@ -662,7 +662,7 @@ func testAccAptibleEndpointInvalidContainerPorts() string {
 		platform = "alb"
 		managed = true
 		container_ports = [99999]
-	}`)
+	}`
 	log.Println("HCL generated: ", output)
 	return output
 }
