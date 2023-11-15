@@ -154,17 +154,19 @@ func TestAccResourceEnvironment_update(t *testing.T) {
 
 func testAccAptibleEnvironment(handle string) string {
 	return fmt.Sprintf(`
-resource "aptible_environment" "test" {
-	handle = "%s"
-	org_id = "%s"
-	stack_id = "%v"
-}`, handle, testOrganizationId, testStackId)
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+	`, handle, testOrganizationId, testStackId)
 }
 
 func testAccAptibleEnvironmentWithoutOrg(handle string) string {
 	return fmt.Sprintf(`
-resource "aptible_environment" "test" {
-	handle = "%s"
-	stack_id = "%v"
-}`, handle, testStackId)
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		stack_id = "%v"
+	}
+	`, handle, testStackId)
 }

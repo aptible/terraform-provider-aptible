@@ -26,10 +26,11 @@ func TestAccResourceEndpoint_customDomain(t *testing.T) {
 				Config: testAccAptibleEndpointCustomDomain(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(testEnvironmentId)),
+
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_endpoint.test", "env_id"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "domain", "www.aptible-test-demo.fake"),
@@ -62,11 +63,11 @@ func TestAccResourceEndpoint_appContainerNoPort(t *testing.T) {
 				Config: testAccAptibleEndpointAppContainerNoPort(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_endpoint.test", "env_id"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "app"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
@@ -99,11 +100,11 @@ func TestAccResourceEndpoint_appContainerPort(t *testing.T) {
 				Config: testAccAptibleEndpointAppContainerPort(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_endpoint.test", "env_id"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "app"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "container_port", "80"),
@@ -137,11 +138,11 @@ func TestAccResourceEndpoint_appContainerPorts(t *testing.T) {
 				Config: testAccAptibleEndpointAppContainerPorts(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_endpoint.test", "env_id"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "app"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "tcp"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "container_ports.0", "80"),
@@ -167,33 +168,35 @@ func TestAccResourceEndpoint_appContainerPorts(t *testing.T) {
 func TestAccResourceEndpoint_db(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckEndpointDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAptibleEndpointDatabase(dbHandle),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
-					resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(testEnvironmentId)),
-					resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
-					resource.TestCheckResourceAttrSet("aptible_database.test", "default_connection_url"),
+	WithTestEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckEndpointDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleEndpointDatabase(env.ID, dbHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
+						resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(int(env.ID))),
+						resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+						resource.TestCheckResourceAttrSet("aptible_database.test", "default_connection_url"),
 
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(testEnvironmentId)),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "database"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "tcp"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "false"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "elb"),
-					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
-				),
+						resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(int(env.ID))),
+						resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "database"),
+						resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "tcp"),
+						resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "false"),
+						resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "elb"),
+						resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
+					),
+				},
+				{
+					ResourceName:      "aptible_endpoint.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			{
-				ResourceName:      "aptible_endpoint.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
 }
 
@@ -209,11 +212,11 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 				Config: testAccAptibleEndpointAppContainerNoPort(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_endpoint.test", "env_id"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "app"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
@@ -336,329 +339,365 @@ func testAccCheckEndpointDestroy(s *terraform.State) error {
 
 func testAccAptibleEndpointCustomDomain(appHandle string) string {
 	output := fmt.Sprintf(`
-resource "aptible_app" "test" {
-	env_id = %d
-	handle = "%v"
-	config = {
-		"APTIBLE_DOCKER_IMAGE" = "nginx"
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
 	}
-	service {
-		process_type = "cmd"
-		container_memory_limit = 512
-		container_count = 1
-	}
-}
 
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	resource_id = aptible_app.test.app_id
-	resource_type = "app"
-	process_type = "cmd"
-	endpoint_type = "https"
-	managed = true
-	domain = "www.aptible-test-demo.fake"
-	internal = true
-	platform = "alb"
-}`, testEnvironmentId, appHandle, testEnvironmentId)
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "nginx"
+		}
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+		}
+	}
+
+	resource "aptible_endpoint" "test" {
+		env_id = aptible_environment.test.env_id
+		resource_id = aptible_app.test.app_id
+		resource_type = "app"
+		process_type = "cmd"
+		endpoint_type = "https"
+		managed = true
+		domain = "www.aptible-test-demo.fake"
+		internal = true
+		platform = "alb"
+	}
+`, appHandle, testOrganizationId, testStackId, appHandle)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointAppContainerPort(appHandle string) string {
 	output := fmt.Sprintf(`
-resource "aptible_app" "test" {
-	env_id = %d
-	handle = "%v"
-	config = {
-		"APTIBLE_DOCKER_IMAGE" = "caddy"
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
 	}
-	service {
-		process_type = "cmd"
-		container_memory_limit = 512
-		container_count = 1
-	}
-}
 
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	resource_id = aptible_app.test.app_id
-	resource_type = "app"
-	process_type = "cmd"
-	container_port = 80
-	endpoint_type = "https"
-	default_domain = true
-	internal = true
-	platform = "alb"
-}`, testEnvironmentId, appHandle, testEnvironmentId)
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "caddy"
+		}
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+		}
+	}
+
+	resource "aptible_endpoint" "test" {
+		env_id = aptible_environment.test.env_id
+		resource_id = aptible_app.test.app_id
+		resource_type = "app"
+		process_type = "cmd"
+		container_port = 80
+		endpoint_type = "https"
+		default_domain = true
+		internal = true
+		platform = "alb"
+	}
+`, appHandle, testOrganizationId, testStackId, appHandle)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointAppContainerNoPort(appHandle string) string {
 	output := fmt.Sprintf(`
-resource "aptible_app" "test" {
-	env_id = %d
-	handle = "%v"
-	config = {
-		"APTIBLE_DOCKER_IMAGE" = "nginx"
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
 	}
-	service {
-		process_type = "cmd"
-		container_memory_limit = 512
-		container_count = 1
-	}
-}
 
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	resource_id = aptible_app.test.app_id
-	resource_type = "app"
-	process_type = "cmd"
-	endpoint_type = "https"
-	default_domain = true
-	internal = true
-	platform = "alb"
-}`, testEnvironmentId, appHandle, testEnvironmentId)
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "nginx"
+		}
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+		}
+	}
+
+	resource "aptible_endpoint" "test" {
+		env_id = aptible_environment.test.env_id
+		resource_id = aptible_app.test.app_id
+		resource_type = "app"
+		process_type = "cmd"
+		endpoint_type = "https"
+		default_domain = true
+		internal = true
+		platform = "alb"
+	}
+`, appHandle, testOrganizationId, testStackId, appHandle)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointAppContainerPorts(appHandle string) string {
 	output := fmt.Sprintf(`
-resource "aptible_app" "test" {
-	env_id = %d
-	handle = "%v"
-	config = {
-		"APTIBLE_DOCKER_IMAGE" = "caddy"
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
 	}
-	service {
-		process_type = "cmd"
-		container_memory_limit = 512
-		container_count = 1
-	}
-}
 
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	resource_id = aptible_app.test.app_id
-	resource_type = "app"
-	process_type = "cmd"
-	container_ports = [80, 443]
-	endpoint_type = "tcp"
-	default_domain = true
-	internal = true
-	platform = "elb"
-}`, testEnvironmentId, appHandle, testEnvironmentId)
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "caddy"
+		}
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+		}
+	}
+
+	resource "aptible_endpoint" "test" {
+		env_id = aptible_environment.test.env_id
+		resource_id = aptible_app.test.app_id
+		resource_type = "app"
+		process_type = "cmd"
+		container_ports = [80, 443]
+		endpoint_type = "tcp"
+		default_domain = true
+		internal = true
+		platform = "elb"
+	}
+`, appHandle, testOrganizationId, testStackId, appHandle)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
-func testAccAptibleEndpointDatabase(dbHandle string) string {
+func testAccAptibleEndpointDatabase(envId int64, dbHandle string) string {
 	output := fmt.Sprintf(`
-resource "aptible_database" "test" {
-	env_id = %d
-	handle = "%v"
-	database_type = "postgresql"
-	container_size = 1024
-	disk_size = 10
-}
+	resource "aptible_database" "test" {
+		env_id = %d
+		handle = "%v"
+		database_type = "postgresql"
+		container_size = 1024
+		disk_size = 10
+	}
 
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	resource_id = aptible_database.test.database_id
-	resource_type = "database"
-	endpoint_type = "tcp"
-	internal = false
-	platform = "elb"
-}`, testEnvironmentId, dbHandle, testEnvironmentId)
+	resource "aptible_endpoint" "test" {
+		env_id = %d
+		resource_id = aptible_database.test.database_id
+		resource_type = "database"
+		endpoint_type = "tcp"
+		internal = false
+		platform = "elb"
+	}
+`, envId, dbHandle, envId)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointUpdateIPWhitelist(appHandle string) string {
 	output := fmt.Sprintf(`
-resource "aptible_app" "test" {
-	env_id = %d
-	handle = "%v"
-	config = {
-		"APTIBLE_DOCKER_IMAGE" = "nginx"
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
 	}
-	service {
-		process_type = "cmd"
-		container_memory_limit = 512
-		container_count = 1
-	}
-}
 
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	resource_id = aptible_app.test.app_id
-	resource_type = "app"
-	process_type = "cmd"
-	endpoint_type = "https"
-	default_domain = true
-	internal = true
-	platform = "alb"
-	ip_filtering = [
-		"1.1.1.1/32",
-	]
-}`, testEnvironmentId, appHandle, testEnvironmentId)
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "nginx"
+		}
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+		}
+	}
+
+	resource "aptible_endpoint" "test" {
+		env_id = aptible_environment.test.env_id
+		resource_id = aptible_app.test.app_id
+		resource_type = "app"
+		process_type = "cmd"
+		endpoint_type = "https"
+		default_domain = true
+		internal = true
+		platform = "alb"
+		ip_filtering = [
+			"1.1.1.1/32",
+		]
+	}
+`, appHandle, testOrganizationId, testStackId, appHandle)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidResourceType() string {
-	output := fmt.Sprintf(`
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	resource_id = 1
-	resource_type = "should-error"
-	}`, testEnvironmentId)
+	output := fmt.Sprint(`
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "should-error"
+	}`)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidEndpointType() string {
-	output := fmt.Sprintf(`
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	resource_id = 1
-	resource_type = "app"
-	process_type = "cmd"
-	default_domain = true
-	endpoint_type = "should-error"
-	}`, testEnvironmentId)
+	output := fmt.Sprint(`
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		default_domain = true
+		endpoint_type = "should-error"
+	}`)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidPlatform() string {
-	output := fmt.Sprintf(`
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	resource_id = 1
-	resource_type = "app"
-	process_type = "cmd"
-	default_domain = true
-	platform = "should-error"
-	}`, testEnvironmentId)
+	output := fmt.Sprint(`
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		default_domain = true
+		platform = "should-error"
+	}`)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidDomain() string {
-	output := fmt.Sprintf(`
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	resource_id = 1
-	resource_type = "app"
-	process_type = "cmd"
-	default_domain = false
-	platform = "alb"
-	managed = true
-	domain = ""
-	}`, testEnvironmentId)
+	output := fmt.Sprint(`
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		default_domain = false
+		platform = "alb"
+		managed = true
+		domain = ""
+	}`)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidContainerPort() string {
-	output := fmt.Sprintf(`
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	resource_id = 1
-	resource_type = "app"
-	process_type = "cmd"
-	default_domain = false
-	platform = "alb"
-	managed = true
-	container_port = 99999
-	}`, testEnvironmentId)
+	output := fmt.Sprint(`
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		default_domain = false
+		platform = "alb"
+		managed = true
+		container_port = 99999
+	}`)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidContainerPortOnTcp() string {
-	output := fmt.Sprintf(`
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	endpoint_type = "tcp"
-	resource_id = 1
-	resource_type = "app"
-	process_type = "cmd"
-	default_domain = false
-	platform = "alb"
-	managed = true
-	container_port = 3000
-	}`, testEnvironmentId)
+	output := fmt.Sprint(`
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "tcp"
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		default_domain = false
+		platform = "alb"
+		managed = true
+		container_port = 3000
+	}`)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidContainerPortOnTls() string {
-	output := fmt.Sprintf(`
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	endpoint_type = "tls"
-	resource_id = 1
-	resource_type = "app"
-	process_type = "cmd"
-	default_domain = false
-	platform = "alb"
-	managed = true
-	container_port = 3000
-	}`, testEnvironmentId)
+	output := fmt.Sprint(`
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "tls"
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		default_domain = false
+		platform = "alb"
+		managed = true
+		container_port = 3000
+	}`)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidContainerPorts() string {
 	output := fmt.Sprintf(`
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	resource_id = 1
-	resource_type = "app"
-	process_type = "cmd"
-	default_domain = false
-	platform = "alb"
-	managed = true
-	container_ports = [99999]
-	}`, testEnvironmentId)
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		default_domain = false
+		platform = "alb"
+		managed = true
+		container_ports = [99999]
+	}`)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidContainerPortsOnHttp() string {
-	output := fmt.Sprintf(`
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	endpoint_type = "https"
-	resource_id = 1
-	resource_type = "app"
-	process_type = "cmd"
-	default_domain = false
-	platform = "alb"
-	managed = true
-	container_ports = [3000]
-	}`, testEnvironmentId)
+	output := fmt.Sprint(`
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "https"
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		default_domain = false
+		platform = "alb"
+		managed = true
+		container_ports = [3000]
+	}`)
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidMultipleContainerPortFields() string {
-	output := fmt.Sprintf(`
-resource "aptible_endpoint" "test" {
-	env_id = %d
-	endpoint_type = "tcp"
-	resource_id = 1
-	resource_type = "app"
-	process_type = "cmd"
-	default_domain = false
-	platform = "alb"
-	managed = true
-	container_port = 3000
-	container_ports = [3000]
-	}`, testEnvironmentId)
+	output := fmt.Sprint(`
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "tcp"
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		default_domain = false
+		platform = "alb"
+		managed = true
+		container_port = 3000
+		container_ports = [3000]
+	}`)
 	log.Println("HCL generated: ", output)
 	return output
 }

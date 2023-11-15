@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-var testEnvironmentId int
 var testOrganizationId string
 var testStackId int
 
@@ -18,7 +17,6 @@ var testAccProvider *schema.Provider
 var testAccProviderFactories map[string]func() (*schema.Provider, error)
 
 const (
-	AptibleEnvironmentId  = "APTIBLE_ENVIRONMENT_ID"
 	AptibleStackId        = "APTIBLE_STACK_ID"
 	AptibleOrganizationId = "APTIBLE_ORGANIZATION_ID"
 )
@@ -35,10 +33,6 @@ func init() {
 	}
 
 	// see testAccPreCheck for more details on this being set ahead of time for dx
-	envIdStr := os.Getenv(AptibleEnvironmentId)
-	envId, _ := strconv.Atoi(envIdStr)
-	testEnvironmentId = envId
-
 	testOrganizationId = os.Getenv(AptibleOrganizationId)
 
 	stackIdStr := os.Getenv(AptibleStackId)
@@ -56,14 +50,6 @@ func testAccPreCheck(t *testing.T) {
 	}
 	if v := os.Getenv("APTIBLE_ACCESS_TOKEN"); v == "" {
 		t.Fatal("APTIBLE_ACCESS_TOKEN must be set for acceptance tests")
-	}
-
-	id := os.Getenv(AptibleEnvironmentId)
-	if id == "" {
-		t.Fatal(fmt.Sprintf("%s must be set for acceptance tests", AptibleEnvironmentId))
-	}
-	if _, err := strconv.Atoi(id); err != nil {
-		t.Fatal(fmt.Sprintf("%s is not a valid integer value", AptibleEnvironmentId))
 	}
 
 	if v := os.Getenv(AptibleOrganizationId); v == "" {
