@@ -130,7 +130,9 @@ func WithTestEnvironment(t *testing.T, f func(env aptible.Environment)) {
 		return
 	}
 
-	defer client.DeleteEnvironment(env.ID)
+	defer func() {
+		_ = client.DeleteEnvironment(env.ID)
+	}()
 
 	f(env)
 }

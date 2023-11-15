@@ -547,18 +547,18 @@ func testAccAptibleEndpointUpdateIPWhitelist(appHandle string) string {
 }
 
 func testAccAptibleEndpointInvalidResourceType() string {
-	output := fmt.Sprint(`
+	output := `
 	resource "aptible_endpoint" "test" {
 		env_id = -1
 		resource_id = 1
 		resource_type = "should-error"
-	}`)
+	}`
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidEndpointType() string {
-	output := fmt.Sprint(`
+	output := `
 	resource "aptible_endpoint" "test" {
 		env_id = -1
 		resource_id = 1
@@ -566,13 +566,13 @@ func testAccAptibleEndpointInvalidEndpointType() string {
 		process_type = "cmd"
 		default_domain = true
 		endpoint_type = "should-error"
-	}`)
+	}`
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidPlatform() string {
-	output := fmt.Sprint(`
+	output := `
 	resource "aptible_endpoint" "test" {
 		env_id = -1
 		resource_id = 1
@@ -580,13 +580,13 @@ func testAccAptibleEndpointInvalidPlatform() string {
 		process_type = "cmd"
 		default_domain = true
 		platform = "should-error"
-	}`)
+	}`
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidDomain() string {
-	output := fmt.Sprint(`
+	output := `
 	resource "aptible_endpoint" "test" {
 		env_id = -1
 		resource_id = 1
@@ -596,13 +596,13 @@ func testAccAptibleEndpointInvalidDomain() string {
 		platform = "alb"
 		managed = true
 		domain = ""
-	}`)
+	}`
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidContainerPort() string {
-	output := fmt.Sprint(`
+	output := `
 	resource "aptible_endpoint" "test" {
 		env_id = -1
 		resource_id = 1
@@ -612,13 +612,13 @@ func testAccAptibleEndpointInvalidContainerPort() string {
 		platform = "alb"
 		managed = true
 		container_port = 99999
-	}`)
+	}`
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidContainerPortOnTcp() string {
-	output := fmt.Sprint(`
+	output := `
 	resource "aptible_endpoint" "test" {
 		env_id = -1
 		endpoint_type = "tcp"
@@ -629,13 +629,13 @@ func testAccAptibleEndpointInvalidContainerPortOnTcp() string {
 		platform = "alb"
 		managed = true
 		container_port = 3000
-	}`)
+	}`
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidContainerPortOnTls() string {
-	output := fmt.Sprint(`
+	output := `
 	resource "aptible_endpoint" "test" {
 		env_id = -1
 		endpoint_type = "tls"
@@ -646,7 +646,7 @@ func testAccAptibleEndpointInvalidContainerPortOnTls() string {
 		platform = "alb"
 		managed = true
 		container_port = 3000
-	}`)
+	}`
 	log.Println("HCL generated: ", output)
 	return output
 }
@@ -668,7 +668,7 @@ func testAccAptibleEndpointInvalidContainerPorts() string {
 }
 
 func testAccAptibleEndpointInvalidContainerPortsOnHttp() string {
-	output := fmt.Sprint(`
+	output := `
 	resource "aptible_endpoint" "test" {
 		env_id = -1
 		endpoint_type = "https"
@@ -679,13 +679,13 @@ func testAccAptibleEndpointInvalidContainerPortsOnHttp() string {
 		platform = "alb"
 		managed = true
 		container_ports = [3000]
-	}`)
+	}`
 	log.Println("HCL generated: ", output)
 	return output
 }
 
 func testAccAptibleEndpointInvalidMultipleContainerPortFields() string {
-	output := fmt.Sprint(`
+	output := `
 	resource "aptible_endpoint" "test" {
 		env_id = -1
 		endpoint_type = "tcp"
@@ -697,7 +697,7 @@ func testAccAptibleEndpointInvalidMultipleContainerPortFields() string {
 		managed = true
 		container_port = 3000
 		container_ports = [3000]
-	}`)
+	}`
 	log.Println("HCL generated: ", output)
 	return output
 }
