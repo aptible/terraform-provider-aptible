@@ -3,8 +3,12 @@ package aptible
 import (
 	"errors"
 	"fmt"
+	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+
+	"github.com/aptible/go-deploy/aptible"
 	"github.com/aptible/go-deploy/client/operations"
 	"github.com/aptible/go-deploy/models"
 )
@@ -110,4 +114,30 @@ func TestGenerateErrorFromClientError(t *testing.T) {
 			}
 		})
 	}
+}
+
+func WithTestAccEnvironment(t *testing.T, f func(env aptible.Environment)) {
+	if os.Getenv("TF_ACC") != "1" {
+		return
+	}
+
+	client, err := aptible.SetUpClient()
+	if err != nil {
+		t.Fatalf("Failed to set up client for test environment - %s", err.Error())
+		return
+	}
+
+	env, err := client.CreateEnvironment(testOrganizationId, int64(testStackId), aptible.EnvironmentCreateAttrs{
+		Handle: acctest.RandString(10),
+	})
+	if err != nil {
+		t.Fatalf("Failed to create test environment - %s", err.Error())
+		return
+	}
+
+	defer func() {
+		_ = client.DeleteEnvironment(env.ID)
+	}()
+
+	f(env)
 }

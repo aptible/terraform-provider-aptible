@@ -15,126 +15,134 @@ import (
 func TestAccResourceApp_basic(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAppDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAptibleAppBasic(rHandle),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
-					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
-					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
-				),
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleAppBasic(rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+					),
+				},
+				{
+					ResourceName:      "aptible_app.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			{
-				ResourceName:      "aptible_app.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
 }
 
 func TestAccResourceApp_deploy(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAppDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAptibleAppDeploy(rHandle),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
-					resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
-					resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
-					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
-					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
-				),
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleAppDeploy(rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+					),
+				},
+				{
+					ResourceName:      "aptible_app.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			{
-				ResourceName:      "aptible_app.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
 }
 
 func TestAccResourceApp_updateConfig(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAppDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAptibleAppDeploy(rHandle),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
-					resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
-					resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
-					resource.TestCheckResourceAttr("aptible_app.test", "config.OOPS", "mistake"),
-					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
-					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
-				),
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleAppDeploy(rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.OOPS", "mistake"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+					),
+				},
+				{
+					ResourceName:      "aptible_app.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+				{
+					Config: testAccAptibleAppUpdateConfig(rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "httpd:alpine"),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "nothing"),
+						resource.TestCheckNoResourceAttr("aptible_app.test", "config.OOPS"),
+					),
+				},
 			},
-			{
-				ResourceName:      "aptible_app.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			{
-				Config: testAccAptibleAppUpdateConfig(rHandle),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "httpd:alpine"),
-					resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "nothing"),
-					resource.TestCheckNoResourceAttr("aptible_app.test", "config.OOPS"),
-				),
-			},
-		},
+		})
 	})
 }
 
 func TestAccResourceApp_scaleDown(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAppDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAptibleAppDeploy(rHandle),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-					resource.TestCheckResourceAttr("aptible_app.test", "env_id", strconv.Itoa(testEnvironmentId)),
-					resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
-					resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
-					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
-					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
-					resource.TestCheckResourceAttr("aptible_app.test", "service.0.container_count", "1"),
-				),
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleAppDeploy(rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.container_count", "1"),
+					),
+				},
+				{
+					ResourceName:      "aptible_app.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+				{
+					Config: testAccAptibleAppScaleDown(rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.container_count", "0"),
+					),
+				},
 			},
-			{
-				ResourceName:      "aptible_app.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			{
-				Config: testAccAptibleAppScaleDown(rHandle),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_app.test", "service.0.container_count", "0"),
-				),
-			},
-		},
+		})
 	})
 }
 
@@ -165,17 +173,29 @@ func testAccCheckAppDestroy(s *terraform.State) error {
 
 func testAccAptibleAppBasic(handle string) string {
 	return fmt.Sprintf(`
-resource "aptible_app" "test" {
-    env_id = %d
-    handle = "%v"
-}
-`, testEnvironmentId, handle)
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+			env_id = aptible_environment.test.env_id
+			handle = "%v"
+	}
+`, handle, testOrganizationId, testStackId, handle)
 }
 
 func testAccAptibleAppDeploy(handle string) string {
 	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
 	resource "aptible_app" "test" {
-		env_id = %d
+		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
 			"APTIBLE_DOCKER_IMAGE" = "nginx"
@@ -189,13 +209,19 @@ func testAccAptibleAppDeploy(handle string) string {
 			container_count = 1
 		}
 	}
-	`, testEnvironmentId, handle)
+	`, handle, testOrganizationId, testStackId, handle)
 }
 
 func testAccAptibleAppUpdateConfig(handle string) string {
 	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
 	resource "aptible_app" "test" {
-		env_id = %d
+		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
 			"APTIBLE_DOCKER_IMAGE" = "httpd:alpine"
@@ -207,13 +233,19 @@ func testAccAptibleAppUpdateConfig(handle string) string {
 			container_count = 1
 		}
 	}
-	`, testEnvironmentId, handle)
+	`, handle, testOrganizationId, testStackId, handle)
 }
 
 func testAccAptibleAppScaleDown(handle string) string {
 	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
 	resource "aptible_app" "test" {
-		env_id = %d
+		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
 			"APTIBLE_DOCKER_IMAGE" = "nginx"
@@ -226,5 +258,5 @@ func testAccAptibleAppScaleDown(handle string) string {
 			container_count = 0
 		}
 	}
-	`, testEnvironmentId, handle)
+	`, handle, testOrganizationId, testStackId, handle)
 }

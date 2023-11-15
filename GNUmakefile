@@ -1,4 +1,5 @@
 TEST?=./...
+TEST_PARALLEL?=12
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 PKG_NAME=aptible
 TEST_COUNT?=1
@@ -28,7 +29,7 @@ test: fmtcheck
 	go test $(TEST) $(TESTARGS) -timeout=120s -parallel=4
 
 testacc: fmtcheck
-	TF_ACC=1 go test $(TEST) -v -count $(TEST_COUNT) -parallel 20 $(TESTARGS) -timeout 120m
+	TF_ACC=1 go test $(TEST) -v -count $(TEST_COUNT) -parallel $(TEST_PARALLEL) $(TESTARGS) -timeout 120m
 
 fmt:
 	gofmt -s -w .

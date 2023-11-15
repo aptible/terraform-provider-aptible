@@ -54,7 +54,7 @@ func TestAccResourceMetricDrain_validation(t *testing.T) {
 		})
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckMetricDrainDestroy,
@@ -97,7 +97,7 @@ func TestAccResourceMetricDrain_influxdb_database_validation(t *testing.T) {
 		})
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckMetricDrainDestroy,
@@ -108,25 +108,27 @@ func TestAccResourceMetricDrain_influxdb_database_validation(t *testing.T) {
 func TestAccResourceMetricDrain_influxdb_database(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckMetricDrainDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAptibleMetricDrainInfluxDBDatabase(rHandle),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_metric_drain.test", "env_id", strconv.Itoa(testEnvironmentId)),
-					resource.TestCheckResourceAttr("aptible_metric_drain.test", "handle", rHandle),
-					resource.TestCheckResourceAttr("aptible_metric_drain.test", "drain_type", "influxdb_database"),
-				),
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:          func() { testAccPreCheck(t) },
+			ProviderFactories: testAccProviderFactories,
+			CheckDestroy:      testAccCheckMetricDrainDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleMetricDrainInfluxDBDatabase(env.ID, rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("aptible_metric_drain.test", "env_id", strconv.Itoa(int(env.ID))),
+						resource.TestCheckResourceAttr("aptible_metric_drain.test", "handle", rHandle),
+						resource.TestCheckResourceAttr("aptible_metric_drain.test", "drain_type", "influxdb_database"),
+					),
+				},
+				{
+					ResourceName:      "aptible_metric_drain.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			{
-				ResourceName:      "aptible_metric_drain.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
+		})
 	})
 }
 
@@ -160,7 +162,7 @@ func TestAccResourceMetricDrain_influxdb_validation(t *testing.T) {
 		})
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckMetricDrainDestroy,
@@ -171,7 +173,7 @@ func TestAccResourceMetricDrain_influxdb_validation(t *testing.T) {
 func TestAccResourceMetricDrain_influxdb(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckMetricDrainDestroy,
@@ -179,7 +181,7 @@ func TestAccResourceMetricDrain_influxdb(t *testing.T) {
 			{
 				Config: testAccAptibleMetricDrainInfluxDB(rHandle),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_metric_drain.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_metric_drain.test", "env_id"),
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "handle", rHandle),
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "drain_type", "influxdb"),
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "url", "https://test.aptible.com:2022"),
@@ -226,7 +228,7 @@ func TestAccResourceMetricDrain_datadog_validation(t *testing.T) {
 		})
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckMetricDrainDestroy,
@@ -237,7 +239,7 @@ func TestAccResourceMetricDrain_datadog_validation(t *testing.T) {
 func TestAccResourceMetricDrain_datadog(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckMetricDrainDestroy,
@@ -245,7 +247,7 @@ func TestAccResourceMetricDrain_datadog(t *testing.T) {
 			{
 				Config: testAccAptibleMetricDrainDatadog(rHandle),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_metric_drain.test", "env_id", strconv.Itoa(testEnvironmentId)),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_metric_drain.test", "env_id"),
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "handle", rHandle),
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "drain_type", "datadog"),
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "api_key", "test_api_key"),
@@ -284,47 +286,59 @@ func testAccCheckMetricDrainDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccAptibleMetricDrainInfluxDBDatabase(handle string) string {
+func testAccAptibleMetricDrainInfluxDBDatabase(envId int64, handle string) string {
 	return fmt.Sprintf(`
-resource "aptible_database" "test" {
-	env_id = %d
-	handle = "%v"
-	database_type = "influxdb"
-	container_size = 1024
-	disk_size = 10
-}
+	resource "aptible_database" "test" {
+		env_id = %d
+		handle = "%v"
+		database_type = "influxdb"
+		container_size = 1024
+		disk_size = 10
+	}
 
-resource "aptible_metric_drain" "test" {
-    env_id = %d
-    database_id = aptible_database.test.database_id
-    handle = "%v"
-    drain_type = "influxdb_database"
-}
-`, testEnvironmentId, handle, testEnvironmentId, handle)
+	resource "aptible_metric_drain" "test" {
+			env_id = %d
+			database_id = aptible_database.test.database_id
+			handle = "%v"
+			drain_type = "influxdb_database"
+	}
+	`, envId, handle, envId, handle)
 }
 
 func testAccAptibleMetricDrainInfluxDB(handle string) string {
 	return fmt.Sprintf(`
-resource "aptible_metric_drain" "test" {
-    env_id = %d
-    handle = "%v"
-    drain_type = "influxdb"
-		url = "https://test.aptible.com:2022"
-		username = "test_user"
-		password = "test_password"
-		database = "test_db"
-}
-`, testEnvironmentId, handle)
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_metric_drain" "test" {
+			env_id = aptible_environment.test.env_id
+			handle = "%v"
+			drain_type = "influxdb"
+			url = "https://test.aptible.com:2022"
+			username = "test_user"
+			password = "test_password"
+			database = "test_db"
+	}
+	`, handle, testOrganizationId, testStackId, handle)
 }
 
 func testAccAptibleMetricDrainDatadog(handle string) string {
 	return fmt.Sprintf(`
-resource "aptible_metric_drain" "test" {
-    env_id = %d
-    handle = "%v"
-    drain_type = "datadog"
-    api_key = "test_api_key"
-		series_url = "https://test.aptible.com:2022"
-}
-`, testEnvironmentId, handle)
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_metric_drain" "test" {
+			env_id = aptible_environment.test.env_id
+			handle = "%v"
+			drain_type = "datadog"
+			api_key = "test_api_key"
+			series_url = "https://test.aptible.com:2022"
+	}
+	`, handle, testOrganizationId, testStackId, handle)
 }

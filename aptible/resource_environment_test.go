@@ -38,7 +38,7 @@ func TestAccResourceEnvironment_validation(t *testing.T) {
 		ExpectError: regexp.MustCompile(fmt.Sprintf(`expected %q to be a valid UUID, got invalid-uuid`, "org_id")),
 	})
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckEnvironmentDestroy,
@@ -74,7 +74,7 @@ func testAccCheckEnvironmentDestroy(s *terraform.State) error {
 func TestAccResourceEnvironment_basic(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckEnvironmentDestroy,
@@ -99,7 +99,7 @@ func TestAccResourceEnvironment_basic(t *testing.T) {
 func TestAccResourceEnvironment_basic_no_org(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckEnvironmentDestroy,
@@ -124,7 +124,7 @@ func TestAccResourceEnvironment_update(t *testing.T) {
 	rHandle := acctest.RandString(10)
 	rUpdatedHandle := acctest.RandString(10)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckEnvironmentDestroy,
@@ -154,17 +154,19 @@ func TestAccResourceEnvironment_update(t *testing.T) {
 
 func testAccAptibleEnvironment(handle string) string {
 	return fmt.Sprintf(`
-resource "aptible_environment" "test" {
-	handle = "%s"
-	org_id = "%s"
-	stack_id = "%v"
-}`, handle, testOrganizationId, testStackId)
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+	`, handle, testOrganizationId, testStackId)
 }
 
 func testAccAptibleEnvironmentWithoutOrg(handle string) string {
 	return fmt.Sprintf(`
-resource "aptible_environment" "test" {
-	handle = "%s"
-	stack_id = "%v"
-}`, handle, testStackId)
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		stack_id = "%v"
+	}
+	`, handle, testStackId)
 }
