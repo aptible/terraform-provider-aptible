@@ -173,6 +173,15 @@ func resourceAppUpdate(_ context.Context, d *schema.ResourceData, meta interface
 		o, c := d.GetChange("config")
 		old := o.(map[string]interface{})
 		config := c.(map[string]interface{})
+		// Remove any identical keys since they do not need setting.
+		// In the case of APTIBLE_DOCKER_IMAGE this will avoid a deployment
+		for key := range config {
+			if _, present := old[key]; present {
+				if config[key] == old[key] {
+					delete(config, key)
+				}
+			}
+		}
 		// Set any old keys that are not present to an empty string.
 		// The API will then clear them during normalization otherwise
 		// the old values will be merged with the new
