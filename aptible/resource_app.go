@@ -301,9 +301,5 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 		})
 	}
 
-	if err := g.Wait(); err != nil {
-		return err
-	}
-
-	return nil
+	return g.Wait()
 }
