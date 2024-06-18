@@ -57,6 +57,10 @@ func resourceDatabase() *schema.Resource {
 				ValidateFunc: validateDiskSize,
 				Default:      10,
 			},
+			"iops": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
 			"database_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
@@ -100,6 +104,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 		ContainerSize:    int64(d.Get("container_size").(int)),
 		ContainerProfile: d.Get("container_profile").(string),
 		DiskSize:         int64(d.Get("disk_size").(int)),
+		Iops:             int64(d.Get("iops").(int)),
 	}
 
 	if version != "" {

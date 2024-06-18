@@ -46,6 +46,16 @@ func resourceReplica() *schema.Resource {
 				ValidateFunc: validateDiskSize,
 				Default:      10,
 			},
+			"container_profile": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateContainerProfile,
+				Default:      "m5",
+			},
+			"iops": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
 			"replica_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
@@ -63,11 +73,13 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 	handle := d.Get("handle").(string)
 
 	attrs := aptible.ReplicateAttrs{
-		EnvID:         int64(d.Get("env_id").(int)),
-		DatabaseID:    int64(d.Get("primary_database_id").(int)),
-		ReplicaHandle: handle,
-		ContainerSize: int64(d.Get("container_size").(int)),
-		DiskSize:      int64(d.Get("disk_size").(int)),
+		EnvID:            int64(d.Get("env_id").(int)),
+		DatabaseID:       int64(d.Get("primary_database_id").(int)),
+		ReplicaHandle:    handle,
+		ContainerSize:    int64(d.Get("container_size").(int)),
+		DiskSize:         int64(d.Get("disk_size").(int)),
+		Iops:             int64(d.Get("iops").(int)),
+		ContainerProfile: d.Get("container_profile").(string),
 	}
 
 	replica, err := client.CreateReplica(attrs)
