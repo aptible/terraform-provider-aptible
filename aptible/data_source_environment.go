@@ -21,7 +21,7 @@ func dataSourceEnvironment() *schema.Resource {
 }
 
 func dataSourceEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMeta).LegacyClient
+	client := meta.(*providerMetadata).LegacyClient
 	handle := d.Get("handle").(string)
 	id, err := client.GetEnvironmentIDFromHandle(handle)
 	if err != nil {

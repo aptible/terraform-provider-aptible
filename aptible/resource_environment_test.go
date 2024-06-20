@@ -45,7 +45,7 @@ func TestAccResourceEnvironment_validation(t *testing.T) {
 }
 
 func testAccCheckEnvironmentDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*providerMeta).LegacyClient
+	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_environment" {
 			continue

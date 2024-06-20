@@ -55,21 +55,21 @@ func providerConfigureWithContext(context.Context, *schema.ResourceData) (interf
 		return nil, diags
 	}
 
-	return &providerMeta{
+	return &providerMetadata{
 		LegacyClient: client,
 		Client:       aptibleapi.NewAPIClient(aptibleapi.NewAPIConfiguration()),
 		Token:        token,
 	}, nil
 }
 
-type providerMeta struct {
+type providerMetadata struct {
 	LegacyClient *aptible.Client
 	Client       *aptibleapi.APIClient
 	Token        string
 }
 
 // Configures the provided context to work with aptibleapi.APIClient requests
-func (m *providerMeta) APIContext(ctx context.Context) context.Context {
+func (m *providerMetadata) APIContext(ctx context.Context) context.Context {
 	// Override the default API url with APTIBLE_API_ROOT_URL, if non-empty
 	if url := os.Getenv("APTIBLE_API_ROOT_URL"); url != "" {
 		ctx = context.WithValue(ctx, aptibleapi.ContextServerVariables, map[string]string{"url": url})

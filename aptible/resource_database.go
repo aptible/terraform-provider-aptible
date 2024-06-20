@@ -88,7 +88,7 @@ func resourceDatabase() *schema.Resource {
 }
 
 func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMeta).LegacyClient
+	client := meta.(*providerMetadata).LegacyClient
 	envID := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
 	version := d.Get("version").(string)
@@ -125,7 +125,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMeta).LegacyClient
+	client := meta.(*providerMetadata).LegacyClient
 	databaseID := int64(d.Get("database_id").(int))
 
 	database, err := client.GetDatabase(databaseID)
@@ -163,7 +163,7 @@ func resourceDatabaseImport(d *schema.ResourceData, meta interface{}) ([]*schema
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMeta).LegacyClient
+	client := meta.(*providerMetadata).LegacyClient
 	databaseID := int64(d.Get("database_id").(int))
 	containerSize := int64(d.Get("container_size").(int))
 	containerProfile := d.Get("container_profile").(string)
@@ -224,7 +224,7 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 }
 
 func resourceDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMeta).LegacyClient
+	client := meta.(*providerMetadata).LegacyClient
 	databaseID := int64(d.Get("database_id").(int))
 
 	err := client.DeleteDatabase(databaseID)

@@ -81,7 +81,7 @@ func resourceApp() *schema.Resource {
 }
 
 func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMeta).LegacyClient
+	client := meta.(*providerMetadata).LegacyClient
 	envID := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
 
@@ -126,7 +126,7 @@ func resourceAppImport(d *schema.ResourceData, meta interface{}) ([]*schema.Reso
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMeta).LegacyClient
+	client := meta.(*providerMetadata).LegacyClient
 	appID := int64(d.Get("app_id").(int))
 
 	log.Println("Getting App with ID: " + strconv.Itoa(int(appID)))
@@ -164,7 +164,7 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAppUpdate(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMeta).LegacyClient
+	client := meta.(*providerMetadata).LegacyClient
 	appID := int64(d.Get("app_id").(int))
 
 	var diags diag.Diagnostics
@@ -240,7 +240,7 @@ func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
 	readErr := resourceAppRead(d, meta)
 	if readErr == nil {
 		appID := int64(d.Get("app_id").(int))
-		client := meta.(*providerMeta).LegacyClient
+		client := meta.(*providerMetadata).LegacyClient
 		deleted, err := client.DeleteApp(appID)
 		if deleted {
 			d.SetId("")
@@ -256,7 +256,7 @@ func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func scaleServices(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMeta).LegacyClient
+	client := meta.(*providerMetadata).LegacyClient
 	appID := int64(d.Get("app_id").(int))
 
 	// If there are no changes to services, there's no reason to scale

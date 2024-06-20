@@ -147,7 +147,7 @@ func TestAccResourceApp_scaleDown(t *testing.T) {
 }
 
 func testAccCheckAppDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*providerMeta).LegacyClient
+	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_app" {
 			continue
