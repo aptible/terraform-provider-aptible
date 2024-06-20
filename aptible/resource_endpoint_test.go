@@ -290,7 +290,7 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 }
 
 func testAccCheckEndpointDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*aptible.Client)
+	client := testAccProvider.Meta().(*providerMeta).LegacyClient
 	// Allow time for deprovision operation to complete.
 	// TODO: Replace this by waiting on the actual operation
 

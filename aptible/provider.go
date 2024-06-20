@@ -28,6 +28,10 @@ func Provider() *schema.Provider {
 	}
 }
 
+type providerMeta struct {
+	LegacyClient *aptible.Client
+}
+
 func providerConfigureWithContext(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
@@ -41,5 +45,7 @@ func providerConfigureWithContext(context.Context, *schema.ResourceData) (interf
 		log.Println("[ERR] Error in attempting to start the provider", err)
 		return nil, diags
 	}
-	return client, nil
+	return &providerMeta{
+		LegacyClient: client,
+	}, nil
 }

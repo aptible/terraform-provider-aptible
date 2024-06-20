@@ -225,7 +225,7 @@ func TestAccResourceLogDrain_papertrail(t *testing.T) {
 }
 
 func testAccCheckLogDrainDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*aptible.Client)
+	client := testAccProvider.Meta().(*providerMeta).LegacyClient
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_log_drain" {
 			continue

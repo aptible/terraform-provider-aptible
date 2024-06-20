@@ -127,7 +127,7 @@ func resourceLogDrain() *schema.Resource {
 }
 
 func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMeta).LegacyClient
 	handle := d.Get("handle").(string)
 	accountID := int64(d.Get("env_id").(int))
 	drainType := d.Get("drain_type").(string)
@@ -173,7 +173,7 @@ func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLogDrainRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMeta).LegacyClient
 	logDrainID := int64(d.Get("log_drain_id").(int))
 
 	log.Println("Getting log drain with ID: " + strconv.Itoa(int(logDrainID)))
@@ -220,7 +220,7 @@ func resourceLogDrainDelete(d *schema.ResourceData, meta interface{}) error {
 	readErr := resourceLogDrainRead(d, meta)
 	if readErr == nil {
 		logDrainID := int64(d.Get("log_drain_id").(int))
-		client := meta.(*aptible.Client)
+		client := meta.(*providerMeta).LegacyClient
 		deleted, err := client.DeleteLogDrain(logDrainID)
 		if deleted {
 			d.SetId("")

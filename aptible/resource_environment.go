@@ -48,7 +48,7 @@ func resourceEnvironment() *schema.Resource {
 }
 
 func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMeta).LegacyClient
 	handle := d.Get("handle").(string)
 	stackID := int64(d.Get("stack_id").(int))
 
@@ -102,7 +102,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMeta).LegacyClient
 	envID := int64(d.Get("env_id").(int))
 
 	log.Println("Getting environment with ID: " + strconv.Itoa(int(envID)))
@@ -125,7 +125,7 @@ func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMeta).LegacyClient
 	handle := d.Get("handle").(string)
 	envId := int64(d.Get("env_id").(int))
 	environmentUpdates := aptible.EnvironmentUpdates{
@@ -144,7 +144,7 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta
 	readDiags := resourceEnvironmentRead(ctx, d, meta)
 	if !readDiags.HasError() {
 		envID := int64(d.Get("env_id").(int))
-		client := meta.(*aptible.Client)
+		client := meta.(*providerMeta).LegacyClient
 		err := client.DeleteEnvironment(envID)
 		if err == nil {
 			d.SetId("")

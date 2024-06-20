@@ -1,7 +1,6 @@
 package aptible
 
 import (
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -26,7 +25,7 @@ func dataSourceStack() *schema.Resource {
 }
 
 func dataSourceStackRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMeta).LegacyClient
 	handle := d.Get("name").(string)
 	stack, err := client.GetStackByName(handle)
 	if err != nil {
