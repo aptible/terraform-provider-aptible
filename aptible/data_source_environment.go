@@ -1,7 +1,6 @@
 package aptible
 
 import (
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -22,7 +21,7 @@ func dataSourceEnvironment() *schema.Resource {
 }
 
 func dataSourceEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMetadata).LegacyClient
 	handle := d.Get("handle").(string)
 	id, err := client.GetEnvironmentIDFromHandle(handle)
 	if err != nil {

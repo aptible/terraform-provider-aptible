@@ -10,8 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-
-	"github.com/aptible/go-deploy/aptible"
 )
 
 func TestAccResourceEnvironment_validation(t *testing.T) {
@@ -47,7 +45,7 @@ func TestAccResourceEnvironment_validation(t *testing.T) {
 }
 
 func testAccCheckEnvironmentDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*aptible.Client)
+	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_environment" {
 			continue

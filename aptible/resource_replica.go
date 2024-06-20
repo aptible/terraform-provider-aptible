@@ -59,7 +59,7 @@ func resourceReplica() *schema.Resource {
 }
 
 func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMetadata).LegacyClient
 	handle := d.Get("handle").(string)
 
 	attrs := aptible.ReplicateAttrs{
@@ -91,7 +91,7 @@ func resourceReplicaImport(d *schema.ResourceData, meta interface{}) ([]*schema.
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMetadata).LegacyClient
 	replicaID := int64(d.Get("replica_id").(int))
 	replica, err := client.GetReplica(replicaID)
 	if err != nil {
@@ -117,7 +117,7 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceReplicaUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMetadata).LegacyClient
 	replicaID := int64(d.Get("replica_id").(int))
 	containerSize := int64(d.Get("container_size").(int))
 	diskSize := int64(d.Get("disk_size").(int))
@@ -141,7 +141,7 @@ func resourceReplicaUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceReplicaDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMetadata).LegacyClient
 	replicaID := int64(d.Get("replica_id").(int))
 	err := client.DeleteReplica(replicaID)
 	if err != nil {

@@ -130,7 +130,7 @@ func resourceMetricDrainValidate(_ context.Context, diff *schema.ResourceDiff, _
 }
 
 func resourceMetricDrainCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMetadata).LegacyClient
 	handle := d.Get("handle").(string)
 	accountID := int64(d.Get("env_id").(int))
 	data := &aptible.MetricDrainCreateAttrs{
@@ -156,7 +156,7 @@ func resourceMetricDrainCreate(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func resourceMetricDrainRead(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMetadata).LegacyClient
 	metricDrainID := int64(d.Get("metric_drain_id").(int))
 
 	log.Println("Getting metric drain with ID: " + strconv.Itoa(int(metricDrainID)))
@@ -189,7 +189,7 @@ func resourceMetricDrainDelete(ctx context.Context, d *schema.ResourceData, meta
 	readDiags := resourceMetricDrainRead(ctx, d, meta)
 	if !readDiags.HasError() {
 		metricDrainID := int64(d.Get("metric_drain_id").(int))
-		client := meta.(*aptible.Client)
+		client := meta.(*providerMetadata).LegacyClient
 		deleted, err := client.DeleteMetricDrain(metricDrainID)
 		if deleted {
 			d.SetId("")

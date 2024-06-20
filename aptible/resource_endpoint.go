@@ -150,7 +150,7 @@ func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ in
 }
 
 func resourceEndpointCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMetadata).LegacyClient
 	service := aptible.Service{}
 	var err error
 
@@ -238,7 +238,7 @@ func resourceEndpointImport(d *schema.ResourceData, meta interface{}) ([]*schema
 }
 
 func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMetadata).LegacyClient
 	endpointID := int64(d.Get("endpoint_id").(int))
 
 	endpoint, err := client.GetEndpoint(endpointID)
@@ -289,7 +289,7 @@ func resourceEndpointRead(d *schema.ResourceData, meta interface{}) error {
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceEndpointUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMetadata).LegacyClient
 	endpointID := int64(d.Get("endpoint_id").(int))
 	interfaceSlice := d.Get("ip_filtering").([]interface{})
 	ipWhitelist, _ := aptible.MakeStringSlice(interfaceSlice)
@@ -313,7 +313,7 @@ func resourceEndpointUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceEndpointDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*aptible.Client)
+	client := meta.(*providerMetadata).LegacyClient
 	endpointID := int64(d.Get("endpoint_id").(int))
 	err := client.DeleteEndpoint(endpointID)
 	if err != nil {

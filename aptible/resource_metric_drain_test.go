@@ -262,7 +262,7 @@ func TestAccResourceMetricDrain_datadog(t *testing.T) {
 }
 
 func testAccCheckMetricDrainDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*aptible.Client)
+	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_metric_drain" {
 			continue
