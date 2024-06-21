@@ -57,6 +57,7 @@ require (
 	github.com/yuin/goldmark-meta v1.0.0 // indirect
 	go.mongodb.org/mongo-driver v1.7.1 // indirect
 	golang.org/x/oauth2 v0.0.0-20210622215436-a8dc77f794b6 // indirect
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/text v0.3.8 // indirect
 	google.golang.org/api v0.49.0 // indirect
 	google.golang.org/genproto v0.0.0-20210624195500-8bfb893ecb84 // indirect
