@@ -24,8 +24,9 @@ func Provider() *schema.Provider {
 			"aptible_backup_retention_policy": resourceBackupRetentionPolicy(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"aptible_environment": dataSourceEnvironment(),
-			"aptible_stack":       dataSourceStack(),
+			"aptible_environment":             dataSourceEnvironment(),
+			"aptible_backup_retention_policy": dataSourceBackupRetentionPolicy(),
+			"aptible_stack":                   dataSourceStack(),
 		},
 		ConfigureContextFunc: providerConfigureWithContext,
 	}

@@ -101,6 +101,7 @@ func TestAccResourceBackupRetentionPolicy_basic(t *testing.T) {
 			{
 				Config: testAccAptibleBackupRetentionPolicy(acctest.RandString(10), 5, true),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_backup_retention_policy.test", "env_id"),
 					resource.TestCheckResourceAttr("aptible_backup_retention_policy.test", "daily", "5"),
 					resource.TestCheckResourceAttr("aptible_backup_retention_policy.test", "monthly", "4"),
 					resource.TestCheckResourceAttr("aptible_backup_retention_policy.test", "yearly", "3"),
@@ -127,6 +128,7 @@ func TestAccResourceBackupRetentionPolicy_update(t *testing.T) {
 			{
 				Config: testAccAptibleBackupRetentionPolicy(rHandle, 2, false),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_backup_retention_policy.test", "env_id"),
 					resource.TestCheckResourceAttr("aptible_backup_retention_policy.test", "daily", "2"),
 					resource.TestCheckResourceAttr("aptible_backup_retention_policy.test", "monthly", "1"),
 					resource.TestCheckResourceAttr("aptible_backup_retention_policy.test", "yearly", "0"),
@@ -140,6 +142,7 @@ func TestAccResourceBackupRetentionPolicy_update(t *testing.T) {
 			}, {
 				Config: testAccAptibleBackupRetentionPolicy(rHandle, 4, true),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_backup_retention_policy.test", "env_id"),
 					resource.TestCheckResourceAttr("aptible_backup_retention_policy.test", "daily", "4"),
 					resource.TestCheckResourceAttr("aptible_backup_retention_policy.test", "monthly", "3"),
 					resource.TestCheckResourceAttr("aptible_backup_retention_policy.test", "yearly", "2"),
