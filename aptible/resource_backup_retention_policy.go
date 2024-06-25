@@ -58,10 +58,10 @@ func resourceBackupRetentionPolicy() *schema.Resource {
 	}
 }
 
-func resourceBackupRetentionPolicyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	meta := m.(*providerMetadata)
-	client := meta.Client
-	ctx = meta.APIContext(ctx)
+func resourceBackupRetentionPolicyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	m := meta.(*providerMetadata)
+	client := m.Client
+	ctx = m.APIContext(ctx)
 
 	envId := int32(d.Get("env_id").(int))
 	daily := int32(d.Get("daily").(int))
@@ -93,10 +93,10 @@ func resourceBackupRetentionPolicyCreate(ctx context.Context, d *schema.Resource
 	return resourceBackupRetentionPolicyRead(ctx, d, meta)
 }
 
-func resourceBackupRetentionPolicyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	meta := m.(*providerMetadata)
-	client := meta.Client
-	ctx = meta.APIContext(ctx)
+func resourceBackupRetentionPolicyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	met := meta.(*providerMetadata)
+	client := met.Client
+	ctx = met.APIContext(ctx)
 
 	// Policies are identified by environment ID
 	envId := int32(d.Get("env_id").(int))
@@ -137,17 +137,17 @@ func resourceBackupRetentionPolicyRead(ctx context.Context, d *schema.ResourceDa
 	return nil
 }
 
-func resourceBackupRetentionPolicyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceBackupRetentionPolicyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	// The environment must have a backup retention policy so only delete it from
 	// the TF state (stop managing via TF)
 	d.SetId("")
 	return nil
 }
 
-func resourceBackupRetentionPolicyImport(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+func resourceBackupRetentionPolicyImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	envId, _ := strconv.Atoi(d.Id())
 	_ = d.Set("env_id", envId)
-	if err := diagnosticsToError(resourceBackupRetentionPolicyRead(ctx, d, m)); err != nil {
+	if err := diagnosticsToError(resourceBackupRetentionPolicyRead(ctx, d, meta)); err != nil {
 		return nil, err
 	}
 	return []*schema.ResourceData{d}, nil
