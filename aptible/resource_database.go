@@ -6,6 +6,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/aptible/aptible-api-go/aptibleapi"
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -92,39 +93,55 @@ func resourceDatabase() *schema.Resource {
 }
 
 func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).LegacyClient
+	client := meta.(*providerMetadata).Client
+	legacy := meta.(*providerMetadata).LegacyClient
 	envID := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
 	version := d.Get("version").(string)
 	databaseType := d.Get("database_type").(string)
+	ctx := context.Background()
 
-	attrs := aptible.DBCreateAttrs{
-		Handle:           &handle,
-		Type:             databaseType,
-		ContainerSize:    int64(d.Get("container_size").(int)),
-		ContainerProfile: d.Get("container_profile").(string),
-		DiskSize:         int64(d.Get("disk_size").(int)),
-		Iops:             int64(d.Get("iops").(int)),
-	}
+	create := aptibleapi.NewCreateDatabaseRequestWithDefaults()
+	create.SetHandle(handle)
+	createDb := client.DatabasesAPI.CreateDatabase(ctx, int32(envID))
+	create.SetType(databaseType)
+	create.SetInitialDiskSize(int32(d.Get("disk_size").(int)))
+	create.SetInitialContainerSize(int32(d.Get("container_size").(int)))
 
 	if version != "" {
-		image, err := client.GetDatabaseImageByTypeAndVersion(databaseType, version)
+		image, err := legacy.GetDatabaseImageByTypeAndVersion(databaseType, version)
 		if err != nil {
 			log.Println(err)
 			return generateErrorFromClientError(err)
 		}
-		attrs.DatabaseImageID = image.ID
+		create.SetDatabaseImageId(int32(image.ID))
 	}
 
-	database, err := client.CreateDatabase(envID, attrs)
+	db, _, err := createDb.CreateDatabaseRequest(*create).Execute()
 	if err != nil {
-		log.Println(err)
-		return generateErrorFromClientError(err)
+		return err
 	}
 
-	_ = d.Set("database_id", database.ID)
+	createOp := client.OperationsAPI.CreateOperationForDatabase(ctx, db.Id)
+	payload := aptibleapi.NewCreateOperationRequest("provision")
+	payload.SetProvisionedIops(int32(d.Get("iops").(int)))
+	payload.SetInstanceProfile(d.Get("container_profile").(string))
+	op, _, err := createOp.CreateOperationRequest(*payload).Execute()
+	if err != nil {
+		return err
+	}
 
-	d.SetId(strconv.Itoa(int(database.ID)))
+	success, err := legacy.WaitForOperation(int64(op.Id))
+	if err != nil {
+		return err
+	}
+	if !success {
+		return fmt.Errorf("Could not provision database")
+	}
+
+	_ = d.Set("database_id", db.Id)
+
+	d.SetId(strconv.Itoa(int(db.Id)))
 	return resourceDatabaseRead(d, meta)
 }
 
