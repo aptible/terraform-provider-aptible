@@ -1,9 +1,12 @@
 package aptible
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"strconv"
 
+	"github.com/aptible/aptible-api-go/aptibleapi"
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -69,23 +72,54 @@ func resourceReplica() *schema.Resource {
 }
 
 func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).LegacyClient
+	client := meta.(*providerMetadata).Client
+	legacy := meta.(*providerMetadata).LegacyClient
 	handle := d.Get("handle").(string)
+	databaseID := int32(d.Get("primary_database_id").(int))
+	iops := int32(d.Get("iops").(int))
+	containerSize := int32(d.Get("container_size").(int))
+	diskSize := int32(d.Get("disk_size").(int))
+	profile := d.Get("container_profile").(string)
+	envID := int32(d.Get("env_id").(int))
+	ctx := context.Background()
 
-	attrs := aptible.ReplicateAttrs{
-		EnvID:            int64(d.Get("env_id").(int)),
-		DatabaseID:       int64(d.Get("primary_database_id").(int)),
-		ReplicaHandle:    handle,
-		ContainerSize:    int64(d.Get("container_size").(int)),
-		DiskSize:         int64(d.Get("disk_size").(int)),
-		Iops:             int64(d.Get("iops").(int)),
-		ContainerProfile: d.Get("container_profile").(string),
+	createOp := client.OperationsAPI.CreateOperationForDatabase(ctx, databaseID)
+	payload := aptibleapi.NewCreateOperationRequest("replicate")
+	payload.SetHandle(handle)
+	payload.SetDestinationAccountId(envID)
+	if iops != 0 {
+		payload.SetProvisionedIops(iops)
+	}
+	if profile != "" {
+		payload.SetInstanceProfile(profile)
+	}
+	if containerSize != 0 {
+		payload.SetContainerSize(containerSize)
+	}
+	if diskSize != 0 {
+		payload.SetDiskSize(diskSize)
 	}
 
-	replica, err := client.CreateReplica(attrs)
+	op, _, err := createOp.CreateOperationRequest(*payload).Execute()
 	if err != nil {
-		log.Println(err)
+		return err
+	}
+
+	deleted, err := legacy.WaitForOperation(int64(op.Id))
+	if err != nil {
+		return err
+	}
+
+	repl, err := legacy.GetReplicaFromHandle(int64(databaseID), handle)
+	if err != nil {
 		return generateErrorFromClientError(err)
+	}
+	replica, err := legacy.GetReplica(repl.ID)
+	if deleted {
+		return fmt.Errorf("the replica with handle: %s was unexpectedly deleted", handle)
+	}
+	if err != nil {
+		return err
 	}
 
 	_ = d.Set("replica_id", replica.ID)
