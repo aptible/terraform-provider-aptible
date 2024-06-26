@@ -1,13 +1,13 @@
 # Aptible Database Resource
 
 This resource is used to create and manage
-[Databases](https://www.aptible.com/documentation/deploy/reference/databases.html)
+[Databases](https://www.aptible.com/docs/core-concepts/managed-databases)
 running on Aptible Deploy.
 
 !> Changing the handle of a database will destroy the existing database and
 create a new one, resulting in a database without data. The old database can
 still be recovered by [restoring a
-backup](https://www.aptible.com/documentation/deploy/reference/databases/backups.html#restoring-from-a-backup)
+backup](https://www.aptible.com/docs/core-concepts/managed-databases/managing-databases/database-backups#restoring-from-a-backup)
 as long as your retention policy supports final backups.
 
 ## Example Usage
@@ -47,10 +47,13 @@ resource "aptible_database" "example_database" {
 In addition to all arguments above, the following attributes are exported:
 
 - `database_id` - The unique ID for the database
-- `database_image_id` - The image used for running the database. Normally only used for support or debugging purposes
-- `default_connection_url` - The default [database credentials](https://www.aptible.com/documentation/deploy/reference/databases/credentials.html)
+- `database_image_id` - The image used for running the database. Normally only
+  used for support or debugging purposes
+- `default_connection_url` - The default
+  [database credentials](https://www.aptible.com/docs/core-concepts/managed-databases/connecting-databases/database-credentials)
   in connection URL format
-- `connection_urls` - A list of all available database credentials in connection URL format
+- `connection_urls` - A list of all available database credentials in connection
+  URL format
 
 ## Import
 

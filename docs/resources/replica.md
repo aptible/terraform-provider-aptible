@@ -1,7 +1,7 @@
 # Aptible Database Replica Resource
 
 This resource is used to create and manage Database [Replicas and
-Clusters](https://www.aptible.com/documentation/deploy/reference/databases/replication-clustering.html)
+Clusters](https://www.aptible.com/docs/core-concepts/managed-databases/managing-databases/replication-clustering)
 running on Aptible Deploy.
 
 !> Changing the handle of a replica will destroy the existing replica and
@@ -24,9 +24,9 @@ resource "aptible_replica" "example_database_replica" {
 - `env_id` - The ID of the environment you would like to deploy your
   Database in. The Environment does not have to be the same as the primary
   database, but the Environment does have to be in the same
-  [stack](https://www.aptible.com/documentation/deploy/reference/stacks.html)
-  as the primary Database. See main provider documentation for more on how to
-  determine what you should use for `env_id`.
+  [Stack](https://www.aptible.com/docs/core-concepts/architecture/stacks) as the
+  primary Database. See main provider documentation for more on how to determine
+  what you should use for `env_id`.
 - `primary_database_id` - The ID of the Database the replica is being
   created from.
 - `handle` - The handle for the Database. This must be all lower case, and
@@ -40,7 +40,8 @@ resource "aptible_replica" "example_database_replica" {
 In addition to all arguments above, the following attributes are exported:
 
 - `replica_id` - The unique ID for the replica
-- `default_connection_url` - The default [database credentials](https://www.aptible.com/documentation/deploy/reference/databases/credentials.html)
+- `default_connection_url` - The default
+  [database credentials](https://www.aptible.com/docs/core-concepts/managed-databases/connecting-databases/database-credentials)
   in connection URL format
 
 ## Import

@@ -1,5 +1,5 @@
 # This deploys our Aptible Demo App
-# https://www.aptible.com/documentation/deploy/tutorials/deploy-demo-app.html
+# https://www.aptible.com/docs/getting-started/deploy-starter-template/python-flask
 
 terraform {
   required_providers {
@@ -32,14 +32,6 @@ resource "aptible_app" "demo-app" {
     process_type           = "background"
     container_count        = 1
     container_memory_limit = 512
-  }
-
-  # https://www.aptible.com/documentation/deploy/tutorials/deploy-demo-app.html#run-database-migrations
-  # This is a one-time execution at application creation for demo purposes.
-  # If you need to run migrations on each app release, you should use a before_release command
-  # https://www.aptible.com/documentation/deploy/reference/apps/aptible-yml.html#before-release
-  provisioner "local-exec" {
-    command = "aptible ssh --app demo-app python migrations.py"
   }
 }
 

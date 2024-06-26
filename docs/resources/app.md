@@ -1,8 +1,8 @@
 # Aptible App Resource
 
 This resource is used to create and manage
-[Apps](https://www.aptible.com/documentation/deploy/reference/apps.html)
-running on Aptible Deploy.
+[Apps](https://www.aptible.com/docs/core-concepts/apps) running on Aptible
+Deploy.
 
 ## Example Usage
 
