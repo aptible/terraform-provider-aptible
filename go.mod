@@ -2,8 +2,6 @@ module github.com/aptible/terraform-provider-aptible
 
 go 1.16
 
-replace github.com/aptible/aptible-api-go => ../aptible-api-go
-
 require (
 	4d63.com/gochecknoglobals v0.0.0-20210416044342-fb0abda3d9aa // indirect
 	cloud.google.com/go/storage v1.15.0 // indirect
