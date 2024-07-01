@@ -186,20 +186,20 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	urls := []string{}
-	creds := database.Embedded.DatabaseCredentials
+	creds := database.Embedded.GetDatabaseCredentials()
 	for _, cred := range creds {
 		urls = append(urls, cred.ConnectionUrl)
 	}
 
-	imageID := ExtractIdFromLink(*database.Links.DatabaseImage.Href)
+	imageID := ExtractIdFromLink(database.Links.DatabaseImage.GetHref())
 	if imageID == 0 {
 		return fmt.Errorf("Could not find database image ID")
 	}
-	serviceID := ExtractIdFromLink(*database.Links.Service.Href)
+	serviceID := ExtractIdFromLink(database.Links.Service.GetHref())
 	if serviceID == 0 {
 		return fmt.Errorf("Could not find database service ID")
 	}
-	accountID := ExtractIdFromLink(*database.Links.Account.Href)
+	accountID := ExtractIdFromLink(database.Links.Account.GetHref())
 	if accountID == 0 {
 		return fmt.Errorf("Could not find database account ID")
 	}
@@ -214,20 +214,20 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 		return generateErrorFromClientError(err)
 	}
 
-	containerSize := service.ContainerMemoryLimitMb.Get()
-	profile := service.InstanceClass
+	containerSize := service.GetContainerMemoryLimitMb()
+	profile := service.GetInstanceClass()
 
 	_ = d.Set("container_size", containerSize)
 	_ = d.Set("container_profile", profile)
-	_ = d.Set("iops", database.Embedded.Disk.ProvisionedIops)
-	_ = d.Set("disk_size", database.Embedded.Disk.Size)
-	_ = d.Set("default_connection_url", database.ConnectionUrl.Get())
+	_ = d.Set("iops", database.Embedded.Disk.GetProvisionedIops())
+	_ = d.Set("disk_size", database.Embedded.Disk.GetSize())
+	_ = d.Set("default_connection_url", database.GetConnectionUrl())
 	_ = d.Set("connection_urls", urls)
-	_ = d.Set("handle", database.Handle)
+	_ = d.Set("handle", database.GetHandle())
 	_ = d.Set("env_id", accountID)
 	_ = d.Set("database_type", database.Type.Get())
 	_ = d.Set("database_image_id", imageID)
-	_ = d.Set("version", image.Version)
+	_ = d.Set("version", image.GetVersion())
 
 	return nil
 }

@@ -181,7 +181,7 @@ func TestAccResourceReplica_scale(t *testing.T) {
 			CheckDestroy: testAccCheckReplicaDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccAptibleReplicaBasic(env.ID, dbHandle, replicaHandle),
+					Config: testAccAptibleReplicaScale(env.ID, dbHandle, replicaHandle),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
 						resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(int(env.ID))),
@@ -213,7 +213,7 @@ func TestAccResourceReplica_scale(t *testing.T) {
 func testAccAptibleReplicaBasic(envId int64, dbHandle string, replicaHandle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_database" "test" {
-			env_id = %d
+		env_id = %d
 		handle = "%v"
 	}
 
