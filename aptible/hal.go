@@ -13,6 +13,6 @@ func ExtractIdFromLink(relation string) int32 {
 	if len(segments) == 0 {
 		return 0
 	}
-	val, _ := strconv.Atoi(segments[len(segments)-1])
+	val, _ := strconv.ParseInt(segments[len(segments)-1], 10, 64)
 	return int32(val)
 }

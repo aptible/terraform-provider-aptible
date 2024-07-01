@@ -168,12 +168,6 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	urls := []string{}
-	creds := database.Embedded.DatabaseCredentials
-	for _, cred := range creds {
-		urls = append(urls, cred.ConnectionUrl)
-	}
-
 	imageID := ExtractIdFromLink(database.Links.DatabaseImage.GetHref())
 	if imageID == 0 {
 		return fmt.Errorf("Could not find database image ID")
