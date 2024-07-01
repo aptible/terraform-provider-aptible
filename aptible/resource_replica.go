@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
@@ -137,26 +138,67 @@ func resourceReplicaImport(d *schema.ResourceData, meta interface{}) ([]*schema.
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).LegacyClient
-	replicaID := int64(d.Get("replica_id").(int))
-	replica, err := client.GetReplica(replicaID)
+	databaseID := int32(d.Get("replica_id").(int))
+
+	client := meta.(*providerMetadata).Client
+	ctx := context.Background()
+	ctx = meta.(*providerMetadata).APIContext(ctx)
+
+	database, resp, err := client.DatabasesAPI.GetDatabase(ctx, databaseID).Execute()
 	if err != nil {
-		log.Println(err)
 		return generateErrorFromClientError(err)
 	}
-	if replica.Deleted {
+	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
-		log.Println("Replica with ID: " + strconv.Itoa(int(replicaID)) + " was deleted outside of Terraform. \nNow removing it from Terraform state.")
+		log.Println("Database with ID: " + strconv.Itoa(int(databaseID)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
 		return nil
 	}
 
-	_ = d.Set("container_size", replica.ContainerSize)
-	_ = d.Set("disk_size", replica.DiskSize)
-	_ = d.Set("default_connection_url", replica.DefaultConnection)
-	_ = d.Set("handle", replica.Handle)
-	_ = d.Set("env_id", replica.EnvironmentID)
-	_ = d.Set("primary_database_id", replica.InitializeFromID)
-	d.SetId(strconv.Itoa(int(replica.ID)))
+	urls := []string{}
+	creds := database.Embedded.DatabaseCredentials
+	for _, cred := range creds {
+		urls = append(urls, cred.ConnectionUrl)
+	}
+
+	imageID := ExtractIdFromLink(*database.Links.DatabaseImage.Href)
+	if imageID == 0 {
+		return fmt.Errorf("Could not find database image ID")
+	}
+	serviceID := ExtractIdFromLink(*database.Links.Service.Href)
+	if serviceID == 0 {
+		return fmt.Errorf("Could not find database service ID")
+	}
+	accountID := ExtractIdFromLink(*database.Links.Account.Href)
+	if accountID == 0 {
+		return fmt.Errorf("Could not find database account ID")
+	}
+
+	image, _, err := client.ImagesAPI.GetDatabaseImage(ctx, imageID).Execute()
+	if err != nil {
+		return generateErrorFromClientError(err)
+	}
+
+	service, _, err := client.ServicesAPI.GetService(ctx, serviceID).Execute()
+	if err != nil {
+		return generateErrorFromClientError(err)
+	}
+
+	containerSize := service.ContainerMemoryLimitMb.Get()
+	profile := service.InstanceClass
+	primaryDatabaseID := ExtractIdFromLink(*database.Links.GetInitializeFrom().Href)
+
+	_ = d.Set("container_size", containerSize)
+	_ = d.Set("container_profile", profile)
+	_ = d.Set("iops", database.Embedded.Disk.ProvisionedIops)
+	_ = d.Set("disk_size", database.Embedded.Disk.Size)
+	_ = d.Set("default_connection_url", database.ConnectionUrl.Get())
+	_ = d.Set("connection_urls", urls)
+	_ = d.Set("handle", database.Handle)
+	_ = d.Set("env_id", accountID)
+	_ = d.Set("database_type", database.Type.Get())
+	_ = d.Set("database_image_id", imageID)
+	_ = d.Set("version", image.Version)
+	_ = d.Set("primary_database_id", primaryDatabaseID)
 
 	return nil
 }

@@ -131,7 +131,7 @@ func WithTestAccEnvironment(t *testing.T, f func(env aptible.Environment)) {
 		Handle: acctest.RandString(10),
 	})
 	if err != nil {
-		t.Fatalf("Failed to create test environment - %s", err.Error())
+		t.Fatalf("Failed to create test environment - %s", generateErrorFromClientError(err))
 		return
 	}
 

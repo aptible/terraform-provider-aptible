@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -61,6 +61,7 @@ func resourceDatabase() *schema.Resource {
 			"iops": {
 				Type:     schema.TypeInt,
 				Optional: true,
+				Default:  3000,
 			},
 			"database_id": {
 				Type:     schema.TypeInt,
@@ -99,14 +100,25 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	handle := d.Get("handle").(string)
 	version := d.Get("version").(string)
 	databaseType := d.Get("database_type").(string)
+	iops := int32(d.Get("iops").(int))
+	profile := d.Get("container_profile").(string)
+	diskSize := int32(d.Get("disk_size").(int))
+	containerSize := int32(d.Get("container_size").(int))
+
 	ctx := context.Background()
+	ctx = meta.(*providerMetadata).APIContext(ctx)
 
 	create := aptibleapi.NewCreateDatabaseRequestWithDefaults()
 	create.SetHandle(handle)
 	createDb := client.DatabasesAPI.CreateDatabase(ctx, int32(envID))
 	create.SetType(databaseType)
-	create.SetInitialDiskSize(int32(d.Get("disk_size").(int)))
-	create.SetInitialContainerSize(int32(d.Get("container_size").(int)))
+
+	if diskSize != 0 {
+		create.SetInitialDiskSize(diskSize)
+	}
+	if containerSize != 0 {
+		create.SetInitialContainerSize(containerSize)
+	}
 
 	if version != "" {
 		image, err := legacy.GetDatabaseImageByTypeAndVersion(databaseType, version)
@@ -122,21 +134,32 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	createOp := client.OperationsAPI.CreateOperationForDatabase(ctx, db.Id)
 	payload := aptibleapi.NewCreateOperationRequest("provision")
-	payload.SetProvisionedIops(int32(d.Get("iops").(int)))
-	payload.SetInstanceProfile(d.Get("container_profile").(string))
-	op, _, err := createOp.CreateOperationRequest(*payload).Execute()
+	if containerSize != 0 {
+		payload.SetContainerSize(containerSize)
+	}
+	if iops != 0 {
+		payload.SetProvisionedIops(iops)
+	}
+	if profile != "" {
+		payload.SetInstanceProfile(profile)
+	}
+
+	op, _, err := client.
+		OperationsAPI.
+		CreateOperationForDatabase(ctx, db.Id).
+		CreateOperationRequest(*payload).
+		Execute()
 	if err != nil {
 		return err
 	}
 
-	success, err := legacy.WaitForOperation(int64(op.Id))
+	del, err := legacy.WaitForOperation(int64(op.Id))
 	if err != nil {
 		return err
 	}
-	if !success {
-		return fmt.Errorf("Could not provision database")
+	if del {
+		return fmt.Errorf("the replica with handle: %s was unexpectedly deleted", handle)
 	}
 
 	_ = d.Set("database_id", db.Id)
@@ -147,31 +170,64 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).LegacyClient
-	databaseID := int64(d.Get("database_id").(int))
+	client := meta.(*providerMetadata).Client
+	databaseID := int32(d.Get("database_id").(int))
+	ctx := context.Background()
+	ctx = meta.(*providerMetadata).APIContext(ctx)
 
-	database, err := client.GetDatabase(databaseID)
+	database, resp, err := client.DatabasesAPI.GetDatabase(ctx, databaseID).Execute()
 	if err != nil {
-		log.Println(err)
 		return generateErrorFromClientError(err)
 	}
-
-	if database.Deleted {
+	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		log.Println("Database with ID: " + strconv.Itoa(int(databaseID)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
 		return nil
 	}
 
-	_ = d.Set("container_size", database.ContainerSize)
-	_ = d.Set("container_profile", database.ContainerProfile)
-	_ = d.Set("disk_size", database.DiskSize)
-	_ = d.Set("default_connection_url", database.DefaultConnection)
-	_ = d.Set("connection_urls", database.ConnectionURLs)
+	urls := []string{}
+	creds := database.Embedded.DatabaseCredentials
+	for _, cred := range creds {
+		urls = append(urls, cred.ConnectionUrl)
+	}
+
+	imageID := ExtractIdFromLink(*database.Links.DatabaseImage.Href)
+	if imageID == 0 {
+		return fmt.Errorf("Could not find database image ID")
+	}
+	serviceID := ExtractIdFromLink(*database.Links.Service.Href)
+	if serviceID == 0 {
+		return fmt.Errorf("Could not find database service ID")
+	}
+	accountID := ExtractIdFromLink(*database.Links.Account.Href)
+	if accountID == 0 {
+		return fmt.Errorf("Could not find database account ID")
+	}
+
+	image, _, err := client.ImagesAPI.GetDatabaseImage(ctx, imageID).Execute()
+	if err != nil {
+		return generateErrorFromClientError(err)
+	}
+
+	service, _, err := client.ServicesAPI.GetService(ctx, serviceID).Execute()
+	if err != nil {
+		return generateErrorFromClientError(err)
+	}
+
+	containerSize := service.ContainerMemoryLimitMb.Get()
+	profile := service.InstanceClass
+
+	_ = d.Set("container_size", containerSize)
+	_ = d.Set("container_profile", profile)
+	_ = d.Set("iops", database.Embedded.Disk.ProvisionedIops)
+	_ = d.Set("disk_size", database.Embedded.Disk.Size)
+	_ = d.Set("default_connection_url", database.ConnectionUrl.Get())
+	_ = d.Set("connection_urls", urls)
 	_ = d.Set("handle", database.Handle)
-	_ = d.Set("env_id", database.EnvironmentID)
-	_ = d.Set("database_type", database.Type)
-	_ = d.Set("database_image_id", database.DatabaseImage.ID)
-	_ = d.Set("version", database.DatabaseImage.Version)
+	_ = d.Set("env_id", accountID)
+	_ = d.Set("database_type", database.Type.Get())
+	_ = d.Set("database_image_id", imageID)
+	_ = d.Set("version", image.Version)
 
 	return nil
 }
@@ -185,45 +241,81 @@ func resourceDatabaseImport(d *schema.ResourceData, meta interface{}) ([]*schema
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).LegacyClient
-	databaseID := int64(d.Get("database_id").(int))
-	containerSize := int64(d.Get("container_size").(int))
-	containerProfile := d.Get("container_profile").(string)
-	diskSize := int64(d.Get("disk_size").(int))
+	client := meta.(*providerMetadata).Client
+	legacy := meta.(*providerMetadata).LegacyClient
+	databaseID := int32(d.Get("database_id").(int))
+	containerSize := int32(d.Get("container_size").(int))
+	profile := d.Get("container_profile").(string)
+	diskSize := int32(d.Get("disk_size").(int))
+	iops := int32(d.Get("iops").(int))
 	handle := d.Get("handle").(string)
 	var diags diag.Diagnostics
 
-	updates := aptible.DBUpdates{}
+	ctx = meta.(*providerMetadata).APIContext(ctx)
+	payload := aptibleapi.NewCreateOperationRequest("restart")
 
 	if d.HasChange("container_size") {
-		updates.ContainerSize = containerSize
+		payload.SetContainerSize(containerSize)
+	}
+	if d.HasChange("iops") {
+		payload.SetProvisionedIops(iops)
 	}
 	if d.HasChange("container_profile") {
-		updates.ContainerProfile = containerProfile
+		payload.SetInstanceProfile(profile)
 	}
 	if d.HasChange("disk_size") {
-		updates.DiskSize = diskSize
+		payload.SetDiskSize(diskSize)
 	}
 
 	if d.HasChange("handle") {
-		log.Printf("[INFO] Updating handle to %s\n", handle)
-		updates.Handle = handle
+		_, err := client.
+			DatabasesAPI.
+			PatchDatabase(ctx, databaseID).
+			UpdateDatabaseRequest(
+				aptibleapi.UpdateDatabaseRequest{Handle: &handle},
+			).
+			Execute()
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when trying to update the database handle.",
+				Detail:   generateErrorFromClientError(err).Error(),
+			})
+			return diags
+		}
 	}
 
-	// if only changing the handle, you can skip running an operation needlessly
-	// below can be hard to read, but it basically means if nothing besides handle was changed
-	if !d.HasChangesExcept("handle") {
-		updates.SkipOperationUpdate = true
-	}
+	if d.HasChangeExcept("handle") {
+		op, _, err := client.
+			OperationsAPI.
+			CreateOperationForDatabase(ctx, databaseID).
+			CreateOperationRequest(*payload).Execute()
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when trying to update the database.",
+				Detail:   generateErrorFromClientError(err).Error(),
+			})
+			return diags
+		}
 
-	err := client.UpdateDatabase(databaseID, updates)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "There was an error when trying to update the database.",
-			Detail:   generateErrorFromClientError(err).Error(),
-		})
-		return diags
+		del, err := legacy.WaitForOperation(int64(op.Id))
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when trying to update the database.",
+				Detail:   generateErrorFromClientError(err).Error(),
+			})
+			return diags
+		}
+		if del {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("The replica with handle: %s was unexpectedly deleted", handle),
+				Detail:   generateErrorFromClientError(err).Error(),
+			})
+			return diags
+		}
 	}
 
 	if d.HasChange("handle") {
