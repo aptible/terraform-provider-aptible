@@ -8,16 +8,16 @@ import (
 	"strconv"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/go-deploy/aptible"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceReplica() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceReplicaCreate, // POST
-		Read:   resourceReplicaRead,   // GET
-		Update: resourceReplicaUpdate, // PUT
-		Delete: resourceReplicaDelete, // DELETE
+		Create:        resourceReplicaCreate, // POST
+		Read:          resourceReplicaRead,   // GET
+		UpdateContext: resourceReplicaUpdate, // PUT
+		Delete:        resourceReplicaDelete, // DELETE
 		Importer: &schema.ResourceImporter{
 			State: resourceReplicaImport,
 		},
@@ -59,14 +59,16 @@ func resourceReplica() *schema.Resource {
 			"iops": {
 				Type:     schema.TypeInt,
 				Optional: true,
+				Default:  3000,
 			},
 			"replica_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
 			"default_connection_url": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:      schema.TypeString,
+				Computed:  true,
+				Sensitive: true,
 			},
 		},
 	}
@@ -83,8 +85,8 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 	profile := d.Get("container_profile").(string)
 	envID := int32(d.Get("env_id").(int))
 	ctx := context.Background()
+	ctx = meta.(*providerMetadata).APIContext(ctx)
 
-	createOp := client.OperationsAPI.CreateOperationForDatabase(ctx, databaseID)
 	payload := aptibleapi.NewCreateOperationRequest("replicate")
 	payload.SetHandle(handle)
 	payload.SetDestinationAccountId(envID)
@@ -101,31 +103,43 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 		payload.SetDiskSize(diskSize)
 	}
 
-	op, _, err := createOp.CreateOperationRequest(*payload).Execute()
+	op, _, err := client.
+		OperationsAPI.
+		CreateOperationForDatabase(ctx, databaseID).
+		CreateOperationRequest(*payload).
+		Execute()
 	if err != nil {
 		return err
 	}
 
 	deleted, err := legacy.WaitForOperation(int64(op.Id))
 	if err != nil {
-		return err
+		return generateErrorFromClientError(err)
+	}
+	if deleted {
+		return fmt.Errorf("the replica with handle: %s was unexpectedly deleted", handle)
 	}
 
 	repl, err := legacy.GetReplicaFromHandle(int64(databaseID), handle)
 	if err != nil {
 		return generateErrorFromClientError(err)
 	}
-	replica, err := legacy.GetReplica(repl.ID)
+
+	operation := repl.Embedded.LastOperation
+	if operation == nil {
+		return fmt.Errorf("Could not find provision operation for replica database")
+	}
+	operationID := (*operation).ID
+	deleted, err = legacy.WaitForOperation(operationID)
+	if err != nil {
+		return generateErrorFromClientError(err)
+	}
 	if deleted {
 		return fmt.Errorf("the replica with handle: %s was unexpectedly deleted", handle)
 	}
-	if err != nil {
-		return err
-	}
 
-	_ = d.Set("replica_id", replica.ID)
-	d.SetId(strconv.Itoa(int(replica.ID)))
-	_ = d.Set("default_connection_url", replica.DefaultConnection)
+	_ = d.Set("replica_id", repl.ID)
+	d.SetId(strconv.Itoa(int(repl.ID)))
 	return resourceReplicaRead(d, meta)
 }
 
@@ -160,22 +174,17 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 		urls = append(urls, cred.ConnectionUrl)
 	}
 
-	imageID := ExtractIdFromLink(*database.Links.DatabaseImage.Href)
+	imageID := ExtractIdFromLink(database.Links.DatabaseImage.GetHref())
 	if imageID == 0 {
 		return fmt.Errorf("Could not find database image ID")
 	}
-	serviceID := ExtractIdFromLink(*database.Links.Service.Href)
+	serviceID := ExtractIdFromLink(database.Links.Service.GetHref())
 	if serviceID == 0 {
 		return fmt.Errorf("Could not find database service ID")
 	}
-	accountID := ExtractIdFromLink(*database.Links.Account.Href)
+	accountID := ExtractIdFromLink(database.Links.Account.GetHref())
 	if accountID == 0 {
 		return fmt.Errorf("Could not find database account ID")
-	}
-
-	image, _, err := client.ImagesAPI.GetDatabaseImage(ctx, imageID).Execute()
-	if err != nil {
-		return generateErrorFromClientError(err)
 	}
 
 	service, _, err := client.ServicesAPI.GetService(ctx, serviceID).Execute()
@@ -185,47 +194,118 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 
 	containerSize := service.ContainerMemoryLimitMb.Get()
 	profile := service.InstanceClass
-	primaryDatabaseID := ExtractIdFromLink(*database.Links.GetInitializeFrom().Href)
+	primaryDatabaseID := ExtractIdFromLink(database.Links.InitializeFrom.GetHref())
 
 	_ = d.Set("container_size", containerSize)
-	_ = d.Set("container_profile", profile)
-	_ = d.Set("iops", database.Embedded.Disk.ProvisionedIops)
-	_ = d.Set("disk_size", database.Embedded.Disk.Size)
-	_ = d.Set("default_connection_url", database.ConnectionUrl.Get())
-	_ = d.Set("connection_urls", urls)
-	_ = d.Set("handle", database.Handle)
+	_ = d.Set("disk_size", database.Embedded.Disk.GetSize())
+	_ = d.Set("default_connection_url", database.GetConnectionUrl())
+	_ = d.Set("handle", database.GetHandle())
 	_ = d.Set("env_id", accountID)
-	_ = d.Set("database_type", database.Type.Get())
-	_ = d.Set("database_image_id", imageID)
-	_ = d.Set("version", image.Version)
 	_ = d.Set("primary_database_id", primaryDatabaseID)
+	_ = d.Set("container_profile", profile)
+	_ = d.Set("iops", database.Embedded.Disk.GetProvisionedIops())
+	d.SetId(strconv.Itoa(int(database.Id)))
 
 	return nil
 }
 
 // changes state of actual resource based on changes made in a Terraform config file
-func resourceReplicaUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).LegacyClient
-	replicaID := int64(d.Get("replica_id").(int))
-	containerSize := int64(d.Get("container_size").(int))
-	diskSize := int64(d.Get("disk_size").(int))
+func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*providerMetadata).Client
+	legacy := meta.(*providerMetadata).LegacyClient
+	ctx = meta.(*providerMetadata).APIContext(ctx)
+	databaseID := int32(d.Get("replica_id").(int))
+	containerSize := int32(d.Get("container_size").(int))
+	profile := d.Get("container_profile").(string)
+	diskSize := int32(d.Get("disk_size").(int))
+	iops := int32(d.Get("iops").(int))
+	handle := d.Get("handle").(string)
+	var diags diag.Diagnostics
 
-	updates := aptible.DBUpdates{}
+	ctx = meta.(*providerMetadata).APIContext(ctx)
+	payload := aptibleapi.NewCreateOperationRequest("restart")
 
 	if d.HasChange("container_size") {
-		updates.ContainerSize = containerSize
+		payload.SetContainerSize(containerSize)
 	}
-
+	if d.HasChange("iops") {
+		payload.SetProvisionedIops(iops)
+	}
+	if d.HasChange("container_profile") {
+		payload.SetInstanceProfile(profile)
+	}
 	if d.HasChange("disk_size") {
-		updates.DiskSize = diskSize
+		payload.SetDiskSize(diskSize)
 	}
 
-	err := client.UpdateReplica(replicaID, updates)
-	if err != nil {
-		return generateErrorFromClientError(err)
+	if d.HasChange("handle") {
+		_, err := client.
+			DatabasesAPI.
+			PatchDatabase(ctx, databaseID).
+			UpdateDatabaseRequest(
+				aptibleapi.UpdateDatabaseRequest{Handle: &handle},
+			).
+			Execute()
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when trying to update the database handle.",
+				Detail:   generateErrorFromClientError(err).Error(),
+			})
+			return diags
+		}
 	}
 
-	return resourceReplicaRead(d, meta)
+	if d.HasChangeExcept("handle") {
+		op, _, err := client.
+			OperationsAPI.
+			CreateOperationForDatabase(ctx, databaseID).
+			CreateOperationRequest(*payload).Execute()
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when trying to update the database.",
+				Detail:   generateErrorFromClientError(err).Error(),
+			})
+			return diags
+		}
+
+		del, err := legacy.WaitForOperation(int64(op.Id))
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when trying to update the database.",
+				Detail:   generateErrorFromClientError(err).Error(),
+			})
+			return diags
+		}
+		if del {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("The replica with handle: %s was unexpectedly deleted", handle),
+				Detail:   generateErrorFromClientError(err).Error(),
+			})
+			return diags
+		}
+	}
+
+	if d.HasChange("handle") {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  fmt.Sprintf("You must reload the database to see changes. In order for the new database name (%s) to appear in log drain and metric drain destinations, you must reload the database.  You can use the CLI to do this with: 'aptible db:reload %s'", handle, handle),
+		})
+		log.Printf("[WARN] In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.\n", handle)
+	}
+
+	if err := resourceReplicaRead(d, meta); err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when trying to retrieve the updated state of the database.",
+			Detail:   err.Error(),
+		})
+	}
+
+	return diags
 }
 
 func resourceReplicaDelete(d *schema.ResourceData, meta interface{}) error {
