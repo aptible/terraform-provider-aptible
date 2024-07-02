@@ -14,14 +14,13 @@ import (
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
-			"aptible_app":                     resourceApp(),
-			"aptible_database":                resourceDatabase(),
-			"aptible_environment":             resourceEnvironment(),
-			"aptible_endpoint":                resourceEndpoint(),
-			"aptible_replica":                 resourceReplica(),
-			"aptible_log_drain":               resourceLogDrain(),
-			"aptible_metric_drain":            resourceMetricDrain(),
-			"aptible_backup_retention_policy": resourceBackupRetentionPolicy(),
+			"aptible_app":          resourceApp(),
+			"aptible_database":     resourceDatabase(),
+			"aptible_environment":  resourceEnvironment(),
+			"aptible_endpoint":     resourceEndpoint(),
+			"aptible_replica":      resourceReplica(),
+			"aptible_log_drain":    resourceLogDrain(),
+			"aptible_metric_drain": resourceMetricDrain(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"aptible_environment":             dataSourceEnvironment(),

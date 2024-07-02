@@ -10,3 +10,4 @@ logs/*
 vendor/*
 bin/*
 .envrc
+/*.tf

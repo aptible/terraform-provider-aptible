@@ -16,7 +16,7 @@ func TestAccDataSourceBackupRetentionPolicy_validation(t *testing.T) {
 	for _, attr := range requiredAttrs {
 		testSteps = append(testSteps, resource.TestStep{
 			PlanOnly:    true,
-			Config:      `resource "aptible_backup_retention_policy" "test" {}`,
+			Config:      `data "aptible_backup_retention_policy" "test" {}`,
 			ExpectError: regexp.MustCompile(fmt.Sprintf("%q is required", attr)),
 		})
 	}
@@ -24,7 +24,6 @@ func TestAccDataSourceBackupRetentionPolicy_validation(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckBackupRetentionPolicyDestroy,
 		Steps:             testSteps,
 	})
 }
@@ -33,7 +32,6 @@ func TestAccDataSourceBackupRetentionPolicy_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckBackupRetentionPolicyDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testDataAccAptibleBackupRetentionPolicy(acctest.RandString(10)),
