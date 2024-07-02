@@ -3,7 +3,7 @@
 ## Feature Support
 
 For a detailed list of what features the provider supports see the
-[Feature Support Matrix](https://deploy-docs.aptible.com/docs/managing-aptible-resources#feature-support-matrix)
+[Feature Support Matrix](https://www.aptible.com/docs/reference/interface-feature)
 in the Aptible Documentation.
 
 ## Example Usage

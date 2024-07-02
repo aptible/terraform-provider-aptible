@@ -1,8 +1,8 @@
 # Stack Data Source
 
-[Stacks](https://deploy-docs.aptible.com/docs/stacks)
-are the underlying virtualized infrastructure (EC2 instances, private network, etc.) your resources
-are deployed on.
+[Stacks](https://www.aptible.com/docs/core-concepts/architecture/stacks)
+are the underlying virtualized infrastructure (EC2 instances, private network,
+etc.) your resources are deployed on.
 
 ## Example Usage
 
@@ -40,5 +40,5 @@ field in the example above.
 In addition to all arguments above, the following attributes are exported:
 
 - `stack_id` - The unique ID for an Stack suitable for use in `stack_id` attributes
-- `org_id` - If the stack is a [dedicated stack](https://deploy-docs.aptible.com/docs/shared-dedicated#dedicated-stacks),
+- `org_id` - If the stack is a [dedicated stack](https://www.aptible.com/docs/core-concepts/architecture/stacks#dedicated-stacks-isolated),
 you will also receive an id that corresponds to that organization. If it is a shared stack, this value will be empty.

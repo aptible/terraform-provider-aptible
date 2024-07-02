@@ -1,6 +1,6 @@
 # Aptible Environment Resource
 
-This resource is used to create and manage [Environments](https://deploy-docs.aptible.com/docs/environments) running on Aptible Deploy.
+This resource is used to create and manage [Environments](https://www.aptible.com/docs/core-concepts/architecture/environments) running on Aptible Deploy.
 
 ## Example Usage
 
@@ -42,8 +42,8 @@ resource "aptible_environment" "example" {
 
 ## Argument Reference
 
-- `stack_id` (Required) - The id of the [stack](https://deploy-docs.aptible.com/docs/stacks) you would like the environment to be provisioned on.
-- `org_id` (Optional) - The id of the [organization](https://deploy-docs.aptible.com/docs/organizations) you would like the environment to be provisioned on. If the `org_id` is not provided, the provider will attempt to determine it for you. If you are only a member of a single Aptible organization or the environment is on a dedicated stack, it will certainly be able to.
+- `stack_id` (Required) - The id of the [stack](https://www.aptible.com/docs/core-concepts/architecture/stacks) you would like the environment to be provisioned on.
+- `org_id` (Optional) - The id of the [organization](https://www.aptible.com/docs/core-concepts/security-compliance/access-permissions#organization) you would like the environment to be provisioned on. If the `org_id` is not provided, the provider will attempt to determine it for you. If you are only a member of a single Aptible organization or the environment is on a dedicated stack, it will certainly be able to.
 - `handle` (Required) - The handle for the environment.
 - `backup_retention_policy` - (Optional) A block defining the environment's backup retention policy. An environment may only have one policy block.
 
