@@ -29,16 +29,13 @@ jobs:
           go-version: '1.16'
 
       - name: Setup
-        run: |
-          make tools
-          go mod vendor
+        run: make tools
 
       - name: Code Lint
         run:  make lint
 
       - name: Code UnitTest
         run: make test
-        if: ${{ github.event_name == 'release' }}
 
       # Only on release
       # From https://goreleaser.com/ci/actions/?h=gpg#signing
@@ -56,5 +53,5 @@ jobs:
         with:
           version: "latest"
         env:
-          GITHUB_TOKEN: ${{ secrets.TERRAFORM_PROVIDER_APTIBLE_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
