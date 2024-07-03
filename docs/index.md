@@ -3,7 +3,7 @@
 ## Feature Support
 
 For a detailed list of what features the provider supports see the
-[Feature Support Matrix](https://deploy-docs.aptible.com/docs/managing-aptible-resources#feature-support-matrix)
+[Feature Support Matrix](https://www.aptible.com/docs/reference/interface-feature)
 in the Aptible Documentation.
 
 ## Example Usage
@@ -11,7 +11,7 @@ in the Aptible Documentation.
 ### Authentication and Authorization
 
 Authorization and Authentication is controlled using the same mechanism
-that the [cli](https://www.aptible.com/documentation/deploy/cli.html) uses.
+that the [CLI](https://www.aptible.com/docs/reference/aptible-cli/overview) uses.
 Therefore, you should log into the account you want to use Terraform with using
 the `aptible login` CLI command before running any Terraform commands.
 
@@ -23,7 +23,7 @@ be disabled for truly automated runs.
 ### Determining the Environment ID
 
 Each resource managed via Terraform requires an Environment ID specifying which
-[Environment](https://www.aptible.com/documentation/deploy/reference/environments.html)
+[Environment](https://www.aptible.com/docs/core-concepts/architecture/environments)
 the resource should be created in. Currently the Aptible Deploy Terraform
 provider does not manage Environments, so you will need the Environment ID for
 a pre-existing Environment. The easiest way to determine the Environment ID is
@@ -46,10 +46,11 @@ data "aptible_app" "techo-app" {
 }
 ```
 
-You can also specify the environment as a resource. You will need to pass in an `org_id`
-(ex: `dashboard.aptible.com/organizations/<ORG_ID>/members`) and `stack_id` 
-(ex: `dashboard.aptible.com/stack/<STACK_ID>/accounts`) which you can get from the 
-Aptible dashboard (on the settings/members panel (`org_id`) or on the stack view pages (`stack_id`)):
+You can also specify the environment as a resource. You will need to pass in an
+`org_id` (ex: `dashboard.aptible.com/organizations/<ORG_ID>/members`) and
+`stack_id` (ex: `dashboard.aptible.com/stack/<STACK_ID>/accounts`) which you can
+get from the Aptible dashboard (on the settings/members panel (`org_id`) or on
+the stack view pages (`stack_id`)):
 
 ```hcl
 resource "aptible_environment" "techco-test-environment" {
@@ -61,7 +62,7 @@ resource "aptible_environment" "techco-test-environment" {
 
 ### Apps
 
-[Apps](https://www.aptible.com/documentation/deploy/reference/apps.html) can be
+[Apps](https://www.aptible.com/docs/core-concepts/apps) can be
 created using the `terraform_aptible_app` resource.
 
 ```hcl
@@ -110,13 +111,13 @@ resource "aptible_app" "APP" {
 #### Scaling Services
 
 Each App is comprised of one or more
-[Services](https://www.aptible.com/documentation/deploy/reference/apps/services.html).
+[Services](https://www.aptible.com/docs/core-concepts/apps/deploying-apps/services).
 These Services must be defined in the
-[Procfile](https://www.aptible.com/documentation/deploy/reference/apps/services/defining-services.html#explicit-services-procfiles)
+[Procfile](https://www.aptible.com/docs/how-to-guides/app-guides/define-services#explicit-services-procfiles)
 for your App.
 
 Services can be scaled independently both in terms of the number of running
-[containers](https://www.aptible.com/documentation/deploy/reference/containers.html)
+[containers](https://www.aptible.com/docs/core-concepts/architecture/containers/overview)
 and size of the running Containers. This is done using the nested `service`
 element for the App resource:
 
@@ -143,15 +144,13 @@ resource "aptible_app" "APP" {
 
 ### Endpoints
 
-Endpoints for
-[Apps](https://www.aptible.com/documentation/deploy/reference/apps/endpoints.html)
-and
-[Databases](https://www.aptible.com/documentation/deploy/reference/databases/endpoints.html)
-can be managed using the `terraform_aptible_endpoint` resource.
+Endpoints for [Apps](https://www.aptible.com/docs/core-concepts/apps) and
+[Databases](https://www.aptible.com/docs/core-concepts/managed-databases) can be
+managed using the `terraform_aptible_endpoint` resource.
 
 ```hcl
 resource "aptible_endpoint" "EXAMPLE" {
-    env_id = ENVIONMENT_ID
+    env_id = ENVIRONMENT_ID
     process_type = "SERVICE_NAME"
     resource_id = aptible_app.APP.app_id
     default_domain = true
@@ -164,8 +163,8 @@ resource "aptible_endpoint" "EXAMPLE" {
 
 ### Databases
 
-[Databases](https://www.aptible.com/documentation/deploy/reference/databases.html)
-can be managed using the `terraform_aptible_database` resource.
+[Databases](https://www.aptible.com/docs/core-concepts/managed-databases) can be
+managed using the `terraform_aptible_database` resource.
 
 ```hcl
 resource "aptible_database" "DATABASE" {
@@ -180,7 +179,7 @@ resource "aptible_database" "DATABASE" {
 #### Replication
 
 Database [Replicas and
-Clusters](https://www.aptible.com/documentation/deploy/reference/databases/replication-clustering.html)
+Clusters](https://www.aptible.com/docs/core-concepts/managed-databases/managing-databases/replication-clustering)
 can be created using the `terraform_aptible_replica` resource.
 
 ```hcl

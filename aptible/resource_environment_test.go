@@ -27,13 +27,40 @@ func TestAccResourceEnvironment_validation(t *testing.T) {
 	testSteps = append(testSteps, resource.TestStep{
 		PlanOnly: true,
 		Config: fmt.Sprintf(`
-				resource "aptible_environment" "test" {
-					handle = "%s"
-					org_id = "%s"
-					stack_id = %d
-				}
-			`, "test", "invalid-uuid", testStackId),
+			resource "aptible_environment" "test" {
+				handle = "test"
+				org_id = "%s"
+				stack_id = %d
+			}
+			`, "invalid-uuid", testStackId),
 		ExpectError: regexp.MustCompile(fmt.Sprintf(`expected %q to be a valid UUID, got invalid-uuid`, "org_id")),
+	})
+
+	testSteps = append(testSteps, resource.TestStep{
+		Config: fmt.Sprintf(`
+			resource "aptible_environment" "test" {
+				handle = "%s"
+				org_id = "%s"
+				stack_id = "%v"
+
+				backup_retention_policy {
+					daily = 3
+					monthly = 2
+					yearly = 1
+					make_copy = true
+					keep_final = false
+				}
+
+				backup_retention_policy {
+					daily = 4
+					monthly = 2
+					yearly = 1
+					make_copy = true
+					keep_final = false
+				}
+			}
+			`, acctest.RandString(10), testOrganizationId, testStackId),
+		ExpectError: regexp.MustCompile("(?i)multiple backup_retention_policy"),
 	})
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -83,6 +110,11 @@ func TestAccResourceEnvironment_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_environment.test", "handle", rHandle),
 					resource.TestCheckResourceAttr("aptible_environment.test", "org_id", testOrganizationId),
 					resource.TestCheckResourceAttr("aptible_environment.test", "stack_id", strconv.Itoa(testStackId)),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.daily"),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.monthly"),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.yearly"),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.make_copy"),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.keep_final"),
 				),
 			}, {
 				ResourceName:            "aptible_environment.test",
@@ -94,7 +126,7 @@ func TestAccResourceEnvironment_basic(t *testing.T) {
 	})
 }
 
-func TestAccResourceEnvironment_basic_no_org(t *testing.T) {
+func TestAccResourceEnvironment_no_org(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -106,7 +138,43 @@ func TestAccResourceEnvironment_basic_no_org(t *testing.T) {
 				Config: testAccAptibleEnvironmentWithoutOrg(rHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_environment.test", "handle", rHandle),
+					resource.TestCheckResourceAttr("aptible_environment.test", "org_id", testOrganizationId),
 					resource.TestCheckResourceAttr("aptible_environment.test", "stack_id", strconv.Itoa(testStackId)),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.daily"),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.monthly"),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.yearly"),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.make_copy"),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.keep_final"),
+				),
+			}, {
+				ResourceName:            "aptible_environment.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"org_id", "stack_id"},
+			},
+		},
+	})
+}
+
+func TestAccResourceEnvironment_backup_policy(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckEnvironmentDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleEnvironmentWithBackupPolicy(rHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_environment.test", "handle", rHandle),
+					resource.TestCheckResourceAttr("aptible_environment.test", "org_id", testOrganizationId),
+					resource.TestCheckResourceAttr("aptible_environment.test", "stack_id", strconv.Itoa(testStackId)),
+					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.daily", "3"),
+					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.monthly", "2"),
+					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.yearly", "1"),
+					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.make_copy", "true"),
+					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.keep_final", "false"),
 				),
 			}, {
 				ResourceName:            "aptible_environment.test",
@@ -133,17 +201,27 @@ func TestAccResourceEnvironment_update(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_environment.test", "handle", rHandle),
 					resource.TestCheckResourceAttr("aptible_environment.test", "org_id", testOrganizationId),
 					resource.TestCheckResourceAttr("aptible_environment.test", "stack_id", strconv.Itoa(testStackId)),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.daily"),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.monthly"),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.yearly"),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.make_copy"),
+					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.keep_final"),
 				),
 			}, {
 				ResourceName:      "aptible_environment.test",
 				ImportState:       true,
 				ImportStateVerify: true,
 			}, {
-				Config: testAccAptibleEnvironment(rUpdatedHandle),
+				Config: testAccAptibleEnvironmentWithBackupPolicy(rUpdatedHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_environment.test", "handle", rUpdatedHandle),
 					resource.TestCheckResourceAttr("aptible_environment.test", "org_id", testOrganizationId),
 					resource.TestCheckResourceAttr("aptible_environment.test", "stack_id", strconv.Itoa(testStackId)),
+					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.daily", "3"),
+					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.monthly", "2"),
+					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.yearly", "1"),
+					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.make_copy", "true"),
+					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.keep_final", "false"),
 				),
 			},
 		},
@@ -167,4 +245,22 @@ func testAccAptibleEnvironmentWithoutOrg(handle string) string {
 		stack_id = "%v"
 	}
 	`, handle, testStackId)
+}
+
+func testAccAptibleEnvironmentWithBackupPolicy(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+
+		backup_retention_policy {
+			daily = 3
+			monthly = 2
+			yearly = 1
+			make_copy = true
+			keep_final = false
+		}
+	}
+	`, handle, testOrganizationId, testStackId)
 }
