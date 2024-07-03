@@ -70,16 +70,3 @@ Existing Environments can be imported using the Environment ID. For example:
 ```bash
 terraform import aptible_environment.example <ID>
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-## Argument Reference
