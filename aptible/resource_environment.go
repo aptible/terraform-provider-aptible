@@ -185,6 +185,7 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, meta
 		return generateDiagnosticsFromClientError(err)
 	}
 
+	// Creating a new backup retention policy replaces the existing one
 	if diags := createBackupRetentionPolicy(ctx, d, meta); diags != nil {
 		return diags
 	}
@@ -239,6 +240,12 @@ func createBackupRetentionPolicy(ctx context.Context, d *schema.ResourceData, me
 	client := m.Client
 	ctx = m.APIContext(ctx)
 	envId := int32(d.Get("env_id").(int))
+
+	// Only modify the policy if it has changed
+	if !d.HasChange("backup_retention_policy") {
+		log.Println("No change in retention policy detected")
+		return nil
+	}
 
 	policies := d.Get("backup_retention_policy").(*schema.Set).List()
 	if len(policies) < 1 {
