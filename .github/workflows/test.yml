@@ -12,6 +12,7 @@ on:
 
 env:
   GOFLAGS: "-mod=vendor"
+  GO111MODULE: on
 
 jobs:
   test:
