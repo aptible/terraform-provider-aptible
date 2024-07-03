@@ -1,9 +1,8 @@
 # Aptible Endpoint Resource
 
 This resource is used to create and manage Endpoints for
-[Apps](https://www.aptible.com/documentation/deploy/reference/apps/endpoints.html)
-and
-[Databases](https://www.aptible.com/documentation/deploy/reference/databases/endpoints.html)
+[Apps](https://www.aptible.com/docs/core-concepts/apps) and
+[Databases](https://www.aptible.com/docs/core-concepts/managed-databases)
 running on Aptible.
 
 ## Example Usage
@@ -15,7 +14,7 @@ resource "aptible_endpoint" "example" {
   env_id         = data.aptible_environment.example.env_id
   resource_id    = aptible_app.example.app_id
   # alternatively, one could also set "container_ports = [3000,3001]"
-  container_port = 3000 
+  container_port = 3000
   resource_type  = "app"
   process_type   = "cmd"
   default_domain = true
@@ -69,12 +68,13 @@ resource "aws_route53_record" "dns01" {
   to.
 - `process_type` - (Required for Apps) The name of the service the Endpoint
   is for. See main provider documentation for more information on how to
-  determine the sevice name.
+  determine the service name.
 - `container_port` - (Optional, App only) The port on the container which
-  the Endpoint should forward traffic to. Mutually exclusive from `container_ports`. 
-  You should use this for `https` endpoints.
-- `container_ports` - (Optional, App only) The ports in array form on the container which
-  the Endpoint should forward traffic to. Mutually exclusive from `container_port`.
+  the Endpoint should forward traffic to. Mutually exclusive from
+  `container_ports`. You should use this for `https` endpoints.
+- `container_ports` - (Optional, App only) The ports in array form on the
+  container which the Endpoint should forward traffic to. Mutually exclusive
+  from `container_port`.
   Multiple container ports are only allowed on a `tcp` or `tls` endpoint.
 - `default_domain` - (App only, Default: false) If the Endpoint should use the
   App's default `on-aptible.com` domain. Only one Endpoint per App can use the
@@ -85,14 +85,15 @@ resource "aws_route53_record" "dns01" {
 - `domain` - (Optional, App only) Required when using Managed TLS (`managed`).
   The managed TLS Hostname the Endpoint should use.
 - `internal` - (Default: false) If Endpoint should be available
-  [internally or externally](https://deploy-docs.aptible.com/docs/endpoints#endpoint-placement)
+  [internally or externally](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/overview#endpoint-placement)
   . Changing this will force the resource to be recreated.
-- `platform` - (Default: `alb`) What type of 
-  [load balancer](https://www.aptible.com/documentation/deploy/reference/apps/endpoints/https-endpoints/alb-elb.html#alb-elb)
-  the Endpoint should use. Valid options are `alb` or `elb`. `resource_type` of `database` should use `elb`.
+- `platform` - (Default: `alb`) What type of
+  [load balancer](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/https-endpoints/alb-elb)
+  the Endpoint should use. Valid options are `alb` or `elb`. `resource_type` of
+  `database` should use `elb`.
 - `ip_filtering` - (Optional) The list of IPv4 CIDRs that the Endpoint will
-  allow traffic from. If not provided, the Endpoint will not filter traffic.
-  See the [IP Filtering](https://deploy-docs.aptible.com/docs/ip-filtering)
+  allow traffic from. If not provided, the Endpoint will not filter traffic. See
+  the [IP Filtering](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/ip-filtering)
   documentation for more details.
 
 ## Attribute Reference
@@ -106,12 +107,12 @@ In addition to all arguments above, the following attributes are exported:
   Endpoint.
 - `dns_validation_record` - The CNAME record that needs to be created for
   Managed HTTPS to use
-  [dns-01](https://deploy-docs.aptible.com/docs/managed-tls#dns-01) to verify
-  ownership of the domain.
+  [dns-01](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/managed-tls#dns-01)
+  to verify ownership of the domain.
 - `dns_validation_value` - The domain name to which the CNAME record should
   point for Managed HTTPS to use
-  [dns-01](https://deploy-docs.aptible.com/docs/managed-tls#dns-01) to verify
-  ownership of the domain.
+  [dns-01](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/managed-tls#dns-01)
+  to verify ownership of the domain.
 
 ## Import
 

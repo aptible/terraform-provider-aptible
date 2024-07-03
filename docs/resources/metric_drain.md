@@ -1,7 +1,7 @@
 # Aptible Metric Drain Resource
 
 This resource is used to create and manage
-[Metric Drains](https://deploy-docs.aptible.com/docs/metric-drains)
+[Metric Drains](https://www.aptible.com/docs/core-concepts/observability/metrics/metrics-drains/overview)
 running on Aptible Deploy.
 
 ## Example Usage
@@ -56,7 +56,7 @@ resource "aptible_metric_drain" "datadog_drain" {
   to.
 - `username` - The user for `influxdb` drains to use for authentication.
 - `password` - The password for `influxdb` drains to use for authentication.
-- `database` - The 
+- `database` - The
   [InfluxDB database](https://docs.influxdata.com/influxdb/v1.8/concepts/glossary/#database)
   for `influxdb` drains to send the metrics to.
 - `api_key` - The API key for `datadog` drains to use for authentication.
@@ -92,7 +92,7 @@ All `aptible_metric_drain` resources require the following attributes:
 
 ## Attribute Reference
 
-In addition to all the arguments listed above, the following attributes are 
+In addition to all the arguments listed above, the following attributes are
 exported:
 
 - `metric_drain_id` - The unique ID for the metric drain.

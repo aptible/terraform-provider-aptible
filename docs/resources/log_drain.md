@@ -1,7 +1,7 @@
 # Aptible Log Drain Resource
 
 This resource is used to create and manage
-[Log Drains](https://deploy-docs.aptible.com/docs/log-drains)
+[Log Drains](https://www.aptible.com/docs/core-concepts/observability/logs/log-drains/overview)
 running on Aptible Deploy.
 
 ## Example Usage
@@ -118,7 +118,7 @@ The following arguments are required for all log drains:
 
 ## Attribute Reference
 
-In addition to all the arguments listed above, the following attributes are 
+In addition to all the arguments listed above, the following attributes are
 exported:
 
 - `log_drain_id` - The unique ID for the log drain.
