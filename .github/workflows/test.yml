@@ -37,7 +37,23 @@ jobs:
 
       - name: Code UnitTest
         run: make test
-
-      - name: Deploy
         if: ${{ github.event_name == 'release' }}
-        run: curl -sL https://git.io/goreleaser | bash
+
+      # Only on release
+      # From https://goreleaser.com/ci/actions/?h=gpg#signing
+
+      - name: Import GPG key
+        if: ${{ github.event_name == 'release' }}
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+
+      - name: Run GoReleaser
+        if: ${{ github.event_name == 'release' }}
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "latest"
+        env:
+          GITHUB_TOKEN: ${{ secrets.TERRAFORM_PROVIDER_APTIBLE_PAT }}
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
