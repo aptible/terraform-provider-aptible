@@ -99,7 +99,7 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 	if containerSize != 0 {
 		payload.SetContainerSize(containerSize)
 	}
-	if diskSize != 0 {
+	if d.HasChange("disk_size") {
 		payload.SetDiskSize(diskSize)
 	}
 
@@ -159,13 +159,13 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 	ctx = meta.(*providerMetadata).APIContext(ctx)
 
 	database, resp, err := client.DatabasesAPI.GetDatabase(ctx, databaseID).Execute()
-	if err != nil {
-		return generateErrorFromClientError(err)
-	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		log.Println("Database with ID: " + strconv.Itoa(int(databaseID)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
 		return nil
+	}
+	if err != nil {
+		return err
 	}
 
 	imageID := ExtractIdFromLink(database.Links.DatabaseImage.GetHref())
@@ -183,7 +183,7 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 
 	service, _, err := client.ServicesAPI.GetService(ctx, serviceID).Execute()
 	if err != nil {
-		return generateErrorFromClientError(err)
+		return err
 	}
 
 	containerSize := service.ContainerMemoryLimitMb.Get()
@@ -244,7 +244,7 @@ func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta int
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "There was an error when trying to update the database handle.",
-				Detail:   generateErrorFromClientError(err).Error(),
+				Detail:   err.Error(),
 			})
 			return diags
 		}
@@ -259,7 +259,7 @@ func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta int
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "There was an error when trying to update the database.",
-				Detail:   generateErrorFromClientError(err).Error(),
+				Detail:   err.Error(),
 			})
 			return diags
 		}
@@ -277,7 +277,7 @@ func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta int
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  fmt.Sprintf("The replica with handle: %s was unexpectedly deleted", handle),
-				Detail:   generateErrorFromClientError(err).Error(),
+				Detail:   "The database was unexpectedly deleted",
 			})
 			return diags
 		}
