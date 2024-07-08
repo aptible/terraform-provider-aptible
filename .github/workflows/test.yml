@@ -1,0 +1,59 @@
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  push:
+    branches:
+      - main
+      - master
+  release:
+    types: [published]
+
+env:
+  GOFLAGS: "-mod=vendor"
+  GO111MODULE: on
+
+jobs:
+  test:
+    name: Test and Publish
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.16'
+
+      - name: Setup
+        run: make tools
+
+      - name: Code Lint
+        run:  make lint
+
+      - name: Code UnitTest
+        run: make test
+
+      # Only on release
+      # From https://goreleaser.com/ci/actions/?h=gpg#signing
+
+      - name: Import GPG key
+        if: ${{ github.event_name == 'release' }}
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+
+      - name: Run GoReleaser
+        if: ${{ github.event_name == 'release' }}
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "latest"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
