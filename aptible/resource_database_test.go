@@ -273,7 +273,7 @@ func testAccAptibleDatabaseBasic(envId int64, dbHandle string) string {
 func testAccAptibleDatabaseRedis(envId int64, dbHandle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_database" "test" {
-    env_id = %d
+		env_id = %d
 		handle = "%v"
 		database_type = "redis"
 		container_profile = "m5"
@@ -295,7 +295,7 @@ func testAccAptibleDatabaseVersion(envId int64, dbHandle string) string {
 func testAccAptibleDatabaseUpdate(envId int64, dbHandle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_database" "test" {
-    	env_id = %d
+		env_id = %d
 		handle = "%v"
 		container_size = %d
 		disk_size = %d
@@ -308,7 +308,7 @@ func testAccAptibleDatabaseUpdate(envId int64, dbHandle string) string {
 func testAccAptibleDatabaseInvalidDBType(envId int64, dbHandle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_database" "test" {
-    env_id = %d
+	env_id = %d
 		handle = "%v"
 		database_type = "%v"
 	}
@@ -318,7 +318,7 @@ func testAccAptibleDatabaseInvalidDBType(envId int64, dbHandle string) string {
 func testAccAptibleDatabaseInvalidContainerSize(envId int64, dbHandle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_database" "test" {
-    env_id = %d
+	env_id = %d
 		handle = "%v"
 		container_size = %d
 	}
@@ -328,7 +328,7 @@ func testAccAptibleDatabaseInvalidContainerSize(envId int64, dbHandle string) st
 func testAccAptibleDatabaseInvalidDiskSize(envId int64, dbHandle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_database" "test" {
-    env_id = %d
+	env_id = %d
 		handle = "%v"
 		disk_size = %d
 	}
