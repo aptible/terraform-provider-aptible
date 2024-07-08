@@ -195,7 +195,7 @@ func TestAccResourceReplica_scale(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_replica.test", "container_size", "1024"),
 						resource.TestCheckResourceAttr("aptible_replica.test", "iops", "4000"),
 						resource.TestCheckResourceAttr("aptible_replica.test", "container_profile", "r5"),
-						resource.TestCheckResourceAttr("aptible_replica.test", "disk_size", "10"),
+						resource.TestCheckResourceAttr("aptible_replica.test", "disk_size", "12"),
 						resource.TestCheckResourceAttrSet("aptible_replica.test", "replica_id"),
 						resource.TestCheckResourceAttrSet("aptible_replica.test", "default_connection_url"),
 					),
@@ -279,6 +279,7 @@ func testAccAptibleReplicaScale(envId int64, dbHandle string, replicaHandle stri
 		primary_database_id = aptible_database.test.database_id
 		container_profile = "r5"
 		iops = 4000
+		disk_size = 12
 	}
 	`, envId, dbHandle, envId, replicaHandle)
 }

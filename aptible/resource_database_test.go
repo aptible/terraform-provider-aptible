@@ -214,7 +214,7 @@ func TestAccResourceDatabase_scale(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
 						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "r5"),
 						resource.TestCheckResourceAttr("aptible_database.test", "iops", "4000"),
-						resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
+						resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "12"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
 						resource.TestMatchResourceAttr("aptible_database.test", "default_connection_url", regexp.MustCompile(`postgresql://.*@db-.*`)),
@@ -342,6 +342,7 @@ func testAccAptibleDatabaseScale(envId int64, dbHandle string) string {
 		handle = "%v"
 		container_profile = "r5"
 		iops = 4000
+		disk_size = 12
 	}
 `, envId, dbHandle)
 }
