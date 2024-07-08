@@ -176,7 +176,6 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	ctx = meta.(*providerMetadata).APIContext(ctx)
 
 	database, resp, err := client.DatabasesAPI.GetDatabase(ctx, databaseID).Execute()
-	database, resp, err := client.DatabasesAPI.GetDatabase(ctx, databaseID).Execute()
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		log.Println("Database with ID: " + strconv.Itoa(int(databaseID)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
