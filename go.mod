@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/storage v1.15.0 // indirect
 	github.com/Djarvur/go-err113 v0.1.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/aptible/aptible-api-go v0.1.0
+	github.com/aptible/aptible-api-go v0.2.0
 	github.com/aptible/go-deploy v0.5.2
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.38.67 // indirect
@@ -25,11 +25,12 @@ require (
 	github.com/go-openapi/validate v0.20.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golangci/golangci-lint v1.41.1
+	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/gordonklaus/ineffassign v0.0.0-20210522101830-0589229737b2 // indirect
 	github.com/gostaticanalysis/analysisutil v0.7.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-getter v1.5.4 // indirect
-	github.com/hashicorp/go-hclog v0.16.1 // indirect
+	github.com/hashicorp/go-hclog v1.5.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.4.2 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
@@ -41,7 +42,6 @@ require (
 	github.com/katbyte/terrafmt v0.3.0
 	github.com/klauspost/compress v1.13.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
