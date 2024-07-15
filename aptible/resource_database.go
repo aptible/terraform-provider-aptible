@@ -110,7 +110,6 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 
 	create := aptibleapi.NewCreateDatabaseRequestWithDefaults()
 	create.SetHandle(handle)
-	createDb := client.DatabasesAPI.CreateDatabase(ctx, int32(envID))
 	create.SetType(databaseType)
 
 	if diskSize != 0 {
@@ -129,12 +128,16 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 		create.SetDatabaseImageId(int32(image.ID))
 	}
 
+	createDb := client.DatabasesAPI.CreateDatabase(ctx, int32(envID))
 	db, _, err := createDb.CreateDatabaseRequest(*create).Execute()
 	if err != nil {
 		return err
 	}
 
 	payload := aptibleapi.NewCreateOperationRequest("provision")
+	if diskSize != 0 {
+		payload.SetDiskSize(diskSize)
+	}
 	if containerSize != 0 {
 		payload.SetContainerSize(containerSize)
 	}
