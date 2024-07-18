@@ -70,6 +70,36 @@ func TestAccResourceApp_deploy(t *testing.T) {
 	})
 }
 
+func TestAccResourceApp_multiple_services(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleAppDeployMultipleServices(rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/terraform-multiservice-test"),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+					),
+				},
+				{
+					ResourceName:      "aptible_app.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+}
+
 func TestAccResourceApp_updateConfig(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
@@ -205,6 +235,38 @@ func testAccAptibleAppDeploy(handle string) string {
     service {
 			process_type = "cmd"
 			container_profile = "m5"
+			container_memory_limit = 512
+			container_count = 1
+		}
+	}
+	`, handle, testOrganizationId, testStackId, handle)
+}
+
+func testAccAptibleAppDeployMultipleServices(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/terraform-multiservice-test"
+			"WHATEVER" = "something"
+			"OOPS" = "mistake"
+		}
+		service {
+			process_type = "main"
+			container_profile = "m5"
+			container_memory_limit = 512
+			container_count = 1
+		}
+		service {
+			process_type = "cron"
+			container_profile = "r5"
 			container_memory_limit = 512
 			container_count = 1
 		}

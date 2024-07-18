@@ -9,6 +9,7 @@ import (
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"golang.org/x/sync/errgroup"
 )
 
 func resourceApp() *schema.Resource {
@@ -264,6 +265,8 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
+	var g errgroup.Group
+
 	// If we're changing existing services, be sure we're using the "new" service definitions and only
 	// try to scale ones that actually change
 	log.Println("Detected change in services")
@@ -271,27 +274,32 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 	services := newService.(*schema.Set).Difference(oldService.(*schema.Set)).List()
 
 	for _, s := range services {
-		serviceInterface := s.(map[string]interface{})
-		memoryLimit := int64(serviceInterface["container_memory_limit"].(int))
-		containerProfile := serviceInterface["container_profile"].(string)
-		containerCount := int64(serviceInterface["container_count"].(int))
-		processType := serviceInterface["process_type"].(string)
+		// https://stackoverflow.com/a/74383278
+		service := s
+		serviceInterface := service.(map[string]interface{})
+		g.Go(func() error {
+			memoryLimit := int64(serviceInterface["container_memory_limit"].(int))
+			containerProfile := serviceInterface["container_profile"].(string)
+			containerCount := int64(serviceInterface["container_count"].(int))
+			processType := serviceInterface["process_type"].(string)
 
-		log.Printf(
-			"Updating %s service to count: %d, limit: %d, and container profile: %s\n",
-			processType, containerCount, memoryLimit, containerProfile,
-		)
-		service, err := client.GetServiceForAppByName(appID, processType)
-		if err != nil {
-			log.Println("There was an error when finding the service \n[ERROR] -", err)
-			return generateErrorFromClientError(err)
-		}
-		err = client.ScaleService(service.ID, containerCount, memoryLimit, containerProfile)
-		if err != nil {
-			log.Println("There was an error when scaling the service \n[ERROR] -", err)
-			return generateErrorFromClientError(err)
-		}
+			log.Printf(
+				"Updating %s service to count: %d, limit: %d, and container profile: %s\n",
+				processType, containerCount, memoryLimit, containerProfile,
+			)
+			service, err := client.GetServiceForAppByName(appID, processType)
+			if err != nil {
+				log.Println("There was an error when finding the service \n[ERROR] -", err)
+				return generateErrorFromClientError(err)
+			}
+			err = client.ScaleService(service.ID, containerCount, memoryLimit, containerProfile)
+			if err != nil {
+				log.Println("There was an error when scaling the service \n[ERROR] -", err)
+				return generateErrorFromClientError(err)
+			}
+			return nil
+		})
 	}
 
-	return nil
+	return g.Wait()
 }
