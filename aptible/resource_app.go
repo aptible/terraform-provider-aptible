@@ -276,8 +276,8 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 	for _, s := range services {
 		// https://stackoverflow.com/a/74383278
 		service := s
+		serviceInterface := service.(map[string]interface{})
 		g.Go(func() error {
-			serviceInterface := service.(map[string]interface{})
 			memoryLimit := int64(serviceInterface["container_memory_limit"].(int))
 			containerProfile := serviceInterface["container_profile"].(string)
 			containerCount := int64(serviceInterface["container_count"].(int))
