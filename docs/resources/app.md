@@ -61,7 +61,7 @@ The `service` block supports:
   service.
 - `container_memory_limit` - (Default: 1024) The memory limit (in MB) of the
   service's containers.
-- `container_profile` - (Default: `m4`) Changes the CPU:RAM ratio of the
+- `container_profile` - (Default: `m5`) Changes the CPU:RAM ratio of the
   service's containers.
   - `m4` - General Purpose (1 CPU : 4 GB RAM)
   - `c5` - CPU Optimized (1 CPU : 2 GB RAM)
