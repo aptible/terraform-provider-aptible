@@ -35,12 +35,13 @@ resource "aptible_database" "example_database" {
   this defaults to the latest recommended version.
 - `container_size` - (Default: 1024) The size of container used for the
   Database, in MB of RAM.
-- `container_profile` - (Default: `m4`) Changes the CPU:RAM ratio of the
+- `container_profile` - (Default: `m5`) Changes the CPU:RAM ratio of the
   Database container.
-  - `m4` - General Purpose (1 CPU : 4 GB RAM)
+  - `m5` - General Purpose (1 CPU : 4 GB RAM)
   - `c5` - CPU Optimized (1 CPU : 2 GB RAM)
   - `r5` - Memory Optimized (1 CPU : 8 GB RAM)
 - `disk_size` - The disk size of the Database, in GB.
+- `iops` - The disk Input/Output Operations Per Second
 
 ## Attribute Reference
 
