@@ -36,6 +36,7 @@ resource "aptible_app" "APP" {
         process_type = "SERVICE_NAME2"
         container_count = 2
         container_memory_limit = 2048
+        force_zero_downtime = true
     }
 }
 ```
@@ -66,6 +67,12 @@ The `service` block supports:
   - `m4` - General Purpose (1 CPU : 4 GB RAM)
   - `c5` - CPU Optimized (1 CPU : 2 GB RAM)
   - `r5` - Memory Optimized (1 CPU : 8 GB RAM)
+- `force_zero_downtime` - (Default: false) For services without endpoints, force
+  a zero-downtime release and leverage docker healthchecks for the containers. Please
+  note that docker healthchecks are required unless `simple_health_check` is enabled.
+  [For more information please see the docs](https://www.aptible.com/docs/core-concepts/apps/deploying-apps/releases/overview).
+- `simple_health_check` - (Default: false) For services without endpoints, if
+  force_zero_downtime is enabled, do a simple uptime check instead of using docker healthchecks.
 
 ## Attribute Reference
 

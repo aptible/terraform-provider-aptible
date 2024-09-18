@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 
+	"github.com/aptible/aptible-api-go/aptibleapi"
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -74,6 +76,16 @@ func resourceApp() *schema.Resource {
 							Default:      "m5",
 							ValidateFunc: validateContainerProfile,
 						},
+						"force_zero_downtime": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+						"naive_health_check": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
 					},
 				},
 			},
@@ -104,6 +116,12 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	// Services do not exist before App creation, so we need to wait until after to update settings, unlike when updating an App
+	err = updateServices(context.Background(), d, meta)
+	if err != nil {
+		return err
+	}
+
 	// Our model prevents editing services or configurations directly. As a result, any services
 	// are created as part of the deployment process and scaled to a single 1 GB container by default.
 	// Unfortunately, this isn't something we can bypass without making exceptions to our API security model,
@@ -127,33 +145,42 @@ func resourceAppImport(d *schema.ResourceData, meta interface{}) ([]*schema.Reso
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).LegacyClient
-	appID := int64(d.Get("app_id").(int))
+	client := meta.(*providerMetadata).Client
+	appID := int32(d.Get("app_id").(int))
+	ctx := context.Background()
 
 	log.Println("Getting App with ID: " + strconv.Itoa(int(appID)))
 
-	app, err := client.GetApp(appID)
+	app, resp, err := client.AppsAPI.GetApp(ctx, appID).Execute()
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	if app.Deleted {
+	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
 	}
-	_ = d.Set("app_id", int(app.ID))
+	_ = d.Set("app_id", int(app.Id))
 	_ = d.Set("git_repo", app.GitRepo)
 	_ = d.Set("handle", app.Handle)
-	_ = d.Set("env_id", app.EnvironmentID)
-	_ = d.Set("config", app.Env)
+	_ = d.Set("env_id", ExtractIdFromLink(app.Links.Account.GetHref()))
+	currConfId := ExtractIdFromLink(app.Links.CurrentConfiguration.GetHref())
+	if currConfId != 0 {
+		currConf, _, err := client.ConfigurationsAPI.GetConfiguration(ctx, currConfId).Execute()
+		if err == nil {
+			_ = d.Set("config", currConf.Env)
+		}
+	}
 
-	var services = make([]map[string]interface{}, len(app.Services))
-	for i, s := range app.Services {
+	var services = make([]map[string]interface{}, len(app.Embedded.Services))
+	for i, s := range app.Embedded.Services {
 		service := make(map[string]interface{})
 		service["container_count"] = s.ContainerCount
 		service["container_memory_limit"] = s.ContainerMemoryLimitMb
-		service["container_profile"] = s.ContainerProfile
+		service["container_profile"] = s.InstanceClass
 		service["process_type"] = s.ProcessType
+		service["force_zero_downtime"] = s.ForceZeroDowntime
+		service["naive_health_check"] = s.NaiveHealthCheck
 		services[i] = service
 	}
 	log.Println("SETTING SERVICE ")
@@ -164,11 +191,22 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAppUpdate(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*providerMetadata).LegacyClient
 	appID := int64(d.Get("app_id").(int))
 
 	var diags diag.Diagnostics
+
+	// Check if any updates for Service settings. If so, change before deploying
+	err := updateServices(c, d, meta)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when trying to update services settings.",
+			Detail:   err.Error(),
+		})
+		return diags
+	}
 
 	if d.HasChange("config") {
 		o, c := d.GetChange("config")
@@ -195,7 +233,7 @@ func resourceAppUpdate(_ context.Context, d *schema.ResourceData, meta interface
 		}
 	}
 
-	err := scaleServices(d, meta)
+	err = scaleServices(d, meta)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -254,6 +292,89 @@ func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.SetId("")
 	return nil
+}
+
+func findServiceByName(services []aptibleapi.Service, serviceName string) *aptibleapi.Service {
+	for i := range services {
+		if services[i].ProcessType == serviceName {
+			return &services[i]
+		}
+	}
+	return nil
+}
+
+func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*providerMetadata).Client
+	ctx = meta.(*providerMetadata).APIContext(ctx)
+	appID := int32(d.Get("app_id").(int))
+
+	// If there are no changes to services, there's no reason to update
+	if !d.HasChange("service") {
+		return nil
+	}
+
+	var g errgroup.Group
+
+	// If we're changing existing services, be sure we're using the "new" service definitions and only
+	// try to update ones that actually change
+	log.Println("Detected change in services")
+	_, newService := d.GetChange("service")
+	newServices := newService.(*schema.Set).List()
+
+	apiServicesResp, _, err := client.ServicesAPI.ListServicesForApp(ctx, appID).Execute()
+	if err != nil {
+		log.Println("There was an error when loading the services \n[ERROR] -", err)
+		return err
+	}
+	apiServices := apiServicesResp.Embedded.Services
+
+	for i, s := range newServices {
+		serviceData := s.(map[string]interface{})
+		processType := serviceData["process_type"].(string)
+
+		forceZeroDowntimeKey := fmt.Sprintf("service.%d.force_zero_downtime", i)
+		naiveHealthCheckKey := fmt.Sprintf("service.%d.simple_health_check", i)
+
+		forceZeroDowntimeChanged := d.HasChange(forceZeroDowntimeKey)
+		naiveHealthCheckChanged := d.HasChange(naiveHealthCheckKey)
+
+		if !forceZeroDowntimeChanged && !naiveHealthCheckChanged {
+			log.Printf("[INFO] No relevant changes detected for service %s, skipping update.", processType)
+			continue
+		}
+
+		forceZeroDowntime := serviceData["force_zero_downtime"].(bool)
+		naiveHealthCheck := serviceData["simple_health_check"].(bool)
+
+		// Find corresponding service from API
+		apiService := findServiceByName(apiServices, processType)
+		if apiService == nil {
+			return fmt.Errorf("[ERROR]Unable to find service %s\n", processType)
+		}
+
+		// Clone values inside the goroutine to avoid race conditions
+		svcType := processType
+		svcZeroDowntime := forceZeroDowntime
+		svcHealthCheck := naiveHealthCheck
+		svcID := apiService.Id
+
+		g.Go(func() error {
+			payload := aptibleapi.NewUpdateServiceRequest()
+			payload.SetForceZeroDowntime(svcZeroDowntime)
+			payload.SetNaiveHealthCheck(svcHealthCheck)
+
+			log.Printf("Updating service %s: force_zero_downtime: %t, simple_health_check: %t", svcType, svcZeroDowntime, svcHealthCheck)
+
+			_, err := client.ServicesAPI.UpdateService(ctx, svcID).UpdateServiceRequest(*payload).Execute()
+			if err != nil {
+				return fmt.Errorf("error updating service %s: %w", svcType, err)
+			}
+
+			return nil
+		})
+	}
+
+	return g.Wait()
 }
 
 func scaleServices(d *schema.ResourceData, meta interface{}) error {

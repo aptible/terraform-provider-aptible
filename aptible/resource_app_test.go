@@ -88,6 +88,10 @@ func TestAccResourceApp_multiple_services(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+						resource.TestCheckResourceAttr("aptible_app.test", "services.0.force_zero_downtime", "false"),
+						resource.TestCheckResourceAttr("aptible_app.test", "services.0.simple_health_check", "true"),
+						resource.TestCheckResourceAttr("aptible_app.test", "services.1.force_zero_downtime", "false"),
+						resource.TestCheckResourceAttr("aptible_app.test", "services.1.simple_health_check", "false"),
 					),
 				},
 				{
