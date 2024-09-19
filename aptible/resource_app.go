@@ -399,7 +399,41 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 	oldService, newService := d.GetChange("service")
 	services := newService.(*schema.Set).Difference(oldService.(*schema.Set)).List()
 
+	var filteredServices []interface{}
+
 	for _, s := range services {
+		serviceData := s.(map[string]interface{})
+		processType := serviceData["process_type"].(string)
+
+		// Find the corresponding old service
+		var oldServiceData map[string]interface{}
+		for _, oldS := range oldService.(*schema.Set).List() {
+			oldService := oldS.(map[string]interface{})
+			if oldService["process_type"].(string) == processType {
+				oldServiceData = oldService
+				break
+			}
+		}
+
+		// Check if there are changes to other keys, ignoring `force_zero_downtime` and `simple_health_check`
+		hasOtherChanges := false
+		for key, newValue := range serviceData {
+			if key == "force_zero_downtime" || key == "simple_health_check" {
+				continue // Skip checking these two keys
+			}
+
+			if oldServiceData == nil || oldServiceData[key] != newValue {
+				hasOtherChanges = true
+				break
+			}
+		}
+
+		if hasOtherChanges {
+			filteredServices = append(filteredServices, serviceData)
+		}
+	}
+
+	for _, s := range filteredServices {
 		// https://stackoverflow.com/a/74383278
 		service := s
 		serviceInterface := service.(map[string]interface{})
