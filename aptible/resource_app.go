@@ -152,14 +152,16 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 	log.Println("Getting App with ID: " + strconv.Itoa(int(appID)))
 
 	app, resp, err := client.AppsAPI.GetApp(ctx, appID).Execute()
+	if resp.StatusCode == http.StatusNotFound {
+		d.SetId("")
+		log.Println("App with ID: " + strconv.Itoa(int(appID)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
+		return nil
+	}
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
+
 	_ = d.Set("app_id", int(app.Id))
 	_ = d.Set("git_repo", app.GitRepo)
 	_ = d.Set("handle", app.Handle)
@@ -349,7 +351,7 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 		// Find corresponding service from API
 		apiService := findServiceByName(apiServices, processType)
 		if apiService == nil {
-			return fmt.Errorf("[ERROR]Unable to find service %s\n", processType)
+			return fmt.Errorf("[ERROR]Unable to find service %s", processType)
 		}
 
 		// Clone values inside the goroutine to avoid race conditions

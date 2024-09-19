@@ -273,6 +273,8 @@ func testAccAptibleAppDeployMultipleServices(handle string) string {
 			container_profile = "r5"
 			container_memory_limit = 512
 			container_count = 1
+			force_zero_downtime = true
+			naive_health_check = true
 		}
 	}
 	`, handle, testOrganizationId, testStackId, handle)
