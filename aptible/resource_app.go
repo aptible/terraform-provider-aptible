@@ -81,7 +81,7 @@ func resourceApp() *schema.Resource {
 							Optional: true,
 							Default:  false,
 						},
-						"naive_health_check": {
+						"simple_health_check": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
@@ -147,7 +147,7 @@ func resourceAppImport(d *schema.ResourceData, meta interface{}) ([]*schema.Reso
 func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*providerMetadata).Client
 	appID := int32(d.Get("app_id").(int))
-	ctx := context.Background()
+	ctx := meta.(*providerMetadata).APIContext(context.Background())
 
 	log.Println("Getting App with ID: " + strconv.Itoa(int(appID)))
 
@@ -178,14 +178,17 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 	for i, s := range app.Embedded.Services {
 		service := make(map[string]interface{})
 		service["container_count"] = s.ContainerCount
-		service["container_memory_limit"] = s.ContainerMemoryLimitMb
+		if s.ContainerMemoryLimitMb.IsSet() {
+			service["container_memory_limit"] = *s.ContainerMemoryLimitMb.Get()
+		}
 		service["container_profile"] = s.InstanceClass
 		service["process_type"] = s.ProcessType
+		log.Printf("ZDD flags: %t, %t", s.ForceZeroDowntime, s.NaiveHealthCheck)
 		service["force_zero_downtime"] = s.ForceZeroDowntime
-		service["naive_health_check"] = s.NaiveHealthCheck
+		service["simple_health_check"] = s.NaiveHealthCheck
 		services[i] = service
 	}
-	log.Println("SETTING SERVICE ")
+	log.Println("SETTING SERVICE")
 	log.Println(services)
 
 	_ = d.Set("service", services)
@@ -320,8 +323,8 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 	// If we're changing existing services, be sure we're using the "new" service definitions and only
 	// try to update ones that actually change
 	log.Println("Detected change in services")
-	_, newService := d.GetChange("service")
-	newServices := newService.(*schema.Set).List()
+	oldService, newService := d.GetChange("service")
+	services := newService.(*schema.Set).Difference(oldService.(*schema.Set)).List()
 
 	apiServicesResp, _, err := client.ServicesAPI.ListServicesForApp(ctx, appID).Execute()
 	if err != nil {
@@ -330,28 +333,27 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 	}
 	apiServices := apiServicesResp.Embedded.Services
 
-	for i, s := range newServices {
+	for _, s := range services {
 		serviceData := s.(map[string]interface{})
 		processType := serviceData["process_type"].(string)
 
-		forceZeroDowntimeKey := fmt.Sprintf("service.%d.force_zero_downtime", i)
-		naiveHealthCheckKey := fmt.Sprintf("service.%d.simple_health_check", i)
-
-		forceZeroDowntimeChanged := d.HasChange(forceZeroDowntimeKey)
-		naiveHealthCheckChanged := d.HasChange(naiveHealthCheckKey)
-
-		if !forceZeroDowntimeChanged && !naiveHealthCheckChanged {
-			log.Printf("[INFO] No relevant changes detected for service %s, skipping update.", processType)
-			continue
+		log.Printf("Looking up service %s in list: %v", processType, apiServices)
+		// Find corresponding service from API
+		apiService := findServiceByName(apiServices, processType)
+		if apiService == nil {
+			log.Printf("ERROR: CANNOT FIND SERVICE %s", processType)
+			return fmt.Errorf("[ERROR]Unable to find service %s", processType)
 		}
 
 		forceZeroDowntime := serviceData["force_zero_downtime"].(bool)
 		naiveHealthCheck := serviceData["simple_health_check"].(bool)
 
-		// Find corresponding service from API
-		apiService := findServiceByName(apiServices, processType)
-		if apiService == nil {
-			return fmt.Errorf("[ERROR]Unable to find service %s", processType)
+		forceZeroDowntimeChanged := forceZeroDowntime != apiService.ForceZeroDowntime
+		naiveHealthCheckChanged := naiveHealthCheck != apiService.NaiveHealthCheck
+
+		if !forceZeroDowntimeChanged && !naiveHealthCheckChanged {
+			log.Printf("[INFO] No relevant changes detected for service %s, skipping update.", processType)
+			continue
 		}
 
 		// Clone values inside the goroutine to avoid race conditions
@@ -359,6 +361,7 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 		svcZeroDowntime := forceZeroDowntime
 		svcHealthCheck := naiveHealthCheck
 		svcID := apiService.Id
+		log.Printf("About to update service %s: force_zero_downtime: %t, simple_health_check: %t", svcType, svcZeroDowntime, svcHealthCheck)
 
 		g.Go(func() error {
 			payload := aptibleapi.NewUpdateServiceRequest()

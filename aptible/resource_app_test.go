@@ -58,6 +58,10 @@ func TestAccResourceApp_deploy(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
+							"force_zero_downtime": "true",
+							"simple_health_check": "true",
+						}),
 					),
 				},
 				{
@@ -88,10 +92,6 @@ func TestAccResourceApp_multiple_services(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
-						resource.TestCheckResourceAttr("aptible_app.test", "services.0.force_zero_downtime", "false"),
-						resource.TestCheckResourceAttr("aptible_app.test", "services.0.simple_health_check", "true"),
-						resource.TestCheckResourceAttr("aptible_app.test", "services.1.force_zero_downtime", "false"),
-						resource.TestCheckResourceAttr("aptible_app.test", "services.1.simple_health_check", "false"),
 					),
 				},
 				{
@@ -123,6 +123,11 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_app.test", "config.OOPS", "mistake"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.#", "1"),
+						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
+							"force_zero_downtime": "true",
+							"simple_health_check": "true",
+						}),
 					),
 				},
 				{
@@ -136,6 +141,10 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "httpd:alpine"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "nothing"),
 						resource.TestCheckNoResourceAttr("aptible_app.test", "config.OOPS"),
+						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
+							"force_zero_downtime": "false",
+							"simple_health_check": "true",
+						}),
 					),
 				},
 			},
@@ -241,6 +250,8 @@ func testAccAptibleAppDeploy(handle string) string {
 			container_profile = "m5"
 			container_memory_limit = 512
 			container_count = 1
+			force_zero_downtime = true
+			simple_health_check = true
 		}
 	}
 	`, handle, testOrganizationId, testStackId, handle)
@@ -273,8 +284,6 @@ func testAccAptibleAppDeployMultipleServices(handle string) string {
 			container_profile = "r5"
 			container_memory_limit = 512
 			container_count = 1
-			force_zero_downtime = true
-			naive_health_check = true
 		}
 	}
 	`, handle, testOrganizationId, testStackId, handle)
@@ -299,6 +308,7 @@ func testAccAptibleAppUpdateConfig(handle string) string {
 			process_type = "cmd"
 			container_memory_limit = 512
 			container_count = 1
+			simple_health_check = true
 		}
 	}
 	`, handle, testOrganizationId, testStackId, handle)
