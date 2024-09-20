@@ -367,6 +367,9 @@ func checkConnectionUrlsInclude(resourceName string, expectedPatterns []string) 
 			return fmt.Errorf("expected %d connection URLs, but got %d", len(expectedPatterns), urlCount)
 		}
 
+		// Track which patterns have been matched
+		matchedPatterns := make(map[string]bool)
+
 		// Loop over each connection URL and check it against the expected patterns
 		for i := 0; i < urlCount; i++ {
 			attrKey := fmt.Sprintf("connection_urls.%d", i)
@@ -374,17 +377,28 @@ func checkConnectionUrlsInclude(resourceName string, expectedPatterns []string) 
 
 			matched := false
 			for _, pattern := range expectedPatterns {
+				if matchedPatterns[pattern] {
+					continue // Skip already matched patterns
+				}
+
 				matched, err = regexp.MatchString(pattern, url)
 				if err != nil {
 					return fmt.Errorf("error matching URL with pattern: %v", err)
 				}
 				if matched {
+					matchedPatterns[pattern] = true
 					break
 				}
 			}
 
 			if !matched {
 				return fmt.Errorf("URL %s did not match any expected pattern", url)
+			}
+		}
+
+		for _, pattern := range expectedPatterns {
+			if !matchedPatterns[pattern] {
+				return fmt.Errorf("pattern %s was not matched", pattern)
 			}
 		}
 
