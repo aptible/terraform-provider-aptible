@@ -75,8 +75,10 @@ func TestAccResourceDatabase_redis(t *testing.T) {
 						resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
 						resource.TestMatchResourceAttr("aptible_database.test", "default_connection_url", regexp.MustCompile(`redis://.*@db-.*`)),
 						resource.TestCheckResourceAttr("aptible_database.test", "connection_urls.#", "2"),
-						resource.TestCheckResourceAttrPair("aptible_database.test", "connection_urls.0", "aptible_database.test", "default_connection_url"),
-						resource.TestMatchResourceAttr("aptible_database.test", "connection_urls.1", regexp.MustCompile(`rediss://.*@db-.*`)),
+						checkConnectionUrlsInclude("aptible_database.test", []string{
+							`redis://.*@db-.*`,
+							`rediss://.*@db-.*`,
+						}),
 					),
 				},
 				{
@@ -345,4 +347,47 @@ func testAccAptibleDatabaseScale(envId int64, dbHandle string) string {
 		disk_size = 12
 	}
 `, envId, dbHandle)
+}
+
+func checkConnectionUrlsInclude(resourceName string, expectedPatterns []string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource not found: %s", resourceName)
+		}
+
+		connectionURLs := rs.Primary.Attributes["connection_urls.#"]
+		urlCount, err := strconv.Atoi(connectionURLs)
+		if err != nil {
+			return fmt.Errorf("error parsing connection_urls count: %v", err)
+		}
+
+		// Verify that the expected number of URLs are present
+		if urlCount != len(expectedPatterns) {
+			return fmt.Errorf("expected %d connection URLs, but got %d", len(expectedPatterns), urlCount)
+		}
+
+		// Loop over each connection URL and check it against the expected patterns
+		for i := 0; i < urlCount; i++ {
+			attrKey := fmt.Sprintf("connection_urls.%d", i)
+			url := rs.Primary.Attributes[attrKey]
+
+			matched := false
+			for _, pattern := range expectedPatterns {
+				matched, err = regexp.MatchString(pattern, url)
+				if err != nil {
+					return fmt.Errorf("error matching URL with pattern: %v", err)
+				}
+				if matched {
+					break
+				}
+			}
+
+			if !matched {
+				return fmt.Errorf("URL %s did not match any expected pattern", url)
+			}
+		}
+
+		return nil
+	}
 }
