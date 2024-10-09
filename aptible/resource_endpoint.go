@@ -142,7 +142,7 @@ func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ in
 	}
 
 	// container ports can only be used with tls/tcp
-	if len(containerPorts) != 0 && (endpointType == "https") {
+	if len(containerPorts) != 0 && (endpointType == "https" || endpointType == "grpc") {
 		err = multierror.Append(err, fmt.Errorf("do not specify container ports with https endpoint (see terraform docs)"))
 	}
 
@@ -329,6 +329,7 @@ var validEndpointTypes = []string{
 	"https",
 	"tls",
 	"tcp",
+	"grpc",
 }
 
 var validPlatforms = []string{
