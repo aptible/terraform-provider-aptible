@@ -8,7 +8,7 @@ require (
 	github.com/Djarvur/go-err113 v0.1.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/aptible/aptible-api-go v0.3.0
-	github.com/aptible/go-deploy v0.5.2
+	github.com/aptible/go-deploy v0.5.3
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.38.67 // indirect
 	github.com/bflad/tfproviderdocs v0.9.1
