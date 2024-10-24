@@ -256,7 +256,7 @@ func testAccAptibleLogDrainElastic(envID int64, handle string) string {
 	resource "aptible_database" "test" {
 		env_id = %d
 		handle = "%v"
-		database_type = "postgresql"
+		database_type = "elasticsearch"
 		container_size = 1024
 		disk_size = 10
 	}
