@@ -11,6 +11,7 @@ import (
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -85,6 +86,124 @@ func resourceApp() *schema.Resource {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
+						},
+						"service_sizing_policy": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"autoscaling_type": {
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											"vertical",
+											"horizontal",
+										}, false),
+										Description: "The type of autoscaling, must be either 'vertical' or 'horizontal'.",
+									},
+									"metric_lookback_seconds": {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "The lookback period for metrics in seconds.",
+									},
+									"percentile": {
+										Type:        schema.TypeFloat,
+										Optional:    true,
+										Description: "The percentile threshold used for scaling.",
+									},
+									"post_scale_up_cooldown_seconds": {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "Cooldown period in seconds after a scale-up event.",
+									},
+									"post_scale_down_cooldown_seconds": {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "Cooldown period in seconds after a scale-down event.",
+									},
+									"post_release_cooldown_seconds": {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "Cooldown period in seconds after a release event.",
+									},
+									"mem_cpu_ratio_r_threshold": {
+										Type:     schema.TypeFloat,
+										Optional: true,
+									},
+									"mem_cpu_ratio_c_threshold": {
+										Type:     schema.TypeFloat,
+										Optional: true,
+									},
+									"mem_scale_up_threshold": {
+										Type:        schema.TypeFloat,
+										Optional:    true,
+										Description: "The memory usage threshold for scaling up.",
+									},
+									"mem_scale_down_threshold": {
+										Type:        schema.TypeFloat,
+										Optional:    true,
+										Description: "The memory usage threshold for scaling down.",
+									},
+									"minimum_memory": {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "The minimum memory allocation in MB.",
+									},
+									"maximum_memory": {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "The maximum memory allocation in MB.",
+									},
+									"min_cpu_threshold": {
+										Type:        schema.TypeFloat,
+										Optional:    true,
+										Description: "The minimum CPU utilization threshold for scaling.",
+									},
+									"max_cpu_threshold": {
+										Type:        schema.TypeFloat,
+										Optional:    true,
+										Description: "The maximum CPU utilization threshold for scaling.",
+									},
+									"min_containers": {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "The minimum number of containers for scaling.",
+									},
+									"max_containers": {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "The maximum number of containers for scaling.",
+									},
+									"scale_up_step": {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "The number of containers to add in each scale-up event.",
+									},
+									"scale_down_step": {
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Description: "The number of containers to remove in each scale-down event.",
+									},
+								},
+								CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, v interface{}) error {
+									autoscalingType := d.Get("autoscaling_type").(string)
+									if autoscalingType == "horizontal" {
+										requiredAttrs := []string{
+											"min_containers",
+											"max_containers",
+											"min_cpu_threshold",
+											"max_cpu_threshold",
+										}
+										for _, attr := range requiredAttrs {
+											if _, ok := d.GetOk(attr); !ok {
+												return fmt.Errorf("%s is required when autoscaling_type is set to 'horizontal'", attr)
+											}
+										}
+									}
+									return nil
+								},
+							},
 						},
 					},
 				},
