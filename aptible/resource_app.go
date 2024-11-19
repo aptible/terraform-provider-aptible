@@ -2,6 +2,7 @@ package aptible
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -53,163 +54,195 @@ func resourceApp() *schema.Resource {
 			"service": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"process_type": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "cmd",
-						},
-						"container_count": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Default:  1,
-						},
-						"container_memory_limit": {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							Default:      1024,
-							ValidateFunc: validateContainerSize,
-						},
-						"container_profile": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Default:      "m5",
-							ValidateFunc: validateContainerProfile,
-						},
-						"force_zero_downtime": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  false,
-						},
-						"simple_health_check": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  false,
-						},
-						"service_sizing_policy": {
-							Type:     schema.TypeList,
-							Optional: true,
-							MaxItems: 1,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"autoscaling_type": {
-										Type:     schema.TypeString,
-										Required: true,
-										ValidateFunc: validation.StringInSlice([]string{
-											"vertical",
-											"horizontal",
-										}, false),
-										Description: "The type of autoscaling, must be either 'vertical' or 'horizontal'.",
-									},
-									"metric_lookback_seconds": {
-										Type:        schema.TypeInt,
-										Optional:    true,
-										Description: "The lookback period for metrics in seconds.",
-									},
-									"percentile": {
-										Type:        schema.TypeFloat,
-										Optional:    true,
-										Description: "The percentile threshold used for scaling.",
-									},
-									"post_scale_up_cooldown_seconds": {
-										Type:        schema.TypeInt,
-										Optional:    true,
-										Description: "Cooldown period in seconds after a scale-up event.",
-									},
-									"post_scale_down_cooldown_seconds": {
-										Type:        schema.TypeInt,
-										Optional:    true,
-										Description: "Cooldown period in seconds after a scale-down event.",
-									},
-									"post_release_cooldown_seconds": {
-										Type:        schema.TypeInt,
-										Optional:    true,
-										Description: "Cooldown period in seconds after a release event.",
-									},
-									"mem_cpu_ratio_r_threshold": {
-										Type:     schema.TypeFloat,
-										Optional: true,
-									},
-									"mem_cpu_ratio_c_threshold": {
-										Type:     schema.TypeFloat,
-										Optional: true,
-									},
-									"mem_scale_up_threshold": {
-										Type:        schema.TypeFloat,
-										Optional:    true,
-										Description: "The memory usage threshold for scaling up.",
-									},
-									"mem_scale_down_threshold": {
-										Type:        schema.TypeFloat,
-										Optional:    true,
-										Description: "The memory usage threshold for scaling down.",
-									},
-									"minimum_memory": {
-										Type:        schema.TypeInt,
-										Optional:    true,
-										Description: "The minimum memory allocation in MB.",
-									},
-									"maximum_memory": {
-										Type:        schema.TypeInt,
-										Optional:    true,
-										Description: "The maximum memory allocation in MB.",
-									},
-									"min_cpu_threshold": {
-										Type:        schema.TypeFloat,
-										Optional:    true,
-										Description: "The minimum CPU utilization threshold for scaling.",
-									},
-									"max_cpu_threshold": {
-										Type:        schema.TypeFloat,
-										Optional:    true,
-										Description: "The maximum CPU utilization threshold for scaling.",
-									},
-									"min_containers": {
-										Type:        schema.TypeInt,
-										Optional:    true,
-										Description: "The minimum number of containers for scaling.",
-									},
-									"max_containers": {
-										Type:        schema.TypeInt,
-										Optional:    true,
-										Description: "The maximum number of containers for scaling.",
-									},
-									"scale_up_step": {
-										Type:        schema.TypeInt,
-										Optional:    true,
-										Description: "The number of containers to add in each scale-up event.",
-									},
-									"scale_down_step": {
-										Type:        schema.TypeInt,
-										Optional:    true,
-										Description: "The number of containers to remove in each scale-down event.",
-									},
-								},
-								CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, v interface{}) error {
-									autoscalingType := d.Get("autoscaling_type").(string)
-									if autoscalingType == "horizontal" {
-										requiredAttrs := []string{
-											"min_containers",
-											"max_containers",
-											"min_cpu_threshold",
-											"max_cpu_threshold",
-										}
-										for _, attr := range requiredAttrs {
-											if _, ok := d.GetOk(attr); !ok {
-												return fmt.Errorf("%s is required when autoscaling_type is set to 'horizontal'", attr)
-											}
-										}
-									}
-									return nil
-								},
-							},
-						},
-					},
-				},
+				Elem:     resourceService(),
+			},
+		},
+		CustomizeDiff: validateServiceSizingPolicy,
+	}
+}
+
+func resourceService() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"process_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "cmd",
+			},
+			"container_count": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  1,
+			},
+			"container_memory_limit": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      1024,
+				ValidateFunc: validateContainerSize,
+			},
+			"container_profile": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "m5",
+				ValidateFunc: validateContainerProfile,
+			},
+			"force_zero_downtime": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"simple_health_check": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"service_sizing_policy": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem:     resourceServiceSizingPolicy(),
 			},
 		},
 	}
+}
+
+func resourceServiceSizingPolicy() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"autoscaling_type": {
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"vertical",
+					"horizontal",
+				}, false),
+				Description: "The type of autoscaling, must be either 'vertical' or 'horizontal'.",
+			},
+			"metric_lookback_seconds": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     1800,
+				Description: "The lookback period for metrics in seconds.",
+			},
+			"percentile": {
+				Type:        schema.TypeFloat,
+				Optional:    true,
+				Default:     99.0,
+				Description: "The percentile threshold used for scaling.",
+			},
+			"post_scale_up_cooldown_seconds": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     60,
+				Description: "Cooldown period in seconds after a scale-up event.",
+			},
+			"post_scale_down_cooldown_seconds": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     300,
+				Description: "Cooldown period in seconds after a scale-down event.",
+			},
+			"post_release_cooldown_seconds": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     300,
+				Description: "Cooldown period in seconds after a release event.",
+			},
+			"mem_cpu_ratio_r_threshold": {
+				Type:     schema.TypeFloat,
+				Default:  4.0,
+				Optional: true,
+			},
+			"mem_cpu_ratio_c_threshold": {
+				Type:     schema.TypeFloat,
+				Default:  2.0,
+				Optional: true,
+			},
+			"mem_scale_up_threshold": {
+				Type:        schema.TypeFloat,
+				Optional:    true,
+				Default:     0.9,
+				Description: "The memory usage threshold for scaling up.",
+			},
+			"mem_scale_down_threshold": {
+				Type:        schema.TypeFloat,
+				Optional:    true,
+				Default:     0.75,
+				Description: "The memory usage threshold for scaling down.",
+			},
+			"minimum_memory": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     2048,
+				Description: "The minimum memory allocation in MB.",
+			},
+			"maximum_memory": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The maximum memory allocation in MB.",
+			},
+			"min_cpu_threshold": {
+				Type:        schema.TypeFloat,
+				Optional:    true,
+				Description: "The minimum CPU utilization threshold for scaling.",
+			},
+			"max_cpu_threshold": {
+				Type:        schema.TypeFloat,
+				Optional:    true,
+				Description: "The maximum CPU utilization threshold for scaling.",
+			},
+			"min_containers": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The minimum number of containers for scaling.",
+			},
+			"max_containers": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The maximum number of containers for scaling.",
+			},
+			"scale_up_step": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     1,
+				Description: "The number of containers to add in each scale-up event.",
+			},
+			"scale_down_step": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     1,
+				Description: "The number of containers to remove in each scale-down event.",
+			},
+		},
+	}
+}
+
+func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	services := d.Get("service").(*schema.Set).List()
+	for _, service := range services {
+		serviceMap := service.(map[string]interface{})
+		if policy, ok := serviceMap["service_sizing_policy"]; ok {
+			policies := policy.([]interface{}) // should only be one, but yes it's a list
+			if len(policies) > 0 && policies[0] != nil {
+				policyMap := policies[0].(map[string]interface{})
+				autoscalingType := policyMap["autoscaling_type"].(string)
+				if autoscalingType == "horizontal" {
+					requiredAttrs := []string{
+						"min_containers",
+						"max_containers",
+						"min_cpu_threshold",
+						"max_cpu_threshold",
+					}
+					for _, attr := range requiredAttrs {
+						if val, ok := policyMap[attr]; !ok || val == nil || val == 0 {
+							return fmt.Errorf("%s is required when autoscaling_type is set to 'horizontal'", attr)
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
@@ -248,6 +281,12 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	// at the time of deployment.
 	// TODO: We can check for services scaled to 1 GB/1 container before scaling.
 	err = scaleServices(d, meta)
+	if err != nil {
+		return err
+	}
+
+	// Now that services exist and are scaled properly, let's see about creating any scaling policies we need
+	err = createServiceSizingPolicy(context.Background(), d, meta)
 	if err != nil {
 		return err
 	}
@@ -305,6 +344,39 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("ZDD flags: %t, %t", s.ForceZeroDowntime, s.NaiveHealthCheck)
 		service["force_zero_downtime"] = s.ForceZeroDowntime
 		service["simple_health_check"] = s.NaiveHealthCheck
+		// Find service_sizing_policy if any
+		var policy *aptibleapi.ServiceSizingPolicy
+		policy, err = findServiceSizingPolicyForService(s.Id, ctx, meta)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		if policy != nil {
+			serviceSizingPolicy := make(map[string]interface{})
+			serviceSizingPolicy["autoscaling_type"] = policy.Autoscaling
+			serviceSizingPolicy["metric_lookback_seconds"] = policy.MetricLookbackSeconds
+			serviceSizingPolicy["percentile"] = policy.Percentile
+			serviceSizingPolicy["post_scale_up_cooldown_seconds"] = policy.PostScaleUpCooldownSeconds
+			serviceSizingPolicy["post_scale_down_cooldown_seconds"] = policy.PostScaleDownCooldownSeconds
+			serviceSizingPolicy["post_release_cooldown_seconds"] = policy.PostReleaseCooldownSeconds
+			serviceSizingPolicy["mem_cpu_ratio_r_threshold"] = policy.MemCpuRatioRThreshold
+			serviceSizingPolicy["mem_cpu_ratio_c_threshold"] = policy.MemCpuRatioCThreshold
+			serviceSizingPolicy["mem_scale_up_threshold"] = policy.MemScaleUpThreshold
+			serviceSizingPolicy["mem_scale_down_threshold"] = policy.MemScaleDownThreshold
+			serviceSizingPolicy["minimum_memory"] = policy.MinimumMemory
+			serviceSizingPolicy["maximum_memory"] = policy.GetMaximumMemory()
+			serviceSizingPolicy["min_cpu_threshold"] = policy.GetMinCpuThreshold()
+			serviceSizingPolicy["max_cpu_threshold"] = policy.GetMaxCpuThreshold()
+			serviceSizingPolicy["min_containers"] = policy.GetMinContainers()
+			serviceSizingPolicy["max_containers"] = policy.GetMaxContainers()
+			serviceSizingPolicy["scale_up_step"] = policy.GetScaleUpStep()
+			serviceSizingPolicy["scale_down_step"] = policy.GetScaleDownStep()
+
+			fmt.Printf("Got policy: %v\n", serviceSizingPolicy)
+
+			service["service_sizing_policy"] = []interface{}{serviceSizingPolicy}
+		}
+
 		services[i] = service
 	}
 	log.Println("SETTING SERVICE")
@@ -362,6 +434,17 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "There was an error when trying to scale services.",
+			Detail:   err.Error(),
+		})
+		return diags
+	}
+
+	// Now that services are settled, go ahead and update scaling policy
+	err = updateServiceSizingPolicy(c, d, meta)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when trying to update service_sizing_policy.",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -537,8 +620,8 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 		// Check if there are changes to other keys, ignoring `force_zero_downtime` and `simple_health_check`
 		hasOtherChanges := false
 		for key, newValue := range serviceData {
-			if key == "force_zero_downtime" || key == "simple_health_check" {
-				continue // Skip checking these two keys
+			if key == "force_zero_downtime" || key == "simple_health_check" || key == "service_sizing_policy" {
+				continue // Skip checking these keys. Nothing to do with manual scaling
 			}
 
 			if oldServiceData == nil || oldServiceData[key] != newValue {
@@ -581,4 +664,93 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return g.Wait()
+}
+
+func findServiceIdForAppByName(ctx context.Context, meta interface{}, appId int32, processType string) (int32, error) {
+	client := meta.(*providerMetadata).Client
+	ctx = meta.(*providerMetadata).APIContext(ctx)
+
+	serviceList, _, err := client.ServicesAPI.ListServicesForApp(ctx, appId).Execute()
+	if err != nil {
+		return 0, fmt.Errorf("error fetching services: %w", err)
+	}
+
+	for _, service := range serviceList.Embedded.Services {
+		if service.ProcessType == processType {
+			return service.Id, nil
+		}
+	}
+
+	return 0, fmt.Errorf("no service found for process type %s", processType)
+}
+
+func findServiceSizingPolicyForService(serviceId int32, ctx context.Context, meta interface{}) (*aptibleapi.ServiceSizingPolicy, error) {
+	client := meta.(*providerMetadata).Client
+	ctx = meta.(*providerMetadata).APIContext(ctx)
+	resp, _, err := client.ServiceSizingPoliciesAPI.ListServiceSizingPoliciesForService(ctx, serviceId).Execute()
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.Embedded.ServiceSizingPolicies) == 0 {
+		return nil, nil
+	}
+	policy := resp.Embedded.ServiceSizingPolicies[0]
+	return &policy, nil
+}
+
+func createServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*providerMetadata).Client
+	ctx = meta.(*providerMetadata).APIContext(ctx)
+	appID := int32(d.Get("app_id").(int))
+
+	// If there are no changes to services, there's no reason to update
+	if !d.HasChange("service") {
+		return nil
+	}
+
+	services := d.Get("service").(*schema.Set).List()
+	for _, serviceData := range services {
+		serviceMap := serviceData.(map[string]interface{})
+		policies := serviceMap["service_sizing_policy"].([]interface{})
+		if len(policies) > 0 {
+			// There's only ever one policy, but we have to model this as a list
+			serviceSizingPolicyMap := policies[0].(map[string]interface{})
+
+			serviceName := serviceMap["process_type"].(string)
+			serviceID, err := findServiceIdForAppByName(ctx, meta, appID, serviceName)
+			if err != nil {
+				return err
+			}
+
+			autoscaling := serviceSizingPolicyMap["autoscaling_type"].(string)
+			delete(serviceSizingPolicyMap, "autoscaling_type")
+			if autoscaling == "horizontal" {
+				delete(serviceSizingPolicyMap, "maximum_memory")
+			} else if autoscaling == "vertical" {
+				// First, remove values without defaults that aren't used in VAS
+				delete(serviceSizingPolicyMap, "min_containers")
+				delete(serviceSizingPolicyMap, "max_containers")
+				delete(serviceSizingPolicyMap, "min_cpu_threshold")
+				delete(serviceSizingPolicyMap, "max_cpu_threshold")
+				// Now ensure other values are actually set
+				if serviceSizingPolicyMap["maximum_memory"] == 0 {
+					delete(serviceSizingPolicyMap, "maximum_memory")
+				}
+			}
+			payload := aptibleapi.NewCreateServiceSizingPolicyRequest()
+			jsonData, _ := json.Marshal(serviceSizingPolicyMap)
+			_ = json.Unmarshal(jsonData, &payload)
+			payload.Autoscaling = &autoscaling
+
+			_, err = client.ServiceSizingPoliciesAPI.CreateServiceSizingPolicy(ctx, serviceID).CreateServiceSizingPolicyRequest(*payload).Execute()
+			if err != nil {
+				return fmt.Errorf("failed to create sizing policy for service %s: %w", serviceName, err)
+			}
+		}
+	}
+	return nil
+}
+
+func updateServiceSizingPolicy(_ctx context.Context, _d *schema.ResourceData, _meta interface{}) error {
+	return fmt.Errorf("not implemented yet")
 }
