@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/aptible/go-deploy/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -80,4 +81,13 @@ func generateErrorFromClientError(abstractedError interface{}) error {
 
 func generateDiagnosticsFromClientError(abstractedError interface{}) diag.Diagnostics {
 	return errorToDiagnostics(generateErrorFromClientError(abstractedError))
+}
+
+// When turning float32 into float64 normally, the change in precision causes values to change slightly
+// This function avoids that by first turning the value into a string and then turning it into a float64
+// WARNING: This function will only keep 6 decimals!
+func formatFloat32ToFloat64(val float32) float64 {
+	formatted := fmt.Sprintf("%.6f", val)
+	result, _ := strconv.ParseFloat(formatted, 64)
+	return result
 }

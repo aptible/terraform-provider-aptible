@@ -97,7 +97,7 @@ func resourceService() *schema.Resource {
 				Default:  false,
 			},
 			"service_sizing_policy": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				MaxItems: 1,
 				Elem:     resourceServiceSizingPolicy(),
@@ -127,7 +127,7 @@ func resourceServiceSizingPolicy() *schema.Resource {
 			"percentile": {
 				Type:        schema.TypeFloat,
 				Optional:    true,
-				Default:     99.0,
+				Default:     99,
 				Description: "The percentile threshold used for scaling.",
 			},
 			"post_scale_up_cooldown_seconds": {
@@ -222,20 +222,39 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 	for _, service := range services {
 		serviceMap := service.(map[string]interface{})
 		if policy, ok := serviceMap["service_sizing_policy"]; ok {
-			policies := policy.([]interface{}) // should only be one, but yes it's a list
+			policies := policy.(*schema.Set).List() // should only be one, but yes it's a Set
 			if len(policies) > 0 && policies[0] != nil {
 				policyMap := policies[0].(map[string]interface{})
 				autoscalingType := policyMap["autoscaling_type"].(string)
+				attrsToCheck := []string{
+					"min_containers",
+					"max_containers",
+					"min_cpu_threshold",
+					"max_cpu_threshold",
+				}
 				if autoscalingType == "horizontal" {
-					requiredAttrs := []string{
-						"min_containers",
-						"max_containers",
-						"min_cpu_threshold",
-						"max_cpu_threshold",
-					}
-					for _, attr := range requiredAttrs {
+					for _, attr := range attrsToCheck {
 						if val, ok := policyMap[attr]; !ok || val == nil || val == 0 {
 							return fmt.Errorf("%s is required when autoscaling_type is set to 'horizontal'", attr)
+						}
+					}
+				} else if autoscalingType == "vertical" {
+					for _, attr := range attrsToCheck {
+						// NOTE: terraform sets numeric values to `0`, they're never nil
+						val := policyMap[attr]
+						// Unfortunately we *do* need separate cases for int and float64 despite the code looking identical.
+						// The type system does something under the hood here and v != 0 gives wrong results if we combine the cases.
+						switch v := val.(type) {
+						case int:
+							if v != 0 {
+								return fmt.Errorf("%s must not be set when autoscaling_type is set to 'vertical'", attr)
+							}
+						case float64:
+							if v != 0 {
+								return fmt.Errorf("%s must not be set when autoscaling_type is set to 'vertical'", attr)
+							}
+						default:
+							return fmt.Errorf("unknown issue occurred when validating %s", attr)
 						}
 					}
 				}
@@ -286,7 +305,7 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Now that services exist and are scaled properly, let's see about creating any scaling policies we need
-	err = createServiceSizingPolicy(context.Background(), d, meta)
+	err = updateServiceSizingPolicy(context.Background(), d, meta, false)
 	if err != nil {
 		return err
 	}
@@ -355,26 +374,24 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 			serviceSizingPolicy := make(map[string]interface{})
 			serviceSizingPolicy["autoscaling_type"] = policy.Autoscaling
 			serviceSizingPolicy["metric_lookback_seconds"] = policy.MetricLookbackSeconds
-			serviceSizingPolicy["percentile"] = policy.Percentile
+			serviceSizingPolicy["percentile"] = formatFloat32ToFloat64(policy.Percentile)
 			serviceSizingPolicy["post_scale_up_cooldown_seconds"] = policy.PostScaleUpCooldownSeconds
 			serviceSizingPolicy["post_scale_down_cooldown_seconds"] = policy.PostScaleDownCooldownSeconds
 			serviceSizingPolicy["post_release_cooldown_seconds"] = policy.PostReleaseCooldownSeconds
-			serviceSizingPolicy["mem_cpu_ratio_r_threshold"] = policy.MemCpuRatioRThreshold
-			serviceSizingPolicy["mem_cpu_ratio_c_threshold"] = policy.MemCpuRatioCThreshold
-			serviceSizingPolicy["mem_scale_up_threshold"] = policy.MemScaleUpThreshold
-			serviceSizingPolicy["mem_scale_down_threshold"] = policy.MemScaleDownThreshold
+			serviceSizingPolicy["mem_cpu_ratio_r_threshold"] = formatFloat32ToFloat64(policy.MemCpuRatioRThreshold)
+			serviceSizingPolicy["mem_cpu_ratio_c_threshold"] = formatFloat32ToFloat64(policy.MemCpuRatioCThreshold)
+			serviceSizingPolicy["mem_scale_up_threshold"] = formatFloat32ToFloat64(policy.MemScaleUpThreshold)
+			serviceSizingPolicy["mem_scale_down_threshold"] = formatFloat32ToFloat64(policy.MemScaleDownThreshold)
 			serviceSizingPolicy["minimum_memory"] = policy.MinimumMemory
 			serviceSizingPolicy["maximum_memory"] = policy.GetMaximumMemory()
-			serviceSizingPolicy["min_cpu_threshold"] = policy.GetMinCpuThreshold()
-			serviceSizingPolicy["max_cpu_threshold"] = policy.GetMaxCpuThreshold()
+			serviceSizingPolicy["min_cpu_threshold"] = formatFloat32ToFloat64(policy.GetMinCpuThreshold())
+			serviceSizingPolicy["max_cpu_threshold"] = formatFloat32ToFloat64(policy.GetMaxCpuThreshold())
 			serviceSizingPolicy["min_containers"] = policy.GetMinContainers()
 			serviceSizingPolicy["max_containers"] = policy.GetMaxContainers()
 			serviceSizingPolicy["scale_up_step"] = policy.GetScaleUpStep()
 			serviceSizingPolicy["scale_down_step"] = policy.GetScaleDownStep()
 
-			fmt.Printf("Got policy: %v\n", serviceSizingPolicy)
-
-			service["service_sizing_policy"] = []interface{}{serviceSizingPolicy}
+			service["service_sizing_policy"] = []map[string]interface{}{serviceSizingPolicy}
 		}
 
 		services[i] = service
@@ -440,7 +457,7 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 	}
 
 	// Now that services are settled, go ahead and update scaling policy
-	err = updateServiceSizingPolicy(c, d, meta)
+	err = updateServiceSizingPolicy(c, d, meta, true)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -698,7 +715,7 @@ func findServiceSizingPolicyForService(serviceId int32, ctx context.Context, met
 	return &policy, nil
 }
 
-func createServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}, update bool) error {
 	client := meta.(*providerMetadata).Client
 	ctx = meta.(*providerMetadata).APIContext(ctx)
 	appID := int32(d.Get("app_id").(int))
@@ -711,13 +728,14 @@ func createServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 	services := d.Get("service").(*schema.Set).List()
 	for _, serviceData := range services {
 		serviceMap := serviceData.(map[string]interface{})
-		policies := serviceMap["service_sizing_policy"].([]interface{})
+		policies := serviceMap["service_sizing_policy"].(*schema.Set).List()
+		serviceName := serviceMap["process_type"].(string)
+
 		if len(policies) > 0 {
 			// There's only ever one policy, but we have to model this as a list
 			serviceSizingPolicyMap := policies[0].(map[string]interface{})
 
-			serviceName := serviceMap["process_type"].(string)
-			serviceID, err := findServiceIdForAppByName(ctx, meta, appID, serviceName)
+			serviceId, err := findServiceIdForAppByName(ctx, meta, appID, serviceName)
 			if err != nil {
 				return err
 			}
@@ -737,20 +755,46 @@ func createServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 					delete(serviceSizingPolicyMap, "maximum_memory")
 				}
 			}
-			payload := aptibleapi.NewCreateServiceSizingPolicyRequest()
-			jsonData, _ := json.Marshal(serviceSizingPolicyMap)
-			_ = json.Unmarshal(jsonData, &payload)
-			payload.Autoscaling = &autoscaling
+			// Get rid of anything marked as `0` since that is what terraform sets things not set by the user
+			// Also, 0 is not a valid value for any of ServiceSizingPolicy attributes
+			for key, value := range serviceSizingPolicyMap {
+				switch v := value.(type) {
+				case int:
+					if v == 0 {
+						delete(serviceSizingPolicyMap, key)
+					}
+				case float64:
+					if v == 0 {
+						delete(serviceSizingPolicyMap, key)
+					}
+				}
+			}
+			if update {
+				payload := aptibleapi.NewUpdateServiceSizingPolicyRequest()
+				jsonData, _ := json.Marshal(serviceSizingPolicyMap)
+				_ = json.Unmarshal(jsonData, &payload)
+				payload.Autoscaling = &autoscaling
 
-			_, err = client.ServiceSizingPoliciesAPI.CreateServiceSizingPolicy(ctx, serviceID).CreateServiceSizingPolicyRequest(*payload).Execute()
+				_, err = client.ServiceSizingPoliciesAPI.UpdateServiceSizingPolicy(ctx, serviceId).UpdateServiceSizingPolicyRequest(*payload).Execute()
+			} else {
+				payload := aptibleapi.NewCreateServiceSizingPolicyRequest()
+				jsonData, _ := json.Marshal(serviceSizingPolicyMap)
+				_ = json.Unmarshal(jsonData, &payload)
+				payload.Autoscaling = &autoscaling
+
+				_, err = client.ServiceSizingPoliciesAPI.CreateServiceSizingPolicy(ctx, serviceId).CreateServiceSizingPolicyRequest(*payload).Execute()
+			}
 			if err != nil {
 				return fmt.Errorf("failed to create sizing policy for service %s: %w", serviceName, err)
 			}
+		} else if update {
+			serviceId, err := findServiceIdForAppByName(ctx, meta, appID, serviceName)
+			if err != nil {
+				return err
+			}
+			// Don't even check, just delete
+			client.ServiceSizingPoliciesAPI.DeleteServiceSizingPolicy(ctx, serviceId).Execute()
 		}
 	}
 	return nil
-}
-
-func updateServiceSizingPolicy(_ctx context.Context, _d *schema.ResourceData, _meta interface{}) error {
-	return fmt.Errorf("not implemented yet")
 }

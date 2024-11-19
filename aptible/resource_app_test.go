@@ -206,6 +206,11 @@ func TestAccResourceApp_serviceSizingPolicy(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.min_containers", "2"),
 					),
 				},
+				{
+					ResourceName:      "aptible_app.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
 		})
 	})
@@ -236,7 +241,40 @@ func TestAccResourceApp_updateServiceSizingPolicy(t *testing.T) {
 					Config: testAccAptibleAppUpdateServiceSizingPolicy(rHandle),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.autoscaling_type", "vertical"),
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.min_containers", "1"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.mem_scale_down_threshold", "0.6"),
+					),
+				},
+			},
+		})
+	})
+}
+
+func TestAccResourceApp_removeServiceSizingPolicy(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleAppServiceSizingPolicy(rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.autoscaling_type", "horizontal"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.min_containers", "2"),
+					),
+				},
+				{
+					ResourceName:      "aptible_app.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+				{
+					Config: testAccAptibleAppWithoutServiceSizingPolicy(rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						// Ensure the service_sizing_policy block is no longer present
+						resource.TestCheckNoResourceAttr("aptible_app.test", "service.0.service_sizing_policy"),
 					),
 				},
 			},
@@ -254,8 +292,26 @@ func TestAccResourceApp_autoscalingTypeHorizontalMissingAttributes(t *testing.T)
 			CheckDestroy: testAccCheckAppDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config:      testAccAptibleAppDeployAutoscalingTypeHorizontalMissingMinContainers(rHandle),
+					Config:      testAccAptibleAppDeployAutoscalingTypeHorizontalMissingAttributes(rHandle),
 					ExpectError: regexp.MustCompile(`\w+ is required when autoscaling_type is set to 'horizontal'`),
+				},
+			},
+		})
+	})
+}
+
+func TestAccResourceApp_autoscalingTypeVerticalInvalidAttributes(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config:      testAccAptibleAppDeployAutoscalingTypeVerticalInvalidAttributes(rHandle),
+					ExpectError: regexp.MustCompile(`\w+ must not be set when autoscaling_type is set to 'vertical'`),
 				},
 			},
 		})
@@ -448,7 +504,6 @@ func testAccAptibleAppServiceSizingPolicy(handle string) string {
 		service {
 			process_type           = "cmd"
 			container_profile      = "m5"
-			container_memory_limit = 512
 			container_count        = 1
 			service_sizing_policy {
 				autoscaling_type  = "horizontal"
@@ -457,6 +512,30 @@ func testAccAptibleAppServiceSizingPolicy(handle string) string {
 				min_cpu_threshold = 0.1
 				max_cpu_threshold = 0.9
 			}
+		}
+	}
+	`, handle, testOrganizationId, testStackId, handle)
+}
+
+func testAccAptibleAppWithoutServiceSizingPolicy(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"WHATEVER" = "something"
+		}
+		service {
+			process_type           = "cmd"
+			container_profile      = "m5"
+			container_count        = 1
 		}
 	}
 	`, handle, testOrganizationId, testStackId, handle)
@@ -484,14 +563,14 @@ func testAccAptibleAppUpdateServiceSizingPolicy(handle string) string {
 			container_count        = 1
 			service_sizing_policy {
 				autoscaling_type = "vertical"
-				min_containers   = 1
+				mem_scale_down_threshold = 0.6
 			}
 		}
 	}
 	`, handle, testOrganizationId, testStackId, handle)
 }
 
-func testAccAptibleAppDeployAutoscalingTypeHorizontalMissingMinContainers(handle string) string {
+func testAccAptibleAppDeployAutoscalingTypeHorizontalMissingAttributes(handle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_environment" "test" {
 		handle = "%s"
@@ -512,6 +591,34 @@ func testAccAptibleAppDeployAutoscalingTypeHorizontalMissingMinContainers(handle
 			container_count = 1
 			service_sizing_policy {
 				autoscaling_type = "horizontal"
+			}
+		}
+	}
+	`, handle, testOrganizationId, testStackId, handle)
+}
+
+func testAccAptibleAppDeployAutoscalingTypeVerticalInvalidAttributes(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"WHATEVER" = "something"
+		}
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+			service_sizing_policy {
+				autoscaling_type = "vertical"
+				min_containers = 1
 			}
 		}
 	}
