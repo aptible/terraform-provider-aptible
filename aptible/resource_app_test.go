@@ -318,6 +318,24 @@ func TestAccResourceApp_autoscalingTypeVerticalInvalidAttributes(t *testing.T) {
 	})
 }
 
+func TestAccResourceApp_moreThanOnePolicy(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config:      testAccAptibleAppDeployOnlyOnePolicy(rHandle),
+					ExpectError: regexp.MustCompile(`only one service_sizing_policy is allowed per service`),
+				},
+			},
+		})
+	})
+}
+
 func TestAccResourceApp_invalidAutoscalingType(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
@@ -587,7 +605,7 @@ func testAccAptibleAppDeployAutoscalingTypeHorizontalMissingAttributes(handle st
 		}
 		service {
 			process_type = "cmd"
-			container_memory_limit = 512
+			container_memory_limit = 1024
 			container_count = 1
 			service_sizing_policy {
 				autoscaling_type = "horizontal"
@@ -619,6 +637,40 @@ func testAccAptibleAppDeployAutoscalingTypeVerticalInvalidAttributes(handle stri
 			service_sizing_policy {
 				autoscaling_type = "vertical"
 				min_containers = 1
+			}
+		}
+	}
+	`, handle, testOrganizationId, testStackId, handle)
+}
+
+func testAccAptibleAppDeployOnlyOnePolicy(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"WHATEVER" = "something"
+		}
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+			service_sizing_policy {
+				autoscaling_type = "vertical"
+			}
+			service_sizing_policy {
+				autoscaling_type  = "horizontal"
+				min_containers    = 2
+				max_containers	  = 4
+				min_cpu_threshold = 0.1
+				max_cpu_threshold = 0.9
 			}
 		}
 	}

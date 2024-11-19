@@ -99,7 +99,6 @@ func resourceService() *schema.Resource {
 			"service_sizing_policy": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				MaxItems: 1,
 				Elem:     resourceServiceSizingPolicy(),
 			},
 		},
@@ -223,7 +222,7 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 		serviceMap := service.(map[string]interface{})
 		if policy, ok := serviceMap["service_sizing_policy"]; ok {
 			policies := policy.(*schema.Set).List() // should only be one, but yes it's a Set
-			if len(policies) > 0 && policies[0] != nil {
+			if len(policies) == 1 && policies[0] != nil {
 				policyMap := policies[0].(map[string]interface{})
 				autoscalingType := policyMap["autoscaling_type"].(string)
 				attrsToCheck := []string{
@@ -258,6 +257,8 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 						}
 					}
 				}
+			} else if len(policies) > 0 {
+				return fmt.Errorf("only one service_sizing_policy is allowed per service")
 			}
 		}
 	}
