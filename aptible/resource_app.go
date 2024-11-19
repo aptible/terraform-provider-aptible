@@ -793,10 +793,18 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 			if err != nil {
 				return err
 			}
-			// Don't even check, just delete
-			_, err = client.ServiceSizingPoliciesAPI.DeleteServiceSizingPolicy(ctx, serviceId).Execute()
+			// In order to delete, we must first see if there's one associated on the API, otherwise we get an error
+			policy, err := findServiceSizingPolicyForService(serviceId, ctx, meta)
 			if err != nil {
-				return fmt.Errorf("failed to delete sizing policy for service %s: %w", serviceName, err)
+				log.Println(err)
+				return err
+			}
+			if policy != nil {
+				// Now delete
+				_, err = client.ServiceSizingPoliciesAPI.DeleteServiceSizingPolicy(ctx, serviceId).Execute()
+				if err != nil {
+					return fmt.Errorf("failed to delete sizing policy for service %s: %w", serviceName, err)
+				}
 			}
 		}
 	}
