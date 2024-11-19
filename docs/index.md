@@ -142,6 +142,39 @@ resource "aptible_app" "APP" {
 }
 ```
 
+#### Autoscaling
+
+Services can be configured to [Autoscale](https://www.aptible.com/docs/core-concepts/scaling/app-scaling)
+either vertically or horizontally. The configuration is per service
+
+```hcl
+resource "aptible_app" "APP" {
+    env_id = ENVIRONMENT_ID
+    handle = "APP_HANDLE"
+    service {
+        process_type = "SERVICE_NAME1"
+        container_count = 1
+        container_memory_limit = 1024
+        service_sizing_policy {
+            autoscaling_type = "horizontal"
+            min_containers = 2
+            max_container = 5
+            min_cpu_threshold = 0.4
+            max_cpu_threshold = 0.8
+        }
+    }
+    service {
+        process_type = "SERVICE_NAME2"
+        container_count = 2
+        container_memory_limit = 2048
+        service_sizing_policy {
+            autoscaling_type = "vertical"
+            mem_scale_up_threshold = 0.8
+        }
+    }
+}
+```
+
 ### Endpoints
 
 Endpoints for [Apps](https://www.aptible.com/docs/core-concepts/apps) and
