@@ -108,8 +108,10 @@ The `service_sizing_policy` block supports:
 - `maximum_memory` - Vertical autoscaling only - Defines the upper memory threshold,
   capping the maximum memory allocation possible through Autoscaler. If blank,
   the container can scale to the largest size available.
-- `min_cpu_threshold` - Horizontal autoscaling only - 
-- `max_cpu_threshold` - Horizontal autoscaling only - 
+- `min_cpu_threshold` - Horizontal autoscaling only - Specifies the percentage of the current CPU usage at which
+  a down-scaling action is triggered.
+- `max_cpu_threshold` - Horizontal autoscaling only - Specifies the percentage of the current CPU usage at which
+  an up-scaling action is triggered.
 - `min_containers` - Horizontal autoscaling only - Sets the lowest container count to which
   the service can be scaled down by Autoscaler.
 - `max_containers` - Horizontal autoscaling only - Sets the highest container count to which
