@@ -96,7 +96,7 @@ func resourceService() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
-			"service_sizing_policy": {
+			"autoscaling_policy": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     resourceServiceSizingPolicy(),
@@ -220,7 +220,7 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 	services := d.Get("service").(*schema.Set).List()
 	for _, service := range services {
 		serviceMap := service.(map[string]interface{})
-		if policy, ok := serviceMap["service_sizing_policy"]; ok {
+		if policy, ok := serviceMap["autoscaling_policy"]; ok {
 			policies := policy.(*schema.Set).List() // should only be one, but yes it's a Set
 			if len(policies) == 1 && policies[0] != nil {
 				policyMap := policies[0].(map[string]interface{})
@@ -258,7 +258,7 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 					}
 				}
 			} else if len(policies) > 0 {
-				return fmt.Errorf("only one service_sizing_policy is allowed per service")
+				return fmt.Errorf("only one autoscaling_policy is allowed per service")
 			}
 		}
 	}
@@ -392,7 +392,7 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 			serviceSizingPolicy["scale_up_step"] = policy.GetScaleUpStep()
 			serviceSizingPolicy["scale_down_step"] = policy.GetScaleDownStep()
 
-			service["service_sizing_policy"] = []map[string]interface{}{serviceSizingPolicy}
+			service["autoscaling_policy"] = []map[string]interface{}{serviceSizingPolicy}
 		}
 
 		services[i] = service
@@ -462,7 +462,7 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "There was an error when trying to update service_sizing_policy.",
+			Summary:  "There was an error when trying to update autoscaling_policy.",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -638,7 +638,7 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 		// Check if there are changes to other keys, ignoring `force_zero_downtime` and `simple_health_check`
 		hasOtherChanges := false
 		for key, newValue := range serviceData {
-			if key == "force_zero_downtime" || key == "simple_health_check" || key == "service_sizing_policy" {
+			if key == "force_zero_downtime" || key == "simple_health_check" || key == "autoscaling_policy" {
 				continue // Skip checking these keys. Nothing to do with manual scaling
 			}
 
@@ -729,7 +729,7 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 	services := d.Get("service").(*schema.Set).List()
 	for _, serviceData := range services {
 		serviceMap := serviceData.(map[string]interface{})
-		policies := serviceMap["service_sizing_policy"].(*schema.Set).List()
+		policies := serviceMap["autoscaling_policy"].(*schema.Set).List()
 		serviceName := serviceMap["process_type"].(string)
 
 		if len(policies) > 0 {
@@ -786,7 +786,7 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 				_, err = client.ServiceSizingPoliciesAPI.CreateServiceSizingPolicy(ctx, serviceId).CreateServiceSizingPolicyRequest(*payload).Execute()
 			}
 			if err != nil {
-				return fmt.Errorf("failed to create sizing policy for service %s: %w", serviceName, err)
+				return fmt.Errorf("failed to create autoscaling policy for service %s: %w", serviceName, err)
 			}
 		} else if update {
 			serviceId, err := findServiceIdForAppByName(ctx, meta, appID, serviceName)
@@ -803,7 +803,7 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 				// Now delete
 				_, err = client.ServiceSizingPoliciesAPI.DeleteServiceSizingPolicy(ctx, serviceId).Execute()
 				if err != nil {
-					return fmt.Errorf("failed to delete sizing policy for service %s: %w", serviceName, err)
+					return fmt.Errorf("failed to delete autoscaling policy for service %s: %w", serviceName, err)
 				}
 			}
 		}

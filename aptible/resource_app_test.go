@@ -190,7 +190,7 @@ func TestAccResourceApp_scaleDown(t *testing.T) {
 	})
 }
 
-func TestAccResourceApp_serviceSizingPolicy(t *testing.T) {
+func TestAccResourceApp_autoscalingPolicy(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
 	WithTestAccEnvironment(t, func(env aptible.Environment) {
@@ -200,10 +200,10 @@ func TestAccResourceApp_serviceSizingPolicy(t *testing.T) {
 			CheckDestroy: testAccCheckAppDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccAptibleAppServiceSizingPolicy(rHandle),
+					Config: testAccAptibleAppautoscalingPolicy(rHandle),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.autoscaling_type", "horizontal"),
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.min_containers", "2"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.min_containers", "2"),
 					),
 				},
 				{
@@ -216,7 +216,7 @@ func TestAccResourceApp_serviceSizingPolicy(t *testing.T) {
 	})
 }
 
-func TestAccResourceApp_updateServiceSizingPolicy(t *testing.T) {
+func TestAccResourceApp_updateautoscalingPolicy(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
 	WithTestAccEnvironment(t, func(env aptible.Environment) {
@@ -226,10 +226,10 @@ func TestAccResourceApp_updateServiceSizingPolicy(t *testing.T) {
 			CheckDestroy: testAccCheckAppDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccAptibleAppServiceSizingPolicy(rHandle),
+					Config: testAccAptibleAppautoscalingPolicy(rHandle),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.autoscaling_type", "horizontal"),
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.min_containers", "2"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.min_containers", "2"),
 					),
 				},
 				{
@@ -238,10 +238,10 @@ func TestAccResourceApp_updateServiceSizingPolicy(t *testing.T) {
 					ImportStateVerify: true,
 				},
 				{
-					Config: testAccAptibleAppUpdateServiceSizingPolicy(rHandle),
+					Config: testAccAptibleAppUpdateautoscalingPolicy(rHandle),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.autoscaling_type", "vertical"),
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.mem_scale_down_threshold", "0.6"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "vertical"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.mem_scale_down_threshold", "0.6"),
 					),
 				},
 			},
@@ -249,7 +249,7 @@ func TestAccResourceApp_updateServiceSizingPolicy(t *testing.T) {
 	})
 }
 
-func TestAccResourceApp_removeServiceSizingPolicy(t *testing.T) {
+func TestAccResourceApp_removeautoscalingPolicy(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
 	WithTestAccEnvironment(t, func(env aptible.Environment) {
@@ -259,10 +259,10 @@ func TestAccResourceApp_removeServiceSizingPolicy(t *testing.T) {
 			CheckDestroy: testAccCheckAppDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccAptibleAppServiceSizingPolicy(rHandle),
+					Config: testAccAptibleAppautoscalingPolicy(rHandle),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.autoscaling_type", "horizontal"),
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.service_sizing_policy.0.min_containers", "2"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.min_containers", "2"),
 					),
 				},
 				{
@@ -271,10 +271,10 @@ func TestAccResourceApp_removeServiceSizingPolicy(t *testing.T) {
 					ImportStateVerify: true,
 				},
 				{
-					Config: testAccAptibleAppWithoutServiceSizingPolicy(rHandle),
+					Config: testAccAptibleAppWithoutautoscalingPolicy(rHandle),
 					Check: resource.ComposeTestCheckFunc(
-						// Ensure the service_sizing_policy block is no longer present
-						resource.TestCheckNoResourceAttr("aptible_app.test", "service.0.service_sizing_policy"),
+						// Ensure the autoscaling_policy block is no longer present
+						resource.TestCheckNoResourceAttr("aptible_app.test", "service.0.autoscaling_policy"),
 					),
 				},
 			},
@@ -329,7 +329,7 @@ func TestAccResourceApp_moreThanOnePolicy(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config:      testAccAptibleAppDeployOnlyOnePolicy(rHandle),
-					ExpectError: regexp.MustCompile(`only one service_sizing_policy is allowed per service`),
+					ExpectError: regexp.MustCompile(`only one autoscaling_policy is allowed per service`),
 				},
 			},
 		})
@@ -504,7 +504,7 @@ func testAccAptibleAppScaleDown(handle string) string {
 	`, handle, testOrganizationId, testStackId, handle)
 }
 
-func testAccAptibleAppServiceSizingPolicy(handle string) string {
+func testAccAptibleAppautoscalingPolicy(handle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_environment" "test" {
 		handle = "%s"
@@ -523,7 +523,7 @@ func testAccAptibleAppServiceSizingPolicy(handle string) string {
 			process_type           = "cmd"
 			container_profile      = "m5"
 			container_count        = 1
-			service_sizing_policy {
+			autoscaling_policy {
 				autoscaling_type  = "horizontal"
 				min_containers    = 2
 				max_containers	  = 4
@@ -535,7 +535,7 @@ func testAccAptibleAppServiceSizingPolicy(handle string) string {
 	`, handle, testOrganizationId, testStackId, handle)
 }
 
-func testAccAptibleAppWithoutServiceSizingPolicy(handle string) string {
+func testAccAptibleAppWithoutautoscalingPolicy(handle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_environment" "test" {
 		handle = "%s"
@@ -559,7 +559,7 @@ func testAccAptibleAppWithoutServiceSizingPolicy(handle string) string {
 	`, handle, testOrganizationId, testStackId, handle)
 }
 
-func testAccAptibleAppUpdateServiceSizingPolicy(handle string) string {
+func testAccAptibleAppUpdateautoscalingPolicy(handle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_environment" "test" {
 		handle = "%s"
@@ -579,7 +579,7 @@ func testAccAptibleAppUpdateServiceSizingPolicy(handle string) string {
 			container_profile      = "m5"
 			container_memory_limit = 512
 			container_count        = 1
-			service_sizing_policy {
+			autoscaling_policy {
 				autoscaling_type = "vertical"
 				mem_scale_down_threshold = 0.6
 			}
@@ -607,7 +607,7 @@ func testAccAptibleAppDeployAutoscalingTypeHorizontalMissingAttributes(handle st
 			process_type = "cmd"
 			container_memory_limit = 1024
 			container_count = 1
-			service_sizing_policy {
+			autoscaling_policy {
 				autoscaling_type = "horizontal"
 			}
 		}
@@ -634,7 +634,7 @@ func testAccAptibleAppDeployAutoscalingTypeVerticalInvalidAttributes(handle stri
 			process_type = "cmd"
 			container_memory_limit = 512
 			container_count = 1
-			service_sizing_policy {
+			autoscaling_policy {
 				autoscaling_type = "vertical"
 				min_containers = 1
 			}
@@ -662,10 +662,10 @@ func testAccAptibleAppDeployOnlyOnePolicy(handle string) string {
 			process_type = "cmd"
 			container_memory_limit = 512
 			container_count = 1
-			service_sizing_policy {
+			autoscaling_policy {
 				autoscaling_type = "vertical"
 			}
-			service_sizing_policy {
+			autoscaling_policy {
 				autoscaling_type  = "horizontal"
 				min_containers    = 2
 				max_containers	  = 4
@@ -696,7 +696,7 @@ func testAccAptibleAppDeployInvalidAutoscalingType(handle string) string {
 			process_type = "cmd"
 			container_memory_limit = 512
 			container_count = 1
-			service_sizing_policy {
+			autoscaling_policy {
 				autoscaling_type = "invalid"
 			}
 		}
