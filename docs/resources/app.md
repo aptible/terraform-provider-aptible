@@ -37,7 +37,7 @@ resource "aptible_app" "APP" {
         container_count = 2
         container_memory_limit = 2048
         force_zero_downtime = true
-        service_sizing_policy {
+        autoscaling_policy {
           autoscaling_type = "horizontal"
           min_containers = 2
           max_container = 5
@@ -80,10 +80,12 @@ The `service` block supports:
   [For more information please see the docs](https://www.aptible.com/docs/core-concepts/apps/deploying-apps/releases/overview).
 - `simple_health_check` - (Default: false) For services without endpoints, if
   force_zero_downtime is enabled, do a simple uptime check instead of using docker healthchecks.
-- `service_sizing_policy` - (Optional) A block to manage autoscaling for services. See
+- `service_sizing_policy` - **Deprecated** (Optional) A block to manage autoscaling for services. See
+  the main provider docs for additional details.
+- `autoscaling_policy` - (Optional) A block to manage autoscaling for services. See
   the main provider docs for additional details.
 
-The `service_sizing_policy` block supports:
+The `autoscaling_policy` block supports:
 
 - `autoscaling_type` - The type of autoscaling. Must be either `horizontal` or `vertical`.
 - `metric_lookback_seconds` - (Default: 1800) The duration in seconds for 
