@@ -300,6 +300,24 @@ func TestAccResourceApp_autoscalingTypeHorizontalMissingAttributes(t *testing.T)
 	})
 }
 
+func TestAccResourceApp_autoscalingOldAndNewAttributeUsage(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config:      testAccAptibleAppDeployAutoscalingOldAndNewPolicyAttribute(rHandle),
+					ExpectError: regexp.MustCompile(`only one of autoscaling_policy or service_sizing_policy may be defined by service`),
+				},
+			},
+		})
+	})
+}
+
 func TestAccResourceApp_autoscalingTypeVerticalInvalidAttributes(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
@@ -609,6 +627,39 @@ func testAccAptibleAppDeployAutoscalingTypeHorizontalMissingAttributes(handle st
 			container_count = 1
 			autoscaling_policy {
 				autoscaling_type = "horizontal"
+			}
+		}
+	}
+	`, handle, testOrganizationId, testStackId, handle)
+}
+
+func testAccAptibleAppDeployAutoscalingOldAndNewPolicyAttribute(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"WHATEVER" = "nothing"
+		}
+		service {
+			process_type           = "cmd"
+			container_profile      = "m5"
+			container_memory_limit = 512
+			container_count        = 1
+			autoscaling_policy {
+				autoscaling_type = "vertical"
+				mem_scale_down_threshold = 0.6
+			}
+			service_sizing_policy {
+				autoscaling_type = "vertical"
+				mem_scale_down_threshold = 0.6
 			}
 		}
 	}

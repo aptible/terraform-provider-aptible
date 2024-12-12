@@ -96,6 +96,12 @@ func resourceService() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"service_sizing_policy": {
+				Type:       schema.TypeSet,
+				Optional:   true,
+				Elem:       resourceServiceSizingPolicy(),
+				Deprecated: "Please use autoscaling_policy instead. This attribute will be removed in version 1.0",
+			},
 			"autoscaling_policy": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -220,8 +226,24 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 	services := d.Get("service").(*schema.Set).List()
 	for _, service := range services {
 		serviceMap := service.(map[string]interface{})
-		if policy, ok := serviceMap["autoscaling_policy"]; ok {
-			policies := policy.(*schema.Set).List() // should only be one, but yes it's a Set
+
+		oldPolicies := serviceMap["service_sizing_policy"].(*schema.Set).List()
+		newPolicies := serviceMap["autoscaling_policy"].(*schema.Set).List()
+		var policies []interface{}
+		ok := false
+		if len(newPolicies) > 0 {
+			policies = newPolicies
+			ok = true
+		} else if len(oldPolicies) > 0 {
+			policies = oldPolicies
+			ok = true
+		}
+
+		if len(newPolicies) > 0 && len(oldPolicies) > 0 {
+			return fmt.Errorf("only one of autoscaling_policy or service_sizing_policy may be defined by service. Please note service_sizing_policy is deprecated in favor of autoscaling_policy")
+		}
+
+		if ok {
 			if len(policies) == 1 && policies[0] != nil {
 				policyMap := policies[0].(map[string]interface{})
 				autoscalingType := policyMap["autoscaling_type"].(string)
@@ -638,7 +660,7 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 		// Check if there are changes to other keys, ignoring `force_zero_downtime` and `simple_health_check`
 		hasOtherChanges := false
 		for key, newValue := range serviceData {
-			if key == "force_zero_downtime" || key == "simple_health_check" || key == "autoscaling_policy" {
+			if key == "force_zero_downtime" || key == "simple_health_check" || key == "autoscaling_policy" || key == "service_sizing_policy" {
 				continue // Skip checking these keys. Nothing to do with manual scaling
 			}
 
@@ -729,10 +751,21 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 	services := d.Get("service").(*schema.Set).List()
 	for _, serviceData := range services {
 		serviceMap := serviceData.(map[string]interface{})
-		policies := serviceMap["autoscaling_policy"].(*schema.Set).List()
 		serviceName := serviceMap["process_type"].(string)
 
-		if len(policies) > 0 {
+		oldPolicies := serviceMap["service_sizing_policy"].(*schema.Set).List()
+		newPolicies := serviceMap["autoscaling_policy"].(*schema.Set).List()
+		var policies []interface{}
+		ok := false
+		if len(newPolicies) > 0 {
+			policies = newPolicies
+			ok = true
+		} else if len(oldPolicies) > 0 {
+			policies = oldPolicies
+			ok = true
+		}
+
+		if ok {
 			// There's only ever one policy, but we have to model this as a list
 			serviceSizingPolicyMap := policies[0].(map[string]interface{})
 
