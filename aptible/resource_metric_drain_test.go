@@ -35,7 +35,7 @@ func TestAccResourceMetricDrain_validation(t *testing.T) {
 			}
 		`,
 		ExpectError: regexp.MustCompile(
-			regexp.QuoteMeta("expected drain_type to be one of [influxdb_database influxdb datadog], got foo"),
+			regexp.QuoteMeta("expected drain_type to be one of [influxdb_database influxdb influxdb2 datadog], got foo"),
 		),
 	})
 
@@ -198,6 +198,74 @@ func TestAccResourceMetricDrain_influxdb(t *testing.T) {
 	})
 }
 
+func TestAccResourceMetricDrain_influxdb2_validation(t *testing.T) {
+	requiredAttrs := []string{"url", "api_key", "bucket", "organization"}
+	notAllowedAttrs := []string{"database_id", "username", "password"}
+	var testSteps []resource.TestStep
+
+	validationConfig := `
+		resource "aptible_metric_drain" "test" {
+			env_id = 1
+			handle = "test_drain"
+			drain_type = "influxdb2"
+			database_id = 1
+			username = "someone"
+			password = "something"
+		}
+	`
+
+	for _, attr := range requiredAttrs {
+		testSteps = append(testSteps, resource.TestStep{
+			PlanOnly:    true,
+			Config:      validationConfig,
+			ExpectError: regexp.MustCompile(fmt.Sprintf(`%q is required when drain_type = "influxdb2"`, attr)),
+		})
+	}
+
+	for _, attr := range notAllowedAttrs {
+		testSteps = append(testSteps, resource.TestStep{
+			PlanOnly:    true,
+			Config:      validationConfig,
+			ExpectError: regexp.MustCompile(fmt.Sprintf(`%q is not allowed when drain_type = "influxdb2"`, attr)),
+		})
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckMetricDrainDestroy,
+		Steps:             testSteps,
+	})
+}
+
+func TestAccResourceMetricDrain_influxdb2(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckMetricDrainDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleMetricDrainInfluxDB2(rHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_metric_drain.test", "env_id"),
+					resource.TestCheckResourceAttr("aptible_metric_drain.test", "handle", rHandle),
+					resource.TestCheckResourceAttr("aptible_metric_drain.test", "drain_type", "influxdb2"),
+					resource.TestCheckResourceAttr("aptible_metric_drain.test", "url", "https://test.aptible.com:2022"),
+					resource.TestCheckResourceAttr("aptible_metric_drain.test", "api_key", "xxx-yyy-zzz"),
+					resource.TestCheckResourceAttr("aptible_metric_drain.test", "bucket", "aBucket"),
+					resource.TestCheckResourceAttr("aptible_metric_drain.test", "organization", "ImportantOrg"),
+				),
+			}, {
+				ResourceName:      "aptible_metric_drain.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccResourceMetricDrain_datadog_validation(t *testing.T) {
 	requiredAttrs := []string{"api_key"}
 	notAllowedAttrs := []string{"database_id"}
@@ -321,6 +389,26 @@ func testAccAptibleMetricDrainInfluxDB(handle string) string {
 			username = "test_user"
 			password = "test_password"
 			database = "test_db"
+	}
+	`, handle, testOrganizationId, testStackId, handle)
+}
+
+func testAccAptibleMetricDrainInfluxDB2(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_metric_drain" "test" {
+			env_id = aptible_environment.test.env_id
+			handle = "%v"
+			drain_type = "influxdb2"
+			url = "https://test.aptible.com:2022"
+			api_key = "xxx-yyy-zzz"
+			bucket = "aBucket"
+			organization = "ImportantOrg"
 	}
 	`, handle, testOrganizationId, testStackId, handle)
 }
