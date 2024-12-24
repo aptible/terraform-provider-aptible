@@ -72,6 +72,16 @@ func resourceMetricDrain() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"bucket": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"organization": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 			"api_key": {
 				Type:      schema.TypeString,
 				Optional:  true,
@@ -88,7 +98,7 @@ func resourceMetricDrain() *schema.Resource {
 	}
 }
 
-var validMetricDrainTypes = []string{"influxdb_database", "influxdb", "datadog"}
+var validMetricDrainTypes = []string{"influxdb_database", "influxdb", "influxdb2", "datadog"}
 
 var metricDrainAttrs = map[string]ResourceAttrs{
 	"influxdb_database": {
@@ -98,6 +108,10 @@ var metricDrainAttrs = map[string]ResourceAttrs{
 	"influxdb": {
 		Required:   []string{"url", "username", "password", "database"},
 		NotAllowed: []string{"database_id"},
+	},
+	"influxdb2": {
+		Required:   []string{"url", "api_key", "bucket", "organization"},
+		NotAllowed: []string{"database_id", "username", "password"},
 	},
 	"datadog": {
 		Required:   []string{"api_key"},
@@ -141,6 +155,9 @@ func resourceMetricDrainCreate(ctx context.Context, d *schema.ResourceData, meta
 		Password:   d.Get("password").(string),
 		Database:   d.Get("database").(string),
 		APIKey:     d.Get("api_key").(string),
+		AuthToken:  d.Get("api_key").(string),
+		Bucket:     d.Get("bucket").(string),
+		Org:        d.Get("organization").(string),
 		SeriesURL:  strfmt.URI(d.Get("series_url").(string)),
 	}
 
@@ -179,8 +196,15 @@ func resourceMetricDrainRead(_ context.Context, d *schema.ResourceData, meta int
 	_ = d.Set("username", metricDrain.Username)
 	_ = d.Set("password", metricDrain.Password)
 	_ = d.Set("database", metricDrain.Database)
-	_ = d.Set("api_key", metricDrain.APIKey)
+	if metricDrain.APIKey != "" {
+		_ = d.Set("api_key", metricDrain.APIKey)
+	}
 	_ = d.Set("series_url", metricDrain.SeriesURL)
+	if metricDrain.AuthToken != "" {
+		_ = d.Set("api_key", metricDrain.AuthToken)
+	}
+	_ = d.Set("bucket", metricDrain.Bucket)
+	_ = d.Set("organization", metricDrain.Org)
 
 	return nil
 }

@@ -17,7 +17,7 @@ resource "aptible_metric_drain" "influxdb_database_drain" {
 }
 ```
 
-### InfluxDB
+### InfluxDB (v1)
 
 ```hcl
 resource "aptible_metric_drain" "influxdb_drain" {
@@ -28,6 +28,20 @@ resource "aptible_metric_drain" "influxdb_drain" {
   username   = "example_user"
   password   = "example_password"
   database   = "metrics"
+}
+```
+
+### InfluxDB (v2)
+
+```hcl
+resource "aptible_metric_drain" "influxdb_drain" {
+  env_id       = data.aptible_environment.example.env_id
+  drain_type   = "influxdb2"
+  handle       = "influxdb-metric-drain"
+  url          = "https://influx.example.com:443"
+  api_key      = "xxxxx-xxxxx-xxxxx"
+  bucket       = "yourBucket"
+  organization = "myOrg"
 }
 ```
 
@@ -54,12 +68,14 @@ resource "aptible_metric_drain" "datadog_drain" {
   `influxdb_database` drains to send metrics to.
 - `url` - The URL (scheme, host, and port) for `influxdb` drains to send metrics
   to.
-- `username` - The user for `influxdb` drains to use for authentication.
-- `password` - The password for `influxdb` drains to use for authentication.
+- `username` - The user for `influxdb v1` drains to use for authentication.
+- `password` - The password for `influxdb v1` drains to use for authentication.
 - `database` - The
-  [InfluxDB database](https://docs.influxdata.com/influxdb/v1.8/concepts/glossary/#database)
+  [InfluxDB v1 database](https://docs.influxdata.com/influxdb/v1.8/concepts/glossary/#database)
   for `influxdb` drains to send the metrics to.
-- `api_key` - The API key for `datadog` drains to use for authentication.
+- `bucket` - The bucket for `influxdb v2` drains to use.
+- `organization` - The InfluxDB organization for `influxdb v2` drains to use.
+- `api_key` - The API key for `datadog` or `influxdb v2` drains to use for authentication.
 - `series_url` (Optional) - The series API URL for `datadog` drains to send
   metrics to. Examples: `https://app.datadoghq.com/api/v1/series`,
   `https://us3.datadoghq.com/api/v1/series`,
@@ -84,6 +100,13 @@ All `aptible_metric_drain` resources require the following attributes:
 - `username` (Required)
 - `password` (Required)
 - `database` (Required)
+
+#### `influxdb2`
+
+- `url` (Required)
+- `api_key` (Required)
+- `bucket` (Required)
+- `organization` (Required)
 
 #### `datadog`
 
