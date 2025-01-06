@@ -12,7 +12,7 @@ data "aptible_stack" "example" {
 resource "aptible_environment" "example" {
   stack_id = data.aptible_stack.example.stack_id
   org_id   = data.aptible_stack.example.org_id
-  name     = "example-env"
+  handle     = "example-env"
 }
 ```
 
@@ -28,7 +28,7 @@ data "aptible_stack" "example" {
 resource "aptible_environment" "example" {
   stack_id = data.aptible_stack.example.stack_id
   org_id   = data.aptible_stack.example.org_id
-  name     = "short-lived-env"
+  handle     = "short-lived-env"
 
   backup_retention_policy {
     daily      = 1
