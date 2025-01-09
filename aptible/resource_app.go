@@ -322,7 +322,7 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	// which I'm not prepared to do quite yet. So instead we're handling scaling after deployment, rather than
 	// at the time of deployment.
 	// TODO: We can check for services scaled to 1 GB/1 container before scaling.
-	err = scaleServices(d, meta)
+	err = scaleServices(context.Background(), d, meta)
 	if err != nil {
 		return err
 	}
@@ -388,7 +388,7 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 		service["simple_health_check"] = s.NaiveHealthCheck
 		// Find service_sizing_policy if any
 		var policy *aptibleapi.ServiceSizingPolicy
-		policy, err = findServiceSizingPolicyForService(s.Id, ctx, meta)
+		policy, err = getServiceSizingPolicyForService(s.Id, ctx, meta)
 		if err != nil {
 			log.Println(err)
 			return err
@@ -469,7 +469,7 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 		}
 	}
 
-	err = scaleServices(d, meta)
+	err = scaleServices(c, d, meta)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -541,15 +541,6 @@ func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func findServiceByName(services []aptibleapi.Service, serviceName string) *aptibleapi.Service {
-	for i := range services {
-		if services[i].ProcessType == serviceName {
-			return &services[i]
-		}
-	}
-	return nil
-}
-
 func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*providerMetadata).Client
 	ctx = meta.(*providerMetadata).APIContext(ctx)
@@ -580,8 +571,8 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 		processType := serviceData["process_type"].(string)
 
 		log.Printf("Looking up service %s in list: %v", processType, apiServices)
-		// Find corresponding service from API
-		apiService := findServiceByName(apiServices, processType)
+		// Find corresponding service from API response
+		apiService := findApiServiceByName(apiServices, processType)
 		if apiService == nil {
 			log.Printf("ERROR: CANNOT FIND SERVICE %s", processType)
 			return fmt.Errorf("[ERROR]Unable to find service %s", processType)
@@ -624,14 +615,23 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 	return g.Wait()
 }
 
-func scaleServices(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).LegacyClient
-	appID := int64(d.Get("app_id").(int))
+func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*providerMetadata).Client
+	legacy := meta.(*providerMetadata).LegacyClient
+	appID := int32(d.Get("app_id").(int))
+	ctx := meta.(*providerMetadata).APIContext(c)
 
 	// If there are no changes to services, there's no reason to scale
 	if !d.HasChange("service") {
 		return nil
 	}
+
+	apiServicesResp, _, err := client.ServicesAPI.ListServicesForApp(ctx, appID).Execute()
+	if err != nil {
+		log.Println("There was an error when loading the services \n[ERROR] -", err)
+		return err
+	}
+	apiServices := apiServicesResp.Embedded.Services
 
 	var g errgroup.Group
 
@@ -641,64 +641,74 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 	oldService, newService := d.GetChange("service")
 	services := newService.(*schema.Set).Difference(oldService.(*schema.Set)).List()
 
-	var filteredServices []interface{}
-
 	for _, s := range services {
-		serviceData := s.(map[string]interface{})
-		processType := serviceData["process_type"].(string)
-
+		// https://stackoverflow.com/a/74383278
+		service := s
+		serviceInterface := service.(map[string]interface{})
+		log.Printf("serviceInterface: %+v", serviceInterface)
 		// Find the corresponding old service
 		var oldServiceData map[string]interface{}
 		for _, oldS := range oldService.(*schema.Set).List() {
 			oldService := oldS.(map[string]interface{})
-			if oldService["process_type"].(string) == processType {
+			if oldService["process_type"].(string) == serviceInterface["process_type"].(string) {
 				oldServiceData = oldService
 				break
 			}
 		}
-
-		// Check if there are changes to other keys, ignoring `force_zero_downtime` and `simple_health_check`
-		hasOtherChanges := false
-		for key, newValue := range serviceData {
+		shouldScale := false
+		for key, newValue := range serviceInterface {
 			if key == "force_zero_downtime" || key == "simple_health_check" || key == "autoscaling_policy" || key == "service_sizing_policy" {
 				continue // Skip checking these keys. Nothing to do with manual scaling
 			}
 
 			if oldServiceData == nil || oldServiceData[key] != newValue {
-				hasOtherChanges = true
+				shouldScale = true
 				break
 			}
 		}
-
-		if hasOtherChanges {
-			filteredServices = append(filteredServices, serviceData)
+		if !shouldScale {
+			return nil
 		}
-	}
 
-	for _, s := range filteredServices {
-		// https://stackoverflow.com/a/74383278
-		service := s
-		serviceInterface := service.(map[string]interface{})
 		g.Go(func() error {
-			memoryLimit := int64(serviceInterface["container_memory_limit"].(int))
-			containerProfile := serviceInterface["container_profile"].(string)
-			containerCount := int64(serviceInterface["container_count"].(int))
+			memoryLimit := serviceInterface["container_memory_limit"]
+			containerProfile := serviceInterface["container_profile"]
+			containerCount := serviceInterface["container_count"]
 			processType := serviceInterface["process_type"].(string)
 
 			log.Printf(
 				"Updating %s service to count: %d, limit: %d, and container profile: %s\n",
 				processType, containerCount, memoryLimit, containerProfile,
 			)
-			service, err := client.GetServiceForAppByName(appID, processType)
-			if err != nil {
-				log.Println("There was an error when finding the service \n[ERROR] -", err)
-				return generateErrorFromClientError(err)
+			service := findApiServiceByName(apiServices, processType)
+			if service == nil {
+				return fmt.Errorf("there was an error when finding the service: %s", processType)
 			}
-			err = client.ScaleService(service.ID, containerCount, memoryLimit, containerProfile)
+
+			payload := aptibleapi.NewCreateOperationRequest("scale")
+			if oldServiceData["container_count"] != containerCount && containerCount != -1 {
+				log.Println("Updating containers-count")
+				payload.SetContainerCount(int32(containerCount.(int)))
+			}
+			log.Printf("memory limit old: %s, new: %s", oldServiceData["container_memory_limit"], memoryLimit)
+			if oldServiceData["container_memory_limit"] != memoryLimit && memoryLimit != -1 {
+				log.Println("Setting memory limit")
+				payload.SetContainerSize(int32(memoryLimit.(int)))
+			}
+			if oldServiceData["container_profile"] != containerProfile {
+				payload.SetInstanceProfile(containerProfile.(string))
+			}
+			resp, _, err := client.OperationsAPI.CreateOperationForService(ctx, service.Id).CreateOperationRequest(*payload).Execute()
 			if err != nil {
 				log.Println("There was an error when scaling the service \n[ERROR] -", err)
-				return generateErrorFromClientError(err)
+				return err
 			}
+
+			_, err = legacy.WaitForOperation(int64(resp.Id))
+			if err != nil {
+				return err
+			}
+
 			return nil
 		})
 	}
@@ -706,7 +716,16 @@ func scaleServices(d *schema.ResourceData, meta interface{}) error {
 	return g.Wait()
 }
 
-func findServiceIdForAppByName(ctx context.Context, meta interface{}, appId int32, processType string) (int32, error) {
+func findApiServiceByName(services []aptibleapi.Service, serviceName string) *aptibleapi.Service {
+	for i := range services {
+		if services[i].ProcessType == serviceName {
+			return &services[i]
+		}
+	}
+	return nil
+}
+
+func getServiceIdForAppByName(ctx context.Context, meta interface{}, appId int32, processType string) (int32, error) {
 	client := meta.(*providerMetadata).Client
 	ctx = meta.(*providerMetadata).APIContext(ctx)
 
@@ -724,7 +743,7 @@ func findServiceIdForAppByName(ctx context.Context, meta interface{}, appId int3
 	return 0, fmt.Errorf("no service found for process type %s", processType)
 }
 
-func findServiceSizingPolicyForService(serviceId int32, ctx context.Context, meta interface{}) (*aptibleapi.ServiceSizingPolicy, error) {
+func getServiceSizingPolicyForService(serviceId int32, ctx context.Context, meta interface{}) (*aptibleapi.ServiceSizingPolicy, error) {
 	client := meta.(*providerMetadata).Client
 	ctx = meta.(*providerMetadata).APIContext(ctx)
 	resp, _, err := client.ServiceSizingPoliciesAPI.ListServiceSizingPoliciesForService(ctx, serviceId).Execute()
@@ -769,7 +788,7 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 			// There's only ever one policy, but we have to model this as a list
 			serviceSizingPolicyMap := policies[0].(map[string]interface{})
 
-			serviceId, err := findServiceIdForAppByName(ctx, meta, appID, serviceName)
+			serviceId, err := getServiceIdForAppByName(ctx, meta, appID, serviceName)
 			if err != nil {
 				return err
 			}
@@ -822,12 +841,12 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 				return fmt.Errorf("failed to create autoscaling policy for service %s: %w", serviceName, err)
 			}
 		} else if update {
-			serviceId, err := findServiceIdForAppByName(ctx, meta, appID, serviceName)
+			serviceId, err := getServiceIdForAppByName(ctx, meta, appID, serviceName)
 			if err != nil {
 				return err
 			}
 			// In order to delete, we must first see if there's one associated on the API, otherwise we get an error
-			policy, err := findServiceSizingPolicyForService(serviceId, ctx, meta)
+			policy, err := getServiceSizingPolicyForService(serviceId, ctx, meta)
 			if err != nil {
 				log.Println(err)
 				return err
