@@ -641,11 +641,8 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 	oldService, newService := d.GetChange("service")
 	services := newService.(*schema.Set).Difference(oldService.(*schema.Set)).List()
 
-	for _, s := range services {
-		// https://stackoverflow.com/a/74383278
-		service := s
+	for _, service := range services {
 		serviceInterface := service.(map[string]interface{})
-		log.Printf("serviceInterface: %+v", serviceInterface)
 		// Find the corresponding old service
 		var oldServiceData map[string]interface{}
 		for _, oldS := range oldService.(*schema.Set).List() {
@@ -671,9 +668,9 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 		}
 
 		g.Go(func() error {
-			memoryLimit := serviceInterface["container_memory_limit"]
-			containerProfile := serviceInterface["container_profile"]
-			containerCount := serviceInterface["container_count"]
+			memoryLimit := int32(serviceInterface["container_memory_limit"].(int))
+			containerProfile := serviceInterface["container_profile"].(string)
+			containerCount := int32(serviceInterface["container_count"].(int))
 			processType := serviceInterface["process_type"].(string)
 
 			log.Printf(
@@ -686,18 +683,9 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 			}
 
 			payload := aptibleapi.NewCreateOperationRequest("scale")
-			if oldServiceData["container_count"] != containerCount && containerCount != -1 {
-				log.Println("Updating containers-count")
-				payload.SetContainerCount(int32(containerCount.(int)))
-			}
-			log.Printf("memory limit old: %s, new: %s", oldServiceData["container_memory_limit"], memoryLimit)
-			if oldServiceData["container_memory_limit"] != memoryLimit && memoryLimit != -1 {
-				log.Println("Setting memory limit")
-				payload.SetContainerSize(int32(memoryLimit.(int)))
-			}
-			if oldServiceData["container_profile"] != containerProfile {
-				payload.SetInstanceProfile(containerProfile.(string))
-			}
+			payload.SetContainerCount(containerCount)
+			payload.SetContainerSize(memoryLimit)
+			payload.SetInstanceProfile(containerProfile)
 			resp, _, err := client.OperationsAPI.CreateOperationForService(ctx, service.Id).CreateOperationRequest(*payload).Execute()
 			if err != nil {
 				log.Println("There was an error when scaling the service \n[ERROR] -", err)
@@ -705,11 +693,7 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 			}
 
 			_, err = legacy.WaitForOperation(int64(resp.Id))
-			if err != nil {
-				return err
-			}
-
-			return nil
+			return err
 		})
 	}
 
