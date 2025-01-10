@@ -261,8 +261,12 @@ func TestAccResourceApp_removeautoscalingPolicy(t *testing.T) {
 				{
 					Config: testAccAptibleAppautoscalingPolicy(rHandle),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.min_containers", "2"),
+						resource.TestCheckTypeSetElemNestedAttrs(
+							"aptible_app.test", "service.0.autoscaling_policy.*", map[string]string{
+								"autoscaling_type": "horizontal",
+								"min_containers":   "2",
+							},
+						),
 					),
 				},
 				{
@@ -274,7 +278,7 @@ func TestAccResourceApp_removeautoscalingPolicy(t *testing.T) {
 					Config: testAccAptibleAppWithoutautoscalingPolicy(rHandle),
 					Check: resource.ComposeTestCheckFunc(
 						// Ensure the autoscaling_policy block is no longer present
-						resource.TestCheckNoResourceAttr("aptible_app.test", "service.0.autoscaling_policy"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.#", "0"),
 					),
 				},
 			},
@@ -365,7 +369,7 @@ func TestAccResourceApp_invalidAutoscalingType(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config:      testAccAptibleAppDeployInvalidAutoscalingType(rHandle),
-					ExpectError: regexp.MustCompile(`expected.*autoscaling_type to be one of \[vertical horizontal\]`),
+					ExpectError: regexp.MustCompile(`expected.*autoscaling_type to be one of \["vertical" "horizontal"\]`),
 				},
 			},
 		})

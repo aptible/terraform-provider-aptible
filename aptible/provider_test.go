@@ -1,7 +1,6 @@
 package aptible
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"testing"
@@ -53,15 +52,15 @@ func testAccPreCheck(t *testing.T) {
 	}
 
 	if v := os.Getenv(AptibleOrganizationId); v == "" {
-		t.Fatal(fmt.Sprintf("%s must be set for acceptance tests", AptibleOrganizationId))
+		t.Fatalf("%s must be set for acceptance tests", AptibleOrganizationId)
 	}
 
 	stackId := os.Getenv(AptibleStackId)
 	if stackId == "" {
-		t.Fatal(fmt.Sprintf("%s must be set for acceptance tests", AptibleStackId))
+		t.Fatalf("%s must be set for acceptance tests", AptibleStackId)
 	}
 	if _, err := strconv.Atoi(stackId); err != nil {
-		t.Fatal(fmt.Sprintf("%s is not a valid integer value", AptibleStackId))
+		t.Fatalf("%s is not a valid integer value", AptibleStackId)
 	}
 }
 
