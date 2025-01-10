@@ -35,7 +35,7 @@ func TestAccResourceMetricDrain_validation(t *testing.T) {
 			}
 		`,
 		ExpectError: regexp.MustCompile(
-			regexp.QuoteMeta("expected drain_type to be one of [influxdb_database influxdb influxdb2 datadog], got foo"),
+			regexp.QuoteMeta(`expected drain_type to be one of ["influxdb_database" "influxdb" "influxdb2" "datadog"], got foo`),
 		),
 	})
 
