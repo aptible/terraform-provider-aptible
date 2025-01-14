@@ -52,6 +52,45 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 	})
 }
 
+func TestAccResourceDatabase_withoutBackups(t *testing.T) {
+	dbHandle := acctest.RandString(10)
+
+	// Can't use an aptible_environment TF resource with databases because, when
+	// the destroy is attempted, the environment will not permit deletion due to
+	// the database's final backup
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckDatabaseDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleDatabaseWithoutBackups(env.ID, dbHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
+						resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(int(env.ID))),
+						resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
+						resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
+						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "m5"),
+						resource.TestCheckResourceAttr("aptible_database.test", "iops", "3000"),
+						resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
+						resource.TestCheckResourceAttr("aptible_database.test", "enable_backups", "false"),
+						resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+						resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
+						resource.TestMatchResourceAttr("aptible_database.test", "default_connection_url", regexp.MustCompile(`postgresql://.*@db-.*`)),
+						resource.TestCheckResourceAttrPair("aptible_database.test", "connection_urls.0", "aptible_database.test", "default_connection_url"),
+					),
+				},
+				{
+					ResourceName:      "aptible_database.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+}
+
 func TestAccResourceDatabase_redis(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
@@ -145,6 +184,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
 						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "m5"),
 						resource.TestCheckResourceAttr("aptible_database.test", "iops", "3000"),
+						resource.TestCheckResourceAttr("aptible_database.test", "enable_backups", "true"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "default_connection_url"),
@@ -161,6 +201,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_database.test", "container_size", "512"),
 						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "r5"),
 						resource.TestCheckResourceAttr("aptible_database.test", "iops", "4000"),
+						resource.TestCheckResourceAttr("aptible_database.test", "enable_backups", "false"),
 						resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "20"),
 					),
 				},
@@ -272,6 +313,16 @@ func testAccAptibleDatabaseBasic(envId int64, dbHandle string) string {
 `, envId, dbHandle)
 }
 
+func testAccAptibleDatabaseWithoutBackups(envId int64, dbHandle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_database" "test" {
+		env_id = %d
+		handle = "%v"
+		enable_backups = false
+	}
+`, envId, dbHandle)
+}
+
 func testAccAptibleDatabaseRedis(envId int64, dbHandle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_database" "test" {
@@ -303,6 +354,7 @@ func testAccAptibleDatabaseUpdate(envId int64, dbHandle string) string {
 		disk_size = %d
 		container_profile = "r5"
 		iops = 4000
+		enable_backups = false
 	}
 `, envId, dbHandle, 512, 20)
 }

@@ -89,6 +89,11 @@ func resourceDatabase() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"enable_backups": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 		},
 	}
 }
@@ -104,6 +109,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	profile := d.Get("container_profile").(string)
 	diskSize := int32(d.Get("disk_size").(int))
 	containerSize := int32(d.Get("container_size").(int))
+	enableBackups := d.Get("enable_backups").(bool)
 
 	ctx := context.Background()
 	ctx = meta.(*providerMetadata).APIContext(ctx)
@@ -117,6 +123,9 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	if containerSize != 0 {
 		create.SetInitialContainerSize(containerSize)
+	}
+	if !enableBackups {
+		create.SetEnableBackups(enableBackups)
 	}
 
 	if version != "" {
@@ -231,6 +240,7 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("database_type", database.Type.Get())
 	_ = d.Set("database_image_id", imageID)
 	_ = d.Set("version", image.GetVersion())
+	_ = d.Set("enable_backups", database.EnableBackups)
 
 	return nil
 }
@@ -252,22 +262,45 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	diskSize := int32(d.Get("disk_size").(int))
 	iops := int32(d.Get("iops").(int))
 	handle := d.Get("handle").(string)
+	enableBackups := d.Get("enable_backups").(bool)
+	needsOperation := false
 	var diags diag.Diagnostics
 
 	ctx = meta.(*providerMetadata).APIContext(ctx)
 	payload := aptibleapi.NewCreateOperationRequest("restart")
 
 	if d.HasChange("container_size") {
+		needsOperation = true
 		payload.SetContainerSize(containerSize)
 	}
 	if d.HasChange("iops") {
+		needsOperation = true
 		payload.SetProvisionedIops(iops)
 	}
 	if d.HasChange("container_profile") {
+		needsOperation = true
 		payload.SetInstanceProfile(profile)
 	}
 	if d.HasChange("disk_size") {
+		needsOperation = true
 		payload.SetDiskSize(diskSize)
+	}
+	if d.HasChange("enable_backups") {
+		_, err := client.
+			DatabasesAPI.
+			PatchDatabase(ctx, databaseID).
+			UpdateDatabaseRequest(
+				aptibleapi.UpdateDatabaseRequest{EnableBackups: &enableBackups},
+			).
+			Execute()
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when trying to set enable_backups.",
+				Detail:   err.Error(),
+			})
+			return diags
+		}
 	}
 
 	if d.HasChange("handle") {
@@ -288,7 +321,7 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
-	if d.HasChangeExcept("handle") {
+	if needsOperation {
 		op, _, err := client.
 			OperationsAPI.
 			CreateOperationForDatabase(ctx, databaseID).
