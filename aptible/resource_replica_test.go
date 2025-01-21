@@ -54,6 +54,48 @@ func TestAccResourceReplica_basic(t *testing.T) {
 	})
 }
 
+func TestAccResourceReplica_withoutBackups(t *testing.T) {
+	dbHandle := acctest.RandString(10)
+	replicaHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckReplicaDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleReplicaWithoutBackups(env.ID, dbHandle, replicaHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("aptible_database.test", "handle", dbHandle),
+						resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(int(env.ID))),
+						resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
+						resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
+						resource.TestCheckResourceAttr("aptible_database.test", "enable_backups", "true"),
+						resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
+						resource.TestCheckResourceAttrSet("aptible_database.test", "default_connection_url"),
+
+						resource.TestCheckResourceAttr("aptible_replica.test", "handle", replicaHandle),
+						resource.TestCheckResourceAttr("aptible_replica.test", "env_id", strconv.Itoa(int(env.ID))),
+						resource.TestCheckResourceAttr("aptible_replica.test", "container_size", "1024"),
+						resource.TestCheckResourceAttr("aptible_replica.test", "iops", "3000"),
+						resource.TestCheckResourceAttr("aptible_replica.test", "container_profile", "m5"),
+						resource.TestCheckResourceAttr("aptible_replica.test", "disk_size", "10"),
+						resource.TestCheckResourceAttr("aptible_replica.test", "enable_backups", "false"),
+						resource.TestCheckResourceAttrSet("aptible_replica.test", "replica_id"),
+						resource.TestCheckResourceAttrSet("aptible_replica.test", "default_connection_url"),
+					),
+				},
+				{
+					ResourceName:      "aptible_database.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+}
+
 func TestAccResourceReplica_update(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 	replicaHandle := acctest.RandString(10)
@@ -72,6 +114,7 @@ func TestAccResourceReplica_update(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
 						resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
 						resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
+						resource.TestCheckResourceAttr("aptible_database.test", "enable_backups", "true"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "default_connection_url"),
 
@@ -81,6 +124,7 @@ func TestAccResourceReplica_update(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_replica.test", "container_profile", "m5"),
 						resource.TestCheckResourceAttr("aptible_replica.test", "iops", "3000"),
 						resource.TestCheckResourceAttr("aptible_replica.test", "disk_size", "10"),
+						resource.TestCheckResourceAttr("aptible_replica.test", "enable_backups", "true"),
 						resource.TestCheckResourceAttrSet("aptible_replica.test", "replica_id"),
 						resource.TestCheckResourceAttrSet("aptible_replica.test", "default_connection_url"),
 					),
@@ -97,6 +141,7 @@ func TestAccResourceReplica_update(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_replica.test", "iops", "4000"),
 						resource.TestCheckResourceAttr("aptible_replica.test", "container_size", "512"),
 						resource.TestCheckResourceAttr("aptible_replica.test", "disk_size", "20"),
+						resource.TestCheckResourceAttr("aptible_replica.test", "enable_backups", "false"),
 					),
 				},
 			},
@@ -225,6 +270,22 @@ func testAccAptibleReplicaBasic(envId int64, dbHandle string, replicaHandle stri
 	`, envId, dbHandle, envId, replicaHandle)
 }
 
+func testAccAptibleReplicaWithoutBackups(envId int64, dbHandle string, replicaHandle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_database" "test" {
+		env_id = %d
+		handle = "%v"
+	}
+
+	resource "aptible_replica" "test" {
+		env_id = %d
+		handle = "%v"
+		primary_database_id = aptible_database.test.database_id
+		enable_backups = false
+	}
+	`, envId, dbHandle, envId, replicaHandle)
+}
+
 func testAccAptibleReplicaUpdate(envId int64, dbHandle string, repHandle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_database" "test" {
@@ -240,6 +301,7 @@ func testAccAptibleReplicaUpdate(envId int64, dbHandle string, repHandle string)
 		disk_size = %d
 		container_profile = "r5"
 		iops = 4000
+		enable_backups = false
 	}
 	`, envId, dbHandle, envId, repHandle, 512, 20)
 }

@@ -70,6 +70,11 @@ func resourceReplica() *schema.Resource {
 				Computed:  true,
 				Sensitive: true,
 			},
+			"enable_backups": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 		},
 	}
 }
@@ -83,6 +88,7 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 	containerSize := int32(d.Get("container_size").(int))
 	diskSize := int32(d.Get("disk_size").(int))
 	profile := d.Get("container_profile").(string)
+	enableBackups := d.Get("enable_backups").(bool)
 	envID := int32(d.Get("env_id").(int))
 	ctx := context.Background()
 	ctx = meta.(*providerMetadata).APIContext(ctx)
@@ -140,6 +146,22 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 
 	_ = d.Set("replica_id", repl.ID)
 	d.SetId(strconv.Itoa(int(repl.ID)))
+
+	// Enable backups defaults to `true` in the backend so we only need to do something if it is being set to false.
+	// A replica is created in the backend via sweetness, so we need to wait until after the replication is complete to update the db object.
+	if !enableBackups {
+		_, err := client.
+			DatabasesAPI.
+			PatchDatabase(ctx, int32(repl.ID)).
+			UpdateDatabaseRequest(
+				aptibleapi.UpdateDatabaseRequest{EnableBackups: &enableBackups},
+			).
+			Execute()
+		if err != nil {
+			return err
+		}
+	}
+
 	return resourceReplicaRead(d, meta)
 }
 
@@ -198,6 +220,7 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("primary_database_id", primaryDatabaseID)
 	_ = d.Set("container_profile", profile)
 	_ = d.Set("iops", database.Embedded.Disk.GetProvisionedIops())
+	_ = d.Set("enable_backups", database.GetEnableBackups())
 	d.SetId(strconv.Itoa(int(database.Id)))
 
 	return nil
@@ -214,22 +237,46 @@ func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	diskSize := int32(d.Get("disk_size").(int))
 	iops := int32(d.Get("iops").(int))
 	handle := d.Get("handle").(string)
+	enableBackups := d.Get("enable_backups").(bool)
+	needsOperation := false
 	var diags diag.Diagnostics
 
 	ctx = meta.(*providerMetadata).APIContext(ctx)
 	payload := aptibleapi.NewCreateOperationRequest("restart")
 
 	if d.HasChange("container_size") {
+		needsOperation = true
 		payload.SetContainerSize(containerSize)
 	}
 	if d.HasChange("iops") {
+		needsOperation = true
 		payload.SetProvisionedIops(iops)
 	}
 	if d.HasChange("container_profile") {
+		needsOperation = true
 		payload.SetInstanceProfile(profile)
 	}
 	if d.HasChange("disk_size") {
+		needsOperation = true
 		payload.SetDiskSize(diskSize)
+	}
+
+	if d.HasChange("enable_backups") {
+		_, err := client.
+			DatabasesAPI.
+			PatchDatabase(ctx, databaseID).
+			UpdateDatabaseRequest(
+				aptibleapi.UpdateDatabaseRequest{EnableBackups: &enableBackups},
+			).
+			Execute()
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when trying to set enable_backups.",
+				Detail:   err.Error(),
+			})
+			return diags
+		}
 	}
 
 	if d.HasChange("handle") {
@@ -250,7 +297,7 @@ func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 
-	if d.HasChangeExcept("handle") {
+	if needsOperation {
 		op, _, err := client.
 			OperationsAPI.
 			CreateOperationForDatabase(ctx, databaseID).
