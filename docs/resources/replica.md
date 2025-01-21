@@ -40,6 +40,7 @@ resource "aptible_replica" "example_database_replica" {
   - `r5` - Memory Optimized (1 CPU : 8 GB RAM)
 - `disk_size` - The disk size of the Database, in GB.
 - `iops` - The disk Input/Output Operations Per Second
+- `enable_backups` - (Default: `true`) Whether to automatically backup the database according to the retention policy.
 
 ## Attribute Reference
 
