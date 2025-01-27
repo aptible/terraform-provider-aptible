@@ -218,6 +218,10 @@ func resourceServiceSizingPolicy() *schema.Resource {
 				Default:     1,
 				Description: "The number of containers to remove in each scale-down event.",
 			},
+			"scaling_enabled": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -396,6 +400,7 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 		if policy != nil {
 			serviceSizingPolicy := make(map[string]interface{})
 			serviceSizingPolicy["autoscaling_type"] = policy.Autoscaling
+			serviceSizingPolicy["scaling_enabled"] = policy.GetScalingEnabled()
 			serviceSizingPolicy["metric_lookback_seconds"] = policy.MetricLookbackSeconds
 			serviceSizingPolicy["percentile"] = formatFloat32ToFloat64(policy.Percentile)
 			serviceSizingPolicy["post_scale_up_cooldown_seconds"] = policy.PostScaleUpCooldownSeconds
@@ -811,6 +816,7 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 				jsonData, _ := json.Marshal(serviceSizingPolicyMap)
 				_ = json.Unmarshal(jsonData, &payload)
 				payload.Autoscaling = &autoscaling
+				payload.SetScalingEnabled(true)
 
 				_, err = client.ServiceSizingPoliciesAPI.UpdateServiceSizingPolicy(ctx, serviceId).UpdateServiceSizingPolicyRequest(*payload).Execute()
 			} else {

@@ -230,6 +230,7 @@ func TestAccResourceApp_updateautoscalingPolicy(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.min_containers", "2"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.scaling_enabled", "true"),
 					),
 				},
 				{
@@ -240,6 +241,7 @@ func TestAccResourceApp_updateautoscalingPolicy(t *testing.T) {
 				{
 					Config: testAccAptibleAppUpdateautoscalingPolicy(rHandle),
 					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.scaling_enabled", "true"),
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "vertical"),
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.mem_scale_down_threshold", "0.6"),
 					),
