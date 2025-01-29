@@ -190,6 +190,52 @@ func TestAccResourceApp_scaleDown(t *testing.T) {
 	})
 }
 
+func TestAccResourceApp_autoscalingDisabledThenEnabled(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleAppDeploy(rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
+							"force_zero_downtime": "true",
+							"simple_health_check": "true",
+						}),
+					),
+				},
+				{
+					ResourceName:      "aptible_app.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+				{
+					Config: testAccAptibleAppautoscalingPolicy(rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.min_containers", "2"),
+					),
+				},
+				{
+					ResourceName:      "aptible_app.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+}
+
 func TestAccResourceApp_autoscalingPolicy(t *testing.T) {
 	rHandle := acctest.RandString(10)
 

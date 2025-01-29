@@ -782,10 +782,12 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 		}
 
 		// no policy in the schema but policy exists in deploy-api? delete
-		if len(schemaPolicies) == 0 && policy != nil {
-			_, err = client.ServiceSizingPoliciesAPI.DeleteServiceSizingPolicy(ctx, serviceId).Execute()
-			if err != nil {
-				return fmt.Errorf("failed to delete autoscaling policy for service %s: %w", serviceName, err)
+		if len(schemaPolicies) == 0 {
+			if policy != nil {
+				_, err = client.ServiceSizingPoliciesAPI.DeleteServiceSizingPolicy(ctx, serviceId).Execute()
+				if err != nil {
+					return fmt.Errorf("failed to delete autoscaling policy for service %s: %w", serviceName, err)
+				}
 			}
 			return nil
 		}
