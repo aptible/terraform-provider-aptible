@@ -332,7 +332,7 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Now that services exist and are scaled properly, let's see about creating any scaling policies we need
-	err = updateServiceSizingPolicy(context.Background(), d, meta, false)
+	err = updateServiceSizingPolicy(context.Background(), d, meta)
 	if err != nil {
 		return err
 	}
@@ -485,7 +485,7 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 	}
 
 	// Now that services are settled, go ahead and update scaling policy
-	err = updateServiceSizingPolicy(c, d, meta, true)
+	err = updateServiceSizingPolicy(c, d, meta)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -746,7 +746,7 @@ func getServiceSizingPolicyForService(serviceId int32, ctx context.Context, meta
 	return &policy, nil
 }
 
-func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}, update bool) error {
+func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*providerMetadata).Client
 	ctx = meta.(*providerMetadata).APIContext(ctx)
 	appID := int32(d.Get("app_id").(int))
@@ -763,91 +763,91 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 
 		oldPolicies := serviceMap["service_sizing_policy"].(*schema.Set).List()
 		newPolicies := serviceMap["autoscaling_policy"].(*schema.Set).List()
-		var policies []interface{}
-		ok := false
+		var schemaPolicies []interface{}
 		if len(newPolicies) > 0 {
-			policies = newPolicies
-			ok = true
+			schemaPolicies = newPolicies
 		} else if len(oldPolicies) > 0 {
-			policies = oldPolicies
-			ok = true
+			schemaPolicies = oldPolicies
 		}
 
-		if ok {
-			// There's only ever one policy, but we have to model this as a list
-			serviceSizingPolicyMap := policies[0].(map[string]interface{})
+		serviceId, err := getServiceIdForAppByName(ctx, meta, appID, serviceName)
+		if err != nil {
+			return err
+		}
 
-			serviceId, err := getServiceIdForAppByName(ctx, meta, appID, serviceName)
+		policy, err := getServiceSizingPolicyForService(serviceId, ctx, meta)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		// no policy in the schema but policy exists in deploy-api? delete
+		if len(schemaPolicies) == 0 && policy != nil {
+			_, err = client.ServiceSizingPoliciesAPI.DeleteServiceSizingPolicy(ctx, serviceId).Execute()
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to delete autoscaling policy for service %s: %w", serviceName, err)
 			}
+			return nil
+		}
 
-			autoscaling := serviceSizingPolicyMap["autoscaling_type"].(string)
-			delete(serviceSizingPolicyMap, "autoscaling_type")
-			if autoscaling == "horizontal" {
+		// There's only ever one policy, but we have to model this as a list
+		serviceSizingPolicyMap := schemaPolicies[0].(map[string]interface{})
+
+		autoscaling := serviceSizingPolicyMap["autoscaling_type"].(string)
+		delete(serviceSizingPolicyMap, "autoscaling_type")
+		if autoscaling == "horizontal" {
+			delete(serviceSizingPolicyMap, "maximum_memory")
+		} else if autoscaling == "vertical" {
+			// First, remove values without defaults that aren't used in VAS
+			delete(serviceSizingPolicyMap, "min_containers")
+			delete(serviceSizingPolicyMap, "max_containers")
+			delete(serviceSizingPolicyMap, "min_cpu_threshold")
+			delete(serviceSizingPolicyMap, "max_cpu_threshold")
+			// Now ensure other values are actually set
+			if serviceSizingPolicyMap["maximum_memory"] == 0 {
 				delete(serviceSizingPolicyMap, "maximum_memory")
-			} else if autoscaling == "vertical" {
-				// First, remove values without defaults that aren't used in VAS
-				delete(serviceSizingPolicyMap, "min_containers")
-				delete(serviceSizingPolicyMap, "max_containers")
-				delete(serviceSizingPolicyMap, "min_cpu_threshold")
-				delete(serviceSizingPolicyMap, "max_cpu_threshold")
-				// Now ensure other values are actually set
-				if serviceSizingPolicyMap["maximum_memory"] == 0 {
-					delete(serviceSizingPolicyMap, "maximum_memory")
+			}
+		}
+		// Get rid of anything marked as `0` since that is what terraform sets things not set by the user
+		// Also, 0 is not a valid value for any of ServiceSizingPolicy attributes
+		for key, value := range serviceSizingPolicyMap {
+			switch v := value.(type) {
+			case int:
+				if v == 0 {
+					delete(serviceSizingPolicyMap, key)
+				}
+			case float64:
+				if v == 0 {
+					delete(serviceSizingPolicyMap, key)
 				}
 			}
-			// Get rid of anything marked as `0` since that is what terraform sets things not set by the user
-			// Also, 0 is not a valid value for any of ServiceSizingPolicy attributes
-			for key, value := range serviceSizingPolicyMap {
-				switch v := value.(type) {
-				case int:
-					if v == 0 {
-						delete(serviceSizingPolicyMap, key)
-					}
-				case float64:
-					if v == 0 {
-						delete(serviceSizingPolicyMap, key)
-					}
-				}
-			}
-			if update {
-				payload := aptibleapi.NewUpdateServiceSizingPolicyRequest()
-				jsonData, _ := json.Marshal(serviceSizingPolicyMap)
-				_ = json.Unmarshal(jsonData, &payload)
-				payload.Autoscaling = &autoscaling
-				payload.SetScalingEnabled(true)
+		}
 
-				_, err = client.ServiceSizingPoliciesAPI.UpdateServiceSizingPolicy(ctx, serviceId).UpdateServiceSizingPolicyRequest(*payload).Execute()
-			} else {
-				payload := aptibleapi.NewCreateServiceSizingPolicyRequest()
-				jsonData, _ := json.Marshal(serviceSizingPolicyMap)
-				_ = json.Unmarshal(jsonData, &payload)
-				payload.Autoscaling = &autoscaling
+		if policy == nil {
+			payload := aptibleapi.NewCreateServiceSizingPolicyRequest()
+			jsonData, _ := json.Marshal(serviceSizingPolicyMap)
+			_ = json.Unmarshal(jsonData, &payload)
+			payload.Autoscaling = &autoscaling
 
-				_, err = client.ServiceSizingPoliciesAPI.CreateServiceSizingPolicy(ctx, serviceId).CreateServiceSizingPolicyRequest(*payload).Execute()
-			}
-			if err != nil {
-				return fmt.Errorf("failed to create autoscaling policy for service %s: %w", serviceName, err)
-			}
-		} else if update {
-			serviceId, err := getServiceIdForAppByName(ctx, meta, appID, serviceName)
-			if err != nil {
-				return err
-			}
-			// In order to delete, we must first see if there's one associated on the API, otherwise we get an error
-			policy, err := getServiceSizingPolicyForService(serviceId, ctx, meta)
-			if err != nil {
-				log.Println(err)
-				return err
-			}
-			if policy != nil {
-				// Now delete
-				_, err = client.ServiceSizingPoliciesAPI.DeleteServiceSizingPolicy(ctx, serviceId).Execute()
-				if err != nil {
-					return fmt.Errorf("failed to delete autoscaling policy for service %s: %w", serviceName, err)
-				}
-			}
+			_, err = client.ServiceSizingPoliciesAPI.
+				CreateServiceSizingPolicy(ctx, serviceId).
+				CreateServiceSizingPolicyRequest(*payload).
+				Execute()
+		} else {
+			payload := aptibleapi.NewUpdateServiceSizingPolicyRequest()
+			jsonData, _ := json.Marshal(serviceSizingPolicyMap)
+			_ = json.Unmarshal(jsonData, &payload)
+			payload.Autoscaling = &autoscaling
+			payload.SetScalingEnabled(true)
+
+			_, err = client.ServiceSizingPoliciesAPI.
+				UpdateServiceSizingPolicy(ctx, serviceId).
+				UpdateServiceSizingPolicyRequest(*payload).
+				Execute()
+		}
+
+		if err != nil {
+			return fmt.Errorf("failed to create autoscaling policy for service %s: %w", serviceName, err)
 		}
 	}
 	return nil
