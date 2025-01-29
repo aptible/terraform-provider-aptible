@@ -781,8 +781,9 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 			return err
 		}
 
-		// no policy in the schema but policy exists in deploy-api? delete
+		// no policy in the schema
 		if len(schemaPolicies) == 0 {
+			// policy exists in deploy-api? delete
 			if policy != nil {
 				_, err = client.ServiceSizingPoliciesAPI.DeleteServiceSizingPolicy(ctx, serviceId).Execute()
 				if err != nil {
