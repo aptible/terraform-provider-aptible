@@ -158,7 +158,7 @@ resource "aptible_app" "APP" {
         autoscaling_policy {
             autoscaling_type = "horizontal"
             min_containers = 2
-            max_container = 5
+            max_containers = 5
             min_cpu_threshold = 0.4
             max_cpu_threshold = 0.8
         }
