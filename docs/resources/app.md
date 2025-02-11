@@ -95,8 +95,7 @@ The `autoscaling_policy` block supports:
  scale-up before another scaling action can be considered.
 - `post_scale_down_cooldown_seconds` - (Default: 300) The waiting period in seconds after an automated
  scale-down before another scaling action can be considered.
-- `post_release_cooldown_seconds` - (Default: 300) The time in seconds to wait following a
-  deploy before another scaling action can be considered.
+- `post_release_cooldown_seconds` - (Default: 60) The time in seconds to ignore in metrics following a deploy to allow for service stabilization.
 - `mem_cpu_ratio_r_threshold` - (Default: 4.0) Establishes the ratio of Memory (in GB) to CPU (in CPUs)
   at which values exceeding the threshold prompt a shift to an R (Memory Optimized) profile.
 - `mem_cpu_ratio_c_threshold` - (Default: 2.0) Sets the Memory-to-CPU ratio threshold,
