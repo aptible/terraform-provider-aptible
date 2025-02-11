@@ -150,8 +150,8 @@ func resourceServiceSizingPolicy() *schema.Resource {
 			"post_release_cooldown_seconds": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     300,
-				Description: "Cooldown period in seconds after a release event.",
+				Default:     60,
+				Description: "Seconds to ignore in metrics after a release event.",
 			},
 			"mem_cpu_ratio_r_threshold": {
 				Type:     schema.TypeFloat,
