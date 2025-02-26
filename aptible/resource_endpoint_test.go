@@ -239,6 +239,48 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 	})
 }
 
+func TestAccResourceEndpoint_provisionFailure(t *testing.T) {
+	// Test that if the endpoint provision fails, subsequent applys will replace
+	// the "tainted" resource
+	appHandle := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAptibleEndpointProvisionFailure(appHandle),
+				ExpectError: regexp.MustCompile(`fail.*provision`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_endpoint.test", "env_id"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "domain", "www.aptible-test-demo.fake"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
+					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "virtual_domain", "www.aptible-test-demo.fake"),
+					resource.TestMatchResourceAttr("aptible_endpoint.test", "external_hostname", regexp.MustCompile(`elb.*`)),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "dns_validation_record", "_acme-challenge.www.aptible-test-demo.fake"),
+					resource.TestMatchResourceAttr("aptible_endpoint.test", "dns_validation_value", regexp.MustCompile(`acme\.elb.*`)),
+
+					checkTainted("aptible_endpoint.test"),
+				),
+			},
+			{
+				ResourceName:      "aptible_endpoint.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccResourceEndpoint_expectError(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -540,6 +582,45 @@ func testAccAptibleEndpointUpdateIPWhitelist(appHandle string) string {
 		ip_filtering = [
 			"1.1.1.1/32",
 		]
+	}
+`, appHandle, testOrganizationId, testStackId, appHandle)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointProvisionFailure(appHandle string) string {
+	// Use a bad port to make the provision operation fail
+	output := fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "nginx"
+		}
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+		}
+	}
+
+	resource "aptible_endpoint" "test" {
+		env_id = aptible_environment.test.env_id
+		resource_id = aptible_app.test.app_id
+		resource_type = "app"
+		process_type = "cmd"
+		endpoint_type = "https"
+		managed = true
+		domain = "www.aptible-test-demo.fake"
+		internal = true
+		platform = "alb"
+		container_port = 666
 	}
 `, appHandle, testOrganizationId, testStackId, appHandle)
 	log.Println("HCL generated: ", output)

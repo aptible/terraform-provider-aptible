@@ -12,14 +12,15 @@ To create an app:
 
 Whenever a change is made:
 
-- Build the plugin: `go build -o terraform-provider-aptible`
+- Install the plugin locally: `make local-install`
 - Initialize the plugin: `terraform init`
+  - Your old provider lockfile may need to be removed: `rm .terraform.lock.hcl`
 - See what changes will be made: `terraform plan`
 - Apply the changes: `terraform apply`
 
 ## Manual Installation
 
-If you are using a Terraform version that cannot install the provider from the registry, 
+If you are using a Terraform version that cannot install the provider from the registry,
 then you may attempt a local installation. However, we do not test this process and cannot
 ensure it works.
 
