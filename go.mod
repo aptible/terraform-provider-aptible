@@ -5,7 +5,7 @@ go 1.22.0
 toolchain go1.23.1
 
 require (
-	github.com/aptible/aptible-api-go v0.5.0
+	github.com/aptible/aptible-api-go v0.5.1-0.20250227155234-eff4b3c7cee7
 	github.com/aptible/go-deploy v0.5.4
 	github.com/bflad/tfproviderdocs v0.9.1
 	github.com/bflad/tfproviderlint v0.28.1

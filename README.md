@@ -18,6 +18,30 @@ Whenever a change is made:
 - See what changes will be made: `terraform plan`
 - Apply the changes: `terraform apply`
 
+### Testing with an unreleased version of aptible-api-go
+
+To switch to an unreleased version of `aptible-api-go`, run:
+
+```shell
+go get github.com/aptible/aptible-api-go@COMMIT
+go mod vendor
+```
+
+replacing `COMMIT` with the commit you want to test. The specified version will
+be pulled and you can start testing with it. A branch or tag can be used instead
+of a commit, however, if the branch or tag is updated, go will cache the
+download and subsequent `go get` commands will not update the package.
+
+When testing is complete and the new version of the package is release, `go.mod`
+can be updated with the desired version, then:
+
+```shell
+go mod tidy
+go mod vendor
+```
+
+will pull the correct package version and update the vendored packages.
+
 ## Manual Installation
 
 If you are using a Terraform version that cannot install the provider from the registry,

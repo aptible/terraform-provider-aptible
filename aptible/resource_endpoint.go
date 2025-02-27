@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
@@ -242,37 +243,32 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 		return generateDiagnosticsFromClientError(err)
 	}
 
-	internal := d.Get("internal").(bool)
-	port := int32(d.Get("container_port").(int))
-	platform := d.Get("platform").(string)
+	attrs := aptibleapi.NewCreateVhostRequest(endpointType)
+	attrs.SetInternal(d.Get("internal").(bool))
+	attrs.SetContainerPort(int32(d.Get("container_port").(int)))
+	attrs.SetContainerPorts(containerPorts)
+	attrs.SetIpWhitelist(ipWhitelist)
+	attrs.SetPlatform(d.Get("platform").(string))
+	attrs.SetDefault(defaultDomain)
+	attrs.SetAcme(managed)
 
-	attrs := aptibleapi.CreateVhostRequest{
-		Type:           endpointType,
-		Internal:       &internal,
-		ContainerPort:  &port,
-		ContainerPorts: containerPorts,
-		IpWhitelist:    ipWhitelist,
-		Platform:       &platform,
-		Default:        &defaultDomain,
-		Acme:           &managed,
-	}
 	if domain != "" {
-		attrs.UserDomain = &domain
+		attrs.SetUserDomain(domain)
 	}
 
 	endpoint, _, err := client.VhostsAPI.
 		CreateVhost(ctx, int32(service.ID)).
-		CreateVhostRequest(attrs).
+		CreateVhostRequest(*attrs).
 		Execute()
 	if err != nil {
 		return append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Error creating endpoint",
+			Summary:  "Failed to create endpoint",
 			Detail:   err.Error(),
 		})
 	}
 
-	payload := aptibleapi.NewCreateOperationRequest("Provision")
+	payload := aptibleapi.NewCreateOperationRequest("provision")
 	operation, _, err := client.OperationsAPI.
 		CreateOperationForVhost(ctx, endpoint.Id).
 		CreateOperationRequest(*payload).
@@ -280,7 +276,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	if err != nil {
 		return append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Error creating endpoint",
+			Summary:  "Failed to create endpoint",
 			Detail:   err.Error(),
 		})
 	}
@@ -293,7 +289,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 		// Do not return here so that the read method can hydrate the state
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Error provisioning new endpoint %d", endpoint.Id),
+			Summary:  fmt.Sprintf("Failed to provision new endpoint %d", endpoint.Id),
 			Detail:   err.Error(),
 		})
 	}
@@ -308,46 +304,71 @@ func resourceEndpointImport(ctx context.Context, d *schema.ResourceData, meta in
 	return []*schema.ResourceData{d}, diagnosticsToError(diags)
 }
 
-func resourceEndpointRead(_ context.Context, d *schema.ResourceData, meta interface{}) (diags diag.Diagnostics) {
-	client := meta.(*providerMetadata).LegacyClient
-	endpointID := int64(d.Get("endpoint_id").(int))
+func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta interface{}) (diags diag.Diagnostics) {
+	m := meta.(*providerMetadata)
+	client := m.Client
+	ctx = m.APIContext(ctx)
+	diags = diag.Diagnostics{}
+	endpointID := int32(d.Get("endpoint_id").(int))
 
-	endpoint, err := client.GetEndpoint(endpointID)
-	if err != nil {
-		log.Println(err)
-		return generateDiagnosticsFromClientError(err)
-	}
-	if endpoint.Deleted {
+	endpoint, resp, err := client.VhostsAPI.GetVhost(ctx, endpointID).Execute()
+	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		log.Printf("Endpoint with ID: %d was deleted outside of Terraform. Removing it from Terraform state.", endpointID)
 		return nil
 	}
-
-	service := endpoint.Service
-	if service.ResourceType == "app" {
-		_ = d.Set("container_port", endpoint.ContainerPort)
-		_ = d.Set("container_ports", endpoint.ContainerPorts)
-		_ = d.Set("platform", endpoint.Platform)
-		_ = d.Set("process_type", endpoint.Service.ProcessType)
+	if err != nil {
+		return append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  fmt.Sprintf("Failed to fetch endpoint with ID %d", endpointID),
+			Detail:   err.Error(),
+		})
 	}
 
-	_ = d.Set("resource_type", endpoint.Service.ResourceType)
-	_ = d.Set("ip_filtering", endpoint.IPWhitelist)
-	_ = d.Set("env_id", endpoint.Service.EnvironmentID)
-	_ = d.Set("resource_id", endpoint.Service.ResourceID)
-	_ = d.Set("endpoint_type", endpoint.Type)
-	_ = d.Set("default_domain", endpoint.Default)
-	_ = d.Set("managed", endpoint.Acme)
-	_ = d.Set("domain", endpoint.UserDomain)
-	_ = d.Set("virtual_domain", endpoint.VirtualDomain)
-	_ = d.Set("internal", endpoint.Internal)
-	_ = d.Set("ip_filtering", endpoint.IPWhitelist)
-	_ = d.Set("platform", endpoint.Platform)
-	_ = d.Set("endpoint_id", endpoint.ID)
-	_ = d.Set("external_hostname", endpoint.ExternalHost)
+	serviceID := ExtractIdFromLink(endpoint.Links.Service.GetHref())
 
-	for _, c := range endpoint.AcmeChallenges {
-		if c.Method != "dns01" {
+	service, _, err := client.ServicesAPI.GetService(ctx, serviceID).Execute()
+	if err != nil {
+		return append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  fmt.Sprintf("Failed to fetch service %d for endpoint %d", serviceID, endpointID),
+			Detail:   err.Error(),
+		})
+	}
+
+	var resourceType string
+	var resourceID int32
+
+	// If there's an app link, it's an app service
+	if service.Links.App != nil {
+		resourceType = "App"
+		resourceID = ExtractIdFromLink(service.Links.App.GetHref())
+		_ = d.Set("container_port", endpoint.GetContainerPort())
+		_ = d.Set("container_ports", endpoint.GetContainerPorts())
+		_ = d.Set("platform", endpoint.GetPlatform())
+		_ = d.Set("process_type", service.GetProcessType())
+	} else {
+		resourceType = "Database"
+		resourceID = ExtractIdFromLink(service.Links.Database.GetHref())
+	}
+
+	_ = d.Set("endpoint_id", endpoint.GetId())
+	_ = d.Set("resource_type", resourceType)
+	_ = d.Set("ip_filtering", endpoint.GetIpWhitelist())
+	_ = d.Set("env_id", ExtractIdFromLink(service.Links.Account.GetHref()))
+	_ = d.Set("resource_id", resourceID)
+	_ = d.Set("endpoint_type", endpoint.GetType())
+	_ = d.Set("default_domain", endpoint.GetDefault())
+	_ = d.Set("managed", endpoint.GetAcme())
+	_ = d.Set("domain", endpoint.GetUserDomain())
+	_ = d.Set("virtual_domain", endpoint.GetVirtualDomain())
+	_ = d.Set("internal", endpoint.GetInternal())
+	_ = d.Set("ip_filtering", endpoint.GetIpWhitelist())
+	_ = d.Set("platform", endpoint.GetPlatform())
+	_ = d.Set("external_hostname", endpoint.GetExternalHost())
+
+	for _, c := range endpoint.GetAcmeConfiguration().Challenges {
+		if c.GetMethod() != "dns01" {
 			continue
 		}
 		_ = d.Set("dns_validation_record", c.From)

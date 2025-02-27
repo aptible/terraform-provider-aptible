@@ -251,7 +251,7 @@ func TestAccResourceEndpoint_provisionFailure(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccAptibleEndpointProvisionFailure(appHandle),
-				ExpectError: regexp.MustCompile(`fail.*provision`),
+				ExpectError: regexp.MustCompile(`(?i)fail.*provision`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
 					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
