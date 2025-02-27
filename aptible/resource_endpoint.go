@@ -245,12 +245,18 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 
 	attrs := aptibleapi.NewCreateVhostRequest(endpointType)
 	attrs.SetInternal(d.Get("internal").(bool))
-	attrs.SetContainerPort(int32(d.Get("container_port").(int)))
-	attrs.SetContainerPorts(containerPorts)
 	attrs.SetIpWhitelist(ipWhitelist)
 	attrs.SetPlatform(d.Get("platform").(string))
 	attrs.SetDefault(defaultDomain)
 	attrs.SetAcme(managed)
+
+	containerPort := int32(d.Get("container_port").(int))
+
+	if endpointType == "tcp" {
+		attrs.SetContainerPorts(containerPorts)
+	} else if containerPort != 0 {
+		attrs.SetContainerPort(containerPort)
+	}
 
 	if domain != "" {
 		attrs.SetUserDomain(domain)
@@ -336,28 +342,37 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 		})
 	}
 
+	endpointType, err := aptible.GetHumanReadableEndpointType(endpoint.GetType())
+	if err != nil {
+		return append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to get endpoint type",
+			Detail:   err.Error(),
+		})
+	}
+
 	var resourceType string
 	var resourceID int32
 
 	// If there's an app link, it's an app service
 	if service.Links.App != nil {
-		resourceType = "App"
+		resourceType = "app"
 		resourceID = ExtractIdFromLink(service.Links.App.GetHref())
 		_ = d.Set("container_port", endpoint.GetContainerPort())
 		_ = d.Set("container_ports", endpoint.GetContainerPorts())
 		_ = d.Set("platform", endpoint.GetPlatform())
 		_ = d.Set("process_type", service.GetProcessType())
 	} else {
-		resourceType = "Database"
+		resourceType = "database"
 		resourceID = ExtractIdFromLink(service.Links.Database.GetHref())
 	}
 
 	_ = d.Set("endpoint_id", endpoint.GetId())
+	_ = d.Set("endpoint_type", endpointType)
 	_ = d.Set("resource_type", resourceType)
 	_ = d.Set("ip_filtering", endpoint.GetIpWhitelist())
 	_ = d.Set("env_id", ExtractIdFromLink(service.Links.Account.GetHref()))
 	_ = d.Set("resource_id", resourceID)
-	_ = d.Set("endpoint_type", endpoint.GetType())
 	_ = d.Set("default_domain", endpoint.GetDefault())
 	_ = d.Set("managed", endpoint.GetAcme())
 	_ = d.Set("domain", endpoint.GetUserDomain())
@@ -368,11 +383,36 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 	_ = d.Set("external_hostname", endpoint.GetExternalHost())
 
 	for _, c := range endpoint.GetAcmeConfiguration().Challenges {
+		// Skip non-DNS challenges
 		if c.GetMethod() != "dns01" {
 			continue
 		}
-		_ = d.Set("dns_validation_record", c.From)
-		_ = d.Set("dns_validation_value", c.To)
+
+		// Skip if we're missing critical info
+		if c.From == nil || c.To == nil {
+			continue
+		}
+
+		var toName *string
+		for _, to := range c.To {
+			if to.GetLegacy() {
+				// Skip deprecated challenges
+				continue
+			}
+			toName = to.Name
+
+			if toName != nil {
+				// We only need the first valid entry
+				break
+			}
+		}
+
+		if toName == nil {
+			return
+		}
+
+		_ = d.Set("dns_validation_record", c.From.GetName())
+		_ = d.Set("dns_validation_value", *toName)
 		break
 	}
 

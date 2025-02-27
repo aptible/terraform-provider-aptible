@@ -243,6 +243,7 @@ func TestAccResourceEndpoint_provisionFailure(t *testing.T) {
 	// Test that if the endpoint provision fails, subsequent applys will replace
 	// the "tainted" resource
 	appHandle := acctest.RandString(10)
+	config := testAccAptibleEndpointBadPort(appHandle)
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -250,27 +251,12 @@ func TestAccResourceEndpoint_provisionFailure(t *testing.T) {
 		CheckDestroy: testAccCheckEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccAptibleEndpointProvisionFailure(appHandle),
-				ExpectError: regexp.MustCompile(`(?i)fail.*provision`),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
-					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
-					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
-					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
-
-					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_endpoint.test", "env_id"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "true"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "domain", "www.aptible-test-demo.fake"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
-					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "virtual_domain", "www.aptible-test-demo.fake"),
-					resource.TestMatchResourceAttr("aptible_endpoint.test", "external_hostname", regexp.MustCompile(`elb.*`)),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "dns_validation_record", "_acme-challenge.www.aptible-test-demo.fake"),
-					resource.TestMatchResourceAttr("aptible_endpoint.test", "dns_validation_value", regexp.MustCompile(`acme\.elb.*`)),
-
-					checkTainted("aptible_endpoint.test"),
-				),
+				Config:      config,
+				ExpectError: regexp.MustCompile(`(?i)fail.*provision.*endpoint`),
+				// Check does not appear to work with ExpectError so we cannot use it to
+				// verify that the resource is tainted but we can use an ImportState
+				// step to verify that the resource was indeed saved to the state and
+				// error + in state = tainted
 			},
 			{
 				ResourceName:      "aptible_endpoint.test",
@@ -588,7 +574,7 @@ func testAccAptibleEndpointUpdateIPWhitelist(appHandle string) string {
 	return output
 }
 
-func testAccAptibleEndpointProvisionFailure(appHandle string) string {
+func testAccAptibleEndpointBadPort(appHandle string) string {
 	// Use a bad port to make the provision operation fail
 	output := fmt.Sprintf(`
 	resource "aptible_environment" "test" {
