@@ -39,14 +39,22 @@ Whenever a change is made:
 
 ### Testing with an unreleased version of aptible-api-go
 
-To switch to an unreleased version of `aptible-api-go`, run:
+The `redirect` directive can be used in `go.mod` to redirect to a local checkout
+of the client:
+
+```
+replace github.com/aptible/aptible-api-go => ../aptible-api-go
+```
+
+Alternatively, an unreleased version of `aptible-api-go` can be checked out from
+the repo by running:
 
 ```shell
 go get github.com/aptible/aptible-api-go@COMMIT
 go mod vendor
 ```
 
-replacing `COMMIT` with the commit you want to test. The specified version will
+Replacing `COMMIT` with the commit you want to test. The specified version will
 be pulled and you can start testing with it. A branch or tag can be used instead
 of a commit, however, if the branch or tag is updated, go will cache the
 download and subsequent `go get` commands will not update the package.

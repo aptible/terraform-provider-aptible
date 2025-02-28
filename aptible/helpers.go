@@ -2,6 +2,7 @@ package aptible
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 )
 
@@ -17,7 +18,7 @@ func makeStringSlice(interfaceSlice []interface{}) ([]string, error) {
 	return strSlice, nil
 }
 
-// makes a in32 slice out of a slice of type interface
+// makes a int32 slice out of a slice of type interface
 func makeInt32Slice(interfaceSlice []interface{}) ([]int32, error) {
 	int32Slice := make([]int32, len(interfaceSlice))
 
@@ -27,12 +28,26 @@ func makeInt32Slice(interfaceSlice []interface{}) ([]int32, error) {
 		if kind == reflect.Int32 {
 			int32Slice[i] = interfaceSlice[i].(int32)
 		} else if kind == reflect.Int {
-			int32Slice[i] = int32(interfaceSlice[i].(int))
+			num := interfaceSlice[i].(int)
+			if fitsInt32(num) {
+				int32Slice[i] = int32(num)
+			} else {
+				return []int32{}, fmt.Errorf("slice contains int elements larger than 32 bits: %d", num)
+			}
 		} else if kind == reflect.Int64 {
-			int32Slice[i] = int32(interfaceSlice[i].(int64))
+			num := interfaceSlice[i].(int64)
+			if fitsInt32(num) {
+				int32Slice[i] = int32(num)
+			} else {
+				return []int32{}, fmt.Errorf("slice contains int elements larger than 32 bits: %d", num)
+			}
 		} else {
 			return []int32{}, fmt.Errorf("slice contains non-int elements")
 		}
 	}
 	return int32Slice, nil
+}
+
+func fitsInt32[T ~int | ~int64](val T) bool {
+	return val >= math.MinInt32 && val <= math.MaxInt32
 }
