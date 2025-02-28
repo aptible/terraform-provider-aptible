@@ -14,7 +14,7 @@ import (
 
 func resourceReplica() *schema.Resource {
 	return &schema.Resource{
-		Create:        resourceReplicaCreate, // POST
+		CreateContext: resourceReplicaCreate, // POST
 		Read:          resourceReplicaRead,   // GET
 		UpdateContext: resourceReplicaUpdate, // PUT
 		Delete:        resourceReplicaDelete, // DELETE
@@ -79,9 +79,13 @@ func resourceReplica() *schema.Resource {
 	}
 }
 
-func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).Client
-	legacy := meta.(*providerMetadata).LegacyClient
+func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	m := meta.(*providerMetadata)
+	legacy := m.LegacyClient
+	client := m.Client
+	ctx = m.APIContext(ctx)
+	diags := diag.Diagnostics{}
+
 	handle := d.Get("handle").(string)
 	databaseID := int32(d.Get("primary_database_id").(int))
 	iops := int32(d.Get("iops").(int))
@@ -90,8 +94,6 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 	profile := d.Get("container_profile").(string)
 	enableBackups := d.Get("enable_backups").(bool)
 	envID := int32(d.Get("env_id").(int))
-	ctx := context.Background()
-	ctx = meta.(*providerMetadata).APIContext(ctx)
 
 	payload := aptibleapi.NewCreateOperationRequest("replicate")
 	payload.SetHandle(handle)
@@ -115,40 +117,68 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 		CreateOperationRequest(*payload).
 		Execute()
 	if err != nil {
-		return err
+		return append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to create replicate operation",
+			Detail:   err.Error(),
+		})
 	}
 
 	deleted, err := legacy.WaitForOperation(int64(op.Id))
 	if err != nil {
-		return generateErrorFromClientError(err)
+		return append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to replicate database",
+			Detail:   err.Error(),
+		})
 	}
 	if deleted {
-		return fmt.Errorf("the replica with handle: %s was unexpectedly deleted", handle)
+		return append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to replicate database",
+			Detail:   fmt.Sprintf("The database with ID: %d was unexpectedly deleted", databaseID),
+		})
 	}
 
 	repl, err := legacy.GetReplicaFromHandle(int64(databaseID), handle)
 	if err != nil {
-		return generateErrorFromClientError(err)
+		return generateDiagnosticsFromClientError(err)
 	}
+
+	// At this point the replica exists and we should collect errors but not
+	// return them until the end of the method
 
 	operation := repl.Embedded.LastOperation
 	if operation == nil {
-		return fmt.Errorf("Could not find provision operation for replica database")
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Replica provision operation not found",
+		})
 	}
 	operationID := (*operation).ID
 	deleted, err = legacy.WaitForOperation(operationID)
 	if err != nil {
-		return generateErrorFromClientError(err)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to provision replica",
+			Detail:   err.Error(),
+		})
 	}
 	if deleted {
-		return fmt.Errorf("the replica with handle: %s was unexpectedly deleted", handle)
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to provision replica",
+			Detail:   fmt.Sprintf("the replica with handle: %s was unexpectedly deleted", handle),
+		})
 	}
 
 	_ = d.Set("replica_id", repl.ID)
 	d.SetId(strconv.Itoa(int(repl.ID)))
 
-	// Enable backups defaults to `true` in the backend so we only need to do something if it is being set to false.
-	// A replica is created in the backend via sweetness, so we need to wait until after the replication is complete to update the db object.
+	// Enable backups defaults to `true` in the backend so we only need to do
+	// something if it is being set to false.
+	// A replica is created in the backend via sweetness, so we need to wait until
+	// after the replication is complete to update the db object.
 	if !enableBackups {
 		_, err := client.
 			DatabasesAPI.
@@ -158,11 +188,15 @@ func resourceReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 			).
 			Execute()
 		if err != nil {
-			return err
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("Error disabling backups on replica with handle: %s", handle),
+				Detail:   err.Error(),
+			})
 		}
 	}
 
-	return resourceReplicaRead(d, meta)
+	return append(diags, diag.FromErr(resourceReplicaRead(d, meta))...)
 }
 
 func resourceReplicaImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {

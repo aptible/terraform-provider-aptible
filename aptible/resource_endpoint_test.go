@@ -275,43 +275,43 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccAptibleEndpointInvalidResourceType(),
-				ExpectError: regexp.MustCompile(`expected resource_type to be one of .*, got should-error`),
+				ExpectError: regexp.MustCompile(`(?i)expected resource_type to be one of .*, got should-error`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidEndpointType(),
-				ExpectError: regexp.MustCompile(`expected endpoint_type to be one of .*, got should-error`),
+				ExpectError: regexp.MustCompile(`(?i)expected endpoint_type to be one of .*, got should-error`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidPlatform(),
-				ExpectError: regexp.MustCompile(`expected platform to be one of .*, got should-error`),
+				ExpectError: regexp.MustCompile(`(?i)expected platform to be one of .*, got should-error`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidDomain(),
-				ExpectError: regexp.MustCompile(`managed endpoints must specify a domain`),
+				ExpectError: regexp.MustCompile(`(?i)managed endpoints must specify a domain`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidContainerPort(),
-				ExpectError: regexp.MustCompile(`expected container_port to be in the range \(1 \- 65535\)`),
+				ExpectError: regexp.MustCompile(`(?i)expected container_port to be in the range \(1 \- 65535\)`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidContainerPortOnTcp(),
-				ExpectError: regexp.MustCompile(`do not specify container port with a tls or tcp endpoint`),
+				ExpectError: regexp.MustCompile(`(?i)do not specify container port with a tls or tcp endpoint`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidContainerPortOnTls(),
-				ExpectError: regexp.MustCompile(`do not specify container port with a tls or tcp endpoint`),
+				ExpectError: regexp.MustCompile(`(?i)do not specify container port with a tls or tcp endpoint`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidContainerPorts(),
-				ExpectError: regexp.MustCompile(`expected container_ports.0 to be in the range \(1 \- 65535\)`),
+				ExpectError: regexp.MustCompile(`(?i)expected container_ports.0 to be in the range \(1 \- 65535\)`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidContainerPortsOnHttp(),
-				ExpectError: regexp.MustCompile(`do not specify container ports with https endpoint`),
+				ExpectError: regexp.MustCompile(`(?i)do not specify container ports with https endpoint`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidMultipleContainerPortFields(),
-				ExpectError: regexp.MustCompile(`do not specify container ports AND container port`),
+				ExpectError: regexp.MustCompile(`(?i)do not specify container ports AND container port`),
 			},
 		},
 	})
