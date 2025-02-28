@@ -14,6 +14,8 @@ import (
 )
 
 func resourceDatabase() *schema.Resource {
+	// Linter gets upset because of the mixed context and non-context methods
+	// lintignore:S024
 	return &schema.Resource{
 		CreateContext: resourceDatabaseCreate, // POST
 		Read:          resourceDatabaseRead,   // GET
@@ -141,8 +143,15 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 		CreateDatabaseRequest(*create).
 		Execute()
 	if err != nil {
-
+		return append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  fmt.Sprintf("Error creating database with handle: %s", handle),
+			Detail:   err.Error(),
+		})
 	}
+
+	_ = d.Set("database_id", db.Id)
+	d.SetId(strconv.Itoa(int(db.Id)))
 
 	payload := aptibleapi.NewCreateOperationRequest("provision")
 	if diskSize != 0 {
@@ -166,22 +175,19 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 	if err != nil {
 		return append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Failed to create datbaase",
+			Summary:  fmt.Sprintf("Error creating provision operation for database with handle: %s", handle),
 			Detail:   err.Error(),
 		})
-	}
-
-	_ = d.Set("database_id", db.Id)
-	d.SetId(strconv.Itoa(int(db.Id)))
-
-	_, err = legacy.WaitForOperation(int64(op.Id))
-	if err != nil {
-		// Do not return so that the read method can hydrate the state
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Error provisioning the new database",
-			Detail:   err.Error(),
-		})
+	} else {
+		_, err = legacy.WaitForOperation(int64(op.Id))
+		if err != nil {
+			// Do not return so that the read method can hydrate the state
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("Failed to provision database with handle: %s", handle),
+				Detail:   err.Error(),
+			})
+		}
 	}
 
 	return append(diags, diag.FromErr(resourceDatabaseRead(d, meta))...)

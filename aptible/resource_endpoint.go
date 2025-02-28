@@ -412,7 +412,7 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 		}
 
 		_ = d.Set("dns_validation_record", c.From.GetName())
-		_ = d.Set("dns_validation_value", *toName)
+		_ = d.Set("dns_validation_value", toName)
 		break
 	}
 

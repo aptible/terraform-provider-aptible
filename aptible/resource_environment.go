@@ -318,7 +318,7 @@ func readBackupRetentionPolicy(ctx context.Context, d *schema.ResourceData, meta
 	policyData["make_copy"] = policy.MakeCopy
 	policyData["keep_final"] = policy.KeepFinal
 
-	d.Set("backup_retention_policy", []map[string]interface{}{policyData})
+	_ = d.Set("backup_retention_policy", []map[string]interface{}{policyData})
 
 	return nil
 }

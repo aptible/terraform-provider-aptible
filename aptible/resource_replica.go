@@ -13,6 +13,8 @@ import (
 )
 
 func resourceReplica() *schema.Resource {
+	// Linter gets upset because of the mixed context and non-context methods
+	// lintignore:S024
 	return &schema.Resource{
 		CreateContext: resourceReplicaCreate, // POST
 		Read:          resourceReplicaRead,   // GET
@@ -145,8 +147,9 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return generateDiagnosticsFromClientError(err)
 	}
 
-	// At this point the replica exists and we should collect errors but not
-	// return them until the end of the method
+	// At this point the replica exists so it should be persisted in the state
+	_ = d.Set("replica_id", repl.ID)
+	d.SetId(strconv.Itoa(int(repl.ID)))
 
 	operation := repl.Embedded.LastOperation
 	if operation == nil {
@@ -154,6 +157,7 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 			Severity: diag.Error,
 			Summary:  "Replica provision operation not found",
 		})
+		return append(diags, diag.FromErr(resourceReplicaRead(d, meta))...)
 	}
 	operationID := (*operation).ID
 	deleted, err = legacy.WaitForOperation(operationID)
@@ -163,6 +167,7 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 			Summary:  "Failed to provision replica",
 			Detail:   err.Error(),
 		})
+		return append(diags, diag.FromErr(resourceReplicaRead(d, meta))...)
 	}
 	if deleted {
 		diags = append(diags, diag.Diagnostic{
@@ -170,10 +175,8 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 			Summary:  "Failed to provision replica",
 			Detail:   fmt.Sprintf("the replica with handle: %s was unexpectedly deleted", handle),
 		})
+		return append(diags, diag.FromErr(resourceReplicaRead(d, meta))...)
 	}
-
-	_ = d.Set("replica_id", repl.ID)
-	d.SetId(strconv.Itoa(int(repl.ID)))
 
 	// Enable backups defaults to `true` in the backend so we only need to do
 	// something if it is being set to false.
@@ -188,8 +191,14 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 			).
 			Execute()
 		if err != nil {
+			// Making this a warning as the resource is not broken so we don't want it
+			// to be tainted (replaced on next apply). Rather, allowing the create to
+			// complete will result in a non-empty plan after apply as hydrating the
+			// state using the read method will set enable_backups to true which is
+			// inconsistent with the desired state. Subsequent apply's will attempt to
+			// update the replica to match the desired state.
 			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
+				Severity: diag.Warning,
 				Summary:  fmt.Sprintf("Error disabling backups on replica with handle: %s", handle),
 				Detail:   err.Error(),
 			})
@@ -242,8 +251,8 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	containerSize := service.ContainerMemoryLimitMb.Get()
-	profile := service.InstanceClass
+	containerSize := service.GetContainerMemoryLimitMb()
+	profile := service.GetInstanceClass()
 	primaryDatabaseID := ExtractIdFromLink(database.Links.InitializeFrom.GetHref())
 
 	_ = d.Set("container_size", containerSize)
