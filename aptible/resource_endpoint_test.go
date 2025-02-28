@@ -239,6 +239,34 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 	})
 }
 
+func TestAccResourceEndpoint_provisionFailure(t *testing.T) {
+	// Test that if the endpoint provision fails, subsequent applys will replace
+	// the "tainted" resource
+	appHandle := acctest.RandString(10)
+	config := testAccAptibleEndpointBadPort(appHandle)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      config,
+				ExpectError: regexp.MustCompile(`(?i)fail.*provision.*endpoint`),
+				// Check does not appear to work with ExpectError so we cannot use it to
+				// verify that the resource is tainted but we can use an ImportState
+				// step to verify that the resource was indeed saved to the state and
+				// error + in state = tainted
+			},
+			{
+				ResourceName:      "aptible_endpoint.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccResourceEndpoint_expectError(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -247,43 +275,43 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccAptibleEndpointInvalidResourceType(),
-				ExpectError: regexp.MustCompile(`expected resource_type to be one of .*, got should-error`),
+				ExpectError: regexp.MustCompile(`(?i)expected resource_type to be one of .*, got should-error`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidEndpointType(),
-				ExpectError: regexp.MustCompile(`expected endpoint_type to be one of .*, got should-error`),
+				ExpectError: regexp.MustCompile(`(?i)expected endpoint_type to be one of .*, got should-error`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidPlatform(),
-				ExpectError: regexp.MustCompile(`expected platform to be one of .*, got should-error`),
+				ExpectError: regexp.MustCompile(`(?i)expected platform to be one of .*, got should-error`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidDomain(),
-				ExpectError: regexp.MustCompile(`managed endpoints must specify a domain`),
+				ExpectError: regexp.MustCompile(`(?i)managed endpoints must specify a domain`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidContainerPort(),
-				ExpectError: regexp.MustCompile(`expected container_port to be in the range \(1 \- 65535\)`),
+				ExpectError: regexp.MustCompile(`(?i)expected container_port to be in the range \(1 \- 65535\)`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidContainerPortOnTcp(),
-				ExpectError: regexp.MustCompile(`do not specify container port with a tls or tcp endpoint`),
+				ExpectError: regexp.MustCompile(`(?i)do not specify container port with a tls or tcp endpoint`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidContainerPortOnTls(),
-				ExpectError: regexp.MustCompile(`do not specify container port with a tls or tcp endpoint`),
+				ExpectError: regexp.MustCompile(`(?i)do not specify container port with a tls or tcp endpoint`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidContainerPorts(),
-				ExpectError: regexp.MustCompile(`expected container_ports.0 to be in the range \(1 \- 65535\)`),
+				ExpectError: regexp.MustCompile(`(?i)expected container_ports.0 to be in the range \(1 \- 65535\)`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidContainerPortsOnHttp(),
-				ExpectError: regexp.MustCompile(`do not specify container ports with https endpoint`),
+				ExpectError: regexp.MustCompile(`(?i)do not specify container ports with https endpoint`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidMultipleContainerPortFields(),
-				ExpectError: regexp.MustCompile(`do not specify container ports AND container port`),
+				ExpectError: regexp.MustCompile(`(?i)do not specify container ports AND container port`),
 			},
 		},
 	})
@@ -540,6 +568,45 @@ func testAccAptibleEndpointUpdateIPWhitelist(appHandle string) string {
 		ip_filtering = [
 			"1.1.1.1/32",
 		]
+	}
+`, appHandle, testOrganizationId, testStackId, appHandle)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointBadPort(appHandle string) string {
+	// Use a bad port to make the provision operation fail
+	output := fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "nginx"
+		}
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+		}
+	}
+
+	resource "aptible_endpoint" "test" {
+		env_id = aptible_environment.test.env_id
+		resource_id = aptible_app.test.app_id
+		resource_type = "app"
+		process_type = "cmd"
+		endpoint_type = "https"
+		managed = true
+		domain = "www.aptible-test-demo.fake"
+		internal = true
+		platform = "alb"
+		container_port = 666
 	}
 `, appHandle, testOrganizationId, testStackId, appHandle)
 	log.Println("HCL generated: ", output)

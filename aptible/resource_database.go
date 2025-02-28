@@ -14,8 +14,10 @@ import (
 )
 
 func resourceDatabase() *schema.Resource {
+	// Linter gets upset because of the mixed context and non-context methods
+	// lintignore:S024
 	return &schema.Resource{
-		Create:        resourceDatabaseCreate, // POST
+		CreateContext: resourceDatabaseCreate, // POST
 		Read:          resourceDatabaseRead,   // GET
 		UpdateContext: resourceDatabaseUpdate, // PUT
 		Delete:        resourceDatabaseDelete, // DELETE
@@ -98,9 +100,13 @@ func resourceDatabase() *schema.Resource {
 	}
 }
 
-func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).Client
-	legacy := meta.(*providerMetadata).LegacyClient
+func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	m := meta.(*providerMetadata)
+	legacy := m.LegacyClient
+	client := m.Client
+	ctx = m.APIContext(ctx)
+	diags := diag.Diagnostics{}
+
 	envID := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
 	version := d.Get("version").(string)
@@ -111,12 +117,7 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	containerSize := int32(d.Get("container_size").(int))
 	enableBackups := d.Get("enable_backups").(bool)
 
-	ctx := context.Background()
-	ctx = meta.(*providerMetadata).APIContext(ctx)
-
-	create := aptibleapi.NewCreateDatabaseRequestWithDefaults()
-	create.SetHandle(handle)
-	create.SetType(databaseType)
+	create := aptibleapi.NewCreateDatabaseRequest(handle, databaseType)
 
 	if diskSize != 0 {
 		create.SetInitialDiskSize(diskSize)
@@ -132,16 +133,25 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 		image, err := legacy.GetDatabaseImageByTypeAndVersion(databaseType, version)
 		if err != nil {
 			log.Println(err)
-			return generateErrorFromClientError(err)
+			return generateDiagnosticsFromClientError(err)
 		}
 		create.SetDatabaseImageId(int32(image.ID))
 	}
 
-	createDb := client.DatabasesAPI.CreateDatabase(ctx, int32(envID))
-	db, _, err := createDb.CreateDatabaseRequest(*create).Execute()
+	db, _, err := client.DatabasesAPI.
+		CreateDatabase(ctx, int32(envID)).
+		CreateDatabaseRequest(*create).
+		Execute()
 	if err != nil {
-		return err
+		return append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  fmt.Sprintf("Error creating database with handle: %s", handle),
+			Detail:   err.Error(),
+		})
 	}
+
+	_ = d.Set("database_id", db.Id)
+	d.SetId(strconv.Itoa(int(db.Id)))
 
 	payload := aptibleapi.NewCreateOperationRequest("provision")
 	if diskSize != 0 {
@@ -163,29 +173,32 @@ func resourceDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 		CreateOperationRequest(*payload).
 		Execute()
 	if err != nil {
-		return err
+		return append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  fmt.Sprintf("Error creating provision operation for database with handle: %s", handle),
+			Detail:   err.Error(),
+		})
+	} else {
+		_, err = legacy.WaitForOperation(int64(op.Id))
+		if err != nil {
+			// Do not return so that the read method can hydrate the state
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("Failed to provision database with handle: %s", handle),
+				Detail:   err.Error(),
+			})
+		}
 	}
 
-	del, err := legacy.WaitForOperation(int64(op.Id))
-	if err != nil {
-		return err
-	}
-	if del {
-		return fmt.Errorf("the replica with handle: %s was unexpectedly deleted", handle)
-	}
-
-	_ = d.Set("database_id", db.Id)
-
-	d.SetId(strconv.Itoa(int(db.Id)))
-	return resourceDatabaseRead(d, meta)
+	return append(diags, diag.FromErr(resourceDatabaseRead(d, meta))...)
 }
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).Client
+	m := meta.(*providerMetadata)
+	client := m.Client
+	ctx := m.APIContext(context.Background())
 	databaseID := int32(d.Get("database_id").(int))
-	ctx := context.Background()
-	ctx = meta.(*providerMetadata).APIContext(ctx)
 
 	database, resp, err := client.DatabasesAPI.GetDatabase(ctx, databaseID).Execute()
 	if resp.StatusCode == http.StatusNotFound {

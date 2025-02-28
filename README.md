@@ -10,16 +10,68 @@ To create an app:
 
 ## Developing the provider
 
+Create a `main.tf` file in the root of the project with the local provider
+defined:
+
+```
+terraform {
+  required_providers {
+    aptible = {
+      source  = "aptible.com/aptible/aptible"
+      version = "0.0.0+local"
+    }
+  }
+}
+
+# Add your resources below
+resource "aptible_environment" {
+  ...
+}
+```
+
 Whenever a change is made:
 
-- Build the plugin: `go build -o terraform-provider-aptible`
+- Install the plugin locally: `make local-install`
 - Initialize the plugin: `terraform init`
+  - Your old provider lockfile may need to be removed: `rm .terraform.lock.hcl`
 - See what changes will be made: `terraform plan`
 - Apply the changes: `terraform apply`
 
+### Testing with an unreleased version of aptible-api-go
+
+The `redirect` directive can be used in `go.mod` to redirect to a local checkout
+of the client:
+
+```
+replace github.com/aptible/aptible-api-go => ../aptible-api-go
+```
+
+Alternatively, an unreleased version of `aptible-api-go` can be checked out from
+the repo by running:
+
+```shell
+go get github.com/aptible/aptible-api-go@COMMIT
+go mod vendor
+```
+
+Replacing `COMMIT` with the commit you want to test. The specified version will
+be pulled and you can start testing with it. A branch or tag can be used instead
+of a commit, however, if the branch or tag is updated, go will cache the
+download and subsequent `go get` commands will not update the package.
+
+When testing is complete and the new version of the package is release, `go.mod`
+can be updated with the desired version, then:
+
+```shell
+go mod tidy
+go mod vendor
+```
+
+will pull the correct package version and update the vendored packages.
+
 ## Manual Installation
 
-If you are using a Terraform version that cannot install the provider from the registry, 
+If you are using a Terraform version that cannot install the provider from the registry,
 then you may attempt a local installation. However, we do not test this process and cannot
 ensure it works.
 
