@@ -10,6 +10,25 @@ To create an app:
 
 ## Developing the provider
 
+Create a `main.tf` file in the root of the project with the local provider
+defined:
+
+```
+terraform {
+  required_providers {
+    aptible = {
+      source  = "aptible.com/aptible/aptible"
+      version = "0.0.0+local"
+    }
+  }
+}
+
+# Add your resources below
+resource "aptible_environment" {
+  ...
+}
+```
+
 Whenever a change is made:
 
 - Install the plugin locally: `make local-install`
