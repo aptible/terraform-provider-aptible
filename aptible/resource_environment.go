@@ -200,7 +200,7 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta
 		client := meta.(*providerMetadata).LegacyClient
 
 		// First we need to run deprovision operations on any tail drains
-		log.Printf("Checking for an tail type log drain for environment ID: %d\n", envID)
+		log.Println("Checking for an tail type log drain for environment ID: ", envID)
 
 		resp, err := client.ListLogDrainsForAccount(envID)
 
@@ -216,12 +216,12 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta
 
 		drains := resp.Embedded.LogDrains
 		if len(drains) == 0 {
-			log.Printf("No log drains found")
+			log.Println("No log drains found")
 			return nil
 		} else {
 			for _, drain := range drains {
 				if drain.DrainType != "tail" {
-					log.Printf("Found drain of unexpected type: %d\n", drain.DrainType)
+					log.Println("Found drain of unexpected type: ", drain.DrainType)
 					return nil
 				}
 
