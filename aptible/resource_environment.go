@@ -198,6 +198,48 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta
 	if !readDiags.HasError() {
 		envID := int64(d.Get("env_id").(int))
 		client := meta.(*providerMetadata).LegacyClient
+
+		// First we need to run deprovision operations on any tail drains
+		log.Printf("Checking for an tail type log drain for environment ID: %d\n", envID)
+
+		resp, err := client.ListLogDrainsForAccount(envID)
+
+		if err != nil {
+			return diag.Diagnostics{
+				diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Error fetching log drains",
+					Detail:   err.Error(),
+				},
+			}
+		}
+
+		drains := resp.Embedded.LogDrains
+		if len(drains) == 0 {
+			log.Printf("No log drains found")
+			return nil
+		} else {
+			for _, drain := range drains {
+				if drain.DrainType != "tail" {
+					log.Printf("Found drain of unexpected type: %d\n", drain.DrainType)
+					return nil
+				}
+
+				deleted, err := client.DeleteLogDrain(drain.ID)
+
+				if deleted {
+					d.SetId("")
+					return nil
+				}
+
+				if err != nil {
+					log.Println("There was an error when completing the request to destroy the log drain.\n[ERROR] -", err)
+					return generateErrorFromClientError(err)
+				}
+			}
+		}
+
+		// Now we should be okay to delete the environment.
 		err := client.DeleteEnvironment(envID)
 		if err != nil {
 			log.Println("There was an error when completing the request to destroy the environment.\n[ERROR] -", err)
