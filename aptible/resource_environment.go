@@ -225,12 +225,7 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta
 					return nil
 				}
 
-				deleted, err := client.DeleteLogDrain(drain.ID)
-
-				if deleted {
-					d.SetId("")
-					return nil
-				}
+				_, err := client.DeleteLogDrain(drain.ID)
 
 				if err != nil {
 					log.Println("There was an error when completing the request to destroy the log drain.\n[ERROR] -", err)
