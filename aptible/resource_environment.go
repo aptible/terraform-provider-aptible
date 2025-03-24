@@ -202,14 +202,14 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta
 		// First we need to run deprovision operations on any tail drains
 		log.Println("Checking for an tail type log drain for environment ID: ", envID)
 
-		resp, err := client.ListLogDrainsForAccount(envID)
+		resp, listErr := client.ListLogDrainsForAccount(envID)
 
-		if err != nil {
+		if listErr != nil {
 			return diag.Diagnostics{
 				diag.Diagnostic{
 					Severity: diag.Error,
 					Summary:  "Error fetching log drains",
-					Detail:   err.Error(),
+					Detail:   listErr.Error(),
 				},
 			}
 		}
@@ -225,11 +225,11 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta
 					return nil
 				}
 
-				_, err := client.DeleteLogDrain(drain.ID)
+				_, drainErr := client.DeleteLogDrain(drain.ID)
 
-				if err != nil {
-					log.Println("There was an error when completing the request to destroy the log drain.\n[ERROR] -", err)
-					return generateErrorFromClientError(err)
+				if drainErr != nil {
+					log.Println("There was an error when completing the request to destroy the log drain.\n[ERROR] -", drainErr)
+					return generateDiagnosticsFromClientError(drainErr)
 				}
 			}
 		}
