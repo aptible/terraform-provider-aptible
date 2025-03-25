@@ -197,12 +197,13 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta
 	readDiags := resourceEnvironmentRead(ctx, d, meta)
 	if !readDiags.HasError() {
 		envID := int64(d.Get("env_id").(int))
-		client := meta.(*providerMetadata).LegacyClient
+		legacy := meta.(*providerMetadata).LegacyClient // go-delpoy
+		client := meta.(*providerMetadata).Client       // aptible-api-go
 
 		// First we need to run deprovision operations on any tail drains
 		log.Println("Checking for an tail type log drain for environment ID: ", envID)
 
-		resp, listErr := client.ListLogDrainsForAccount(envID)
+		resp, _, listErr := client.LogDrainsAPI.ListLogDrainsForAccount(ctx, int32(envID)).Execute()
 
 		if listErr != nil {
 			return diag.Diagnostics{
@@ -225,7 +226,7 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta
 					return nil
 				}
 
-				_, drainErr := client.DeleteLogDrain(drain.ID)
+				_, drainErr := legacy.DeleteLogDrain(int64(drain.Id))
 
 				if drainErr != nil {
 					log.Println("There was an error when completing the request to destroy the log drain.\n[ERROR] -", drainErr)
@@ -235,7 +236,7 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta
 		}
 
 		// Now we should be okay to delete the environment.
-		err := client.DeleteEnvironment(envID)
+		err := legacy.DeleteEnvironment(envID)
 		if err != nil {
 			log.Println("There was an error when completing the request to destroy the environment.\n[ERROR] -", err)
 			return generateDiagnosticsFromClientError(err)
