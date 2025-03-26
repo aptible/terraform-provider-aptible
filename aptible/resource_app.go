@@ -220,7 +220,9 @@ func resourceServiceSizingPolicy() *schema.Resource {
 			},
 			"scaling_enabled": {
 				Type:     schema.TypeBool,
+				Optional: true,
 				Computed: true,
+				Description: "Specifies whether the autoscaling policy is enabled or disabled.",
 			},
 		},
 	}
