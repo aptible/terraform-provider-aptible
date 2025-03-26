@@ -219,8 +219,10 @@ func resourceServiceSizingPolicy() *schema.Resource {
 				Description: "The number of containers to remove in each scale-down event.",
 			},
 			"scaling_enabled": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Specifies whether the autoscaling policy is enabled or disabled.",
 			},
 		},
 	}
