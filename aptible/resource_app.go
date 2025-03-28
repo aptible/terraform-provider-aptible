@@ -827,12 +827,19 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 				}
 			}
 		}
+		
+		scalingEnabled, ok := serviceSizingPolicyMap["scaling_enabled"].(bool)
+		if !ok {
+			scalingEnabled = true 
+		}
+		delete(serviceSizingPolicyMap, "scaling_enabled")
 
 		if policy == nil {
 			payload := aptibleapi.NewCreateServiceSizingPolicyRequest()
 			jsonData, _ := json.Marshal(serviceSizingPolicyMap)
 			_ = json.Unmarshal(jsonData, &payload)
 			payload.Autoscaling = &autoscaling
+			payload.SetScalingEnabled(scalingEnabled)
 
 			_, err = client.ServiceSizingPoliciesAPI.
 				CreateServiceSizingPolicy(ctx, serviceId).
@@ -843,7 +850,7 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 			jsonData, _ := json.Marshal(serviceSizingPolicyMap)
 			_ = json.Unmarshal(jsonData, &payload)
 			payload.Autoscaling = &autoscaling
-			payload.SetScalingEnabled(true)
+			payload.SetScalingEnabled(scalingEnabled)
 
 			_, err = client.ServiceSizingPoliciesAPI.
 				UpdateServiceSizingPolicy(ctx, serviceId).
