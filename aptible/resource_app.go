@@ -827,10 +827,10 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 				}
 			}
 		}
-		
+
 		scalingEnabled, ok := serviceSizingPolicyMap["scaling_enabled"].(bool)
 		if !ok {
-			scalingEnabled = true 
+			scalingEnabled = true
 		}
 
 		delete(serviceSizingPolicyMap, "scaling_enabled")
