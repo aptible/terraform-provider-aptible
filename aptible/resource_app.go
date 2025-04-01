@@ -832,6 +832,7 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 		if !ok {
 			scalingEnabled = true 
 		}
+
 		delete(serviceSizingPolicyMap, "scaling_enabled")
 
 		if policy == nil {
@@ -839,7 +840,6 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 			jsonData, _ := json.Marshal(serviceSizingPolicyMap)
 			_ = json.Unmarshal(jsonData, &payload)
 			payload.Autoscaling = &autoscaling
-			payload.SetScalingEnabled(scalingEnabled)
 
 			_, err = client.ServiceSizingPoliciesAPI.
 				CreateServiceSizingPolicy(ctx, serviceId).
