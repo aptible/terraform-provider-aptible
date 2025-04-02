@@ -51,11 +51,11 @@ func TestAccResourceApp_deploy(t *testing.T) {
 			CheckDestroy: testAccCheckAppDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccAptibleAppDeploy(rHandle),
+					Config: testAccAptibleAppDeploy(rHandle, "1"),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:1"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
@@ -115,11 +115,11 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 			CheckDestroy: testAccCheckAppDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccAptibleAppDeploy(rHandle),
+					Config: testAccAptibleAppDeploy(rHandle, "2"),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:2"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.OOPS", "mistake"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
@@ -163,11 +163,11 @@ func TestAccResourceApp_scaleDown(t *testing.T) {
 			CheckDestroy: testAccCheckAppDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccAptibleAppDeploy(rHandle),
+					Config: testAccAptibleAppDeploy(rHandle, "3"),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:3"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
@@ -200,11 +200,11 @@ func TestAccResourceApp_autoscalingDisabledThenEnabled(t *testing.T) {
 			CheckDestroy: testAccCheckAppDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccAptibleAppDeploy(rHandle),
+					Config: testAccAptibleAppDeploy(rHandle, "4"),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "nginx"),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:4"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
@@ -220,7 +220,7 @@ func TestAccResourceApp_autoscalingDisabledThenEnabled(t *testing.T) {
 					ImportStateVerify: true,
 				},
 				{
-					Config: testAccAptibleAppautoscalingPolicy(rHandle),
+					Config: testAccAptibleAppautoscalingPolicy(rHandle, "5"),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.min_containers", "2"),
@@ -246,7 +246,7 @@ func TestAccResourceApp_autoscalingPolicy(t *testing.T) {
 			CheckDestroy: testAccCheckAppDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccAptibleAppautoscalingPolicy(rHandle),
+					Config: testAccAptibleAppautoscalingPolicy(rHandle, "6"),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.min_containers", "2"),
@@ -272,7 +272,7 @@ func TestAccResourceApp_updateautoscalingPolicy(t *testing.T) {
 			CheckDestroy: testAccCheckAppDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccAptibleAppautoscalingPolicy(rHandle),
+					Config: testAccAptibleAppautoscalingPolicy(rHandle, "7"),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.min_containers", "2"),
@@ -307,7 +307,7 @@ func TestAccResourceApp_removeautoscalingPolicy(t *testing.T) {
 			CheckDestroy: testAccCheckAppDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccAptibleAppautoscalingPolicy(rHandle),
+					Config: testAccAptibleAppautoscalingPolicy(rHandle, "8"),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckTypeSetElemNestedAttrs(
 							"aptible_app.test", "service.0.autoscaling_policy.*", map[string]string{
@@ -464,7 +464,7 @@ func testAccAptibleAppBasic(handle string) string {
 `, handle, testOrganizationId, testStackId, handle)
 }
 
-func testAccAptibleAppDeploy(handle string) string {
+func testAccAptibleAppDeploy(handle string, index string) string {
 	return fmt.Sprintf(`
 	resource "aptible_environment" "test" {
 		handle = "%s"
@@ -476,7 +476,7 @@ func testAccAptibleAppDeploy(handle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:%s"
 			"WHATEVER" = "something"
 			"OOPS" = "mistake"
 		}
@@ -489,7 +489,7 @@ func testAccAptibleAppDeploy(handle string) string {
 			simple_health_check = true
 		}
 	}
-	`, handle, testOrganizationId, testStackId, handle)
+	`, handle, testOrganizationId, testStackId, handle, index)
 }
 
 func testAccAptibleAppDeployMultipleServices(handle string) string {
@@ -561,7 +561,7 @@ func testAccAptibleAppScaleDown(handle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:5"
 			"WHATEVER" = "something"
 			"OOPS" = "mistake"
 		}
@@ -574,7 +574,7 @@ func testAccAptibleAppScaleDown(handle string) string {
 	`, handle, testOrganizationId, testStackId, handle)
 }
 
-func testAccAptibleAppautoscalingPolicy(handle string) string {
+func testAccAptibleAppautoscalingPolicy(handle string, index string) string {
 	return fmt.Sprintf(`
 	resource "aptible_environment" "test" {
 		handle = "%s"
@@ -586,7 +586,7 @@ func testAccAptibleAppautoscalingPolicy(handle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:%s"
 			"WHATEVER" = "something"
 		}
 		service {
@@ -602,7 +602,7 @@ func testAccAptibleAppautoscalingPolicy(handle string) string {
 			}
 		}
 	}
-	`, handle, testOrganizationId, testStackId, handle)
+	`, handle, testOrganizationId, testStackId, handle, index)
 }
 
 func testAccAptibleAppWithoutautoscalingPolicy(handle string) string {
@@ -617,7 +617,7 @@ func testAccAptibleAppWithoutautoscalingPolicy(handle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:9"
 			"WHATEVER" = "something"
 		}
 		service {
@@ -641,7 +641,7 @@ func testAccAptibleAppUpdateautoscalingPolicy(handle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:10"
 			"WHATEVER" = "nothing"
 		}
 		service {
@@ -670,7 +670,7 @@ func testAccAptibleAppDeployAutoscalingTypeHorizontalMissingAttributes(handle st
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:11"
 			"WHATEVER" = "something"
 		}
 		service {
@@ -697,7 +697,7 @@ func testAccAptibleAppDeployAutoscalingOldAndNewPolicyAttribute(handle string) s
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:12"
 			"WHATEVER" = "nothing"
 		}
 		service {
@@ -730,7 +730,7 @@ func testAccAptibleAppDeployAutoscalingTypeVerticalInvalidAttributes(handle stri
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:13"
 			"WHATEVER" = "something"
 		}
 		service {
@@ -758,7 +758,7 @@ func testAccAptibleAppDeployOnlyOnePolicy(handle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:14"
 			"WHATEVER" = "something"
 		}
 		service {
@@ -792,7 +792,7 @@ func testAccAptibleAppDeployInvalidAutoscalingType(handle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:15"
 			"WHATEVER" = "something"
 		}
 		service {

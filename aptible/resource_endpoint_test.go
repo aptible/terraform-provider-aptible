@@ -60,7 +60,7 @@ func TestAccResourceEndpoint_appContainerNoPort(t *testing.T) {
 		CheckDestroy: testAccCheckEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAptibleEndpointAppContainerNoPort(appHandle),
+				Config: testAccAptibleEndpointAppContainerNoPort(appHandle, "20"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
 					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
@@ -209,7 +209,7 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 		CheckDestroy: testAccCheckEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAptibleEndpointAppContainerNoPort(appHandle),
+				Config: testAccAptibleEndpointAppContainerNoPort(appHandle, "21"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
 					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
@@ -377,7 +377,7 @@ func testAccAptibleEndpointCustomDomain(appHandle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:20"
 		}
 		service {
 			process_type = "cmd"
@@ -414,7 +414,7 @@ func testAccAptibleEndpointAppContainerPort(appHandle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "caddy"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/caddy-mirror:1"
 		}
 		service {
 			process_type = "cmd"
@@ -439,7 +439,7 @@ func testAccAptibleEndpointAppContainerPort(appHandle string) string {
 	return output
 }
 
-func testAccAptibleEndpointAppContainerNoPort(appHandle string) string {
+func testAccAptibleEndpointAppContainerNoPort(appHandle string, index string) string {
 	output := fmt.Sprintf(`
 	resource "aptible_environment" "test" {
 		handle = "%s"
@@ -451,7 +451,7 @@ func testAccAptibleEndpointAppContainerNoPort(appHandle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:%s"
 		}
 		service {
 			process_type = "cmd"
@@ -470,7 +470,7 @@ func testAccAptibleEndpointAppContainerNoPort(appHandle string) string {
 		internal = true
 		platform = "alb"
 	}
-`, appHandle, testOrganizationId, testStackId, appHandle)
+`, appHandle, testOrganizationId, testStackId, appHandle, index)
 	log.Println("HCL generated: ", output)
 	return output
 }
@@ -487,7 +487,7 @@ func testAccAptibleEndpointAppContainerPorts(appHandle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "caddy"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/caddy-mirror:2"
 		}
 		service {
 			process_type = "cmd"
@@ -547,7 +547,7 @@ func testAccAptibleEndpointUpdateIPWhitelist(appHandle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:22"
 		}
 		service {
 			process_type = "cmd"
@@ -587,7 +587,7 @@ func testAccAptibleEndpointBadPort(appHandle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "nginx"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:23"
 		}
 		service {
 			process_type = "cmd"
