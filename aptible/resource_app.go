@@ -219,8 +219,10 @@ func resourceServiceSizingPolicy() *schema.Resource {
 				Description: "The number of containers to remove in each scale-down event.",
 			},
 			"scaling_enabled": {
-				Type:     schema.TypeBool,
-				Computed: true,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: "Specifies whether the autoscaling policy is enabled or disabled.",
 			},
 		},
 	}
@@ -826,6 +828,13 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 			}
 		}
 
+		scalingEnabled, ok := serviceSizingPolicyMap["scaling_enabled"].(bool)
+		if !ok {
+			scalingEnabled = true
+		}
+
+		delete(serviceSizingPolicyMap, "scaling_enabled")
+
 		if policy == nil {
 			payload := aptibleapi.NewCreateServiceSizingPolicyRequest()
 			jsonData, _ := json.Marshal(serviceSizingPolicyMap)
@@ -841,7 +850,7 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 			jsonData, _ := json.Marshal(serviceSizingPolicyMap)
 			_ = json.Unmarshal(jsonData, &payload)
 			payload.Autoscaling = &autoscaling
-			payload.SetScalingEnabled(true)
+			payload.SetScalingEnabled(scalingEnabled)
 
 			_, err = client.ServiceSizingPoliciesAPI.
 				UpdateServiceSizingPolicy(ctx, serviceId).
