@@ -215,7 +215,7 @@ func TestAccResourceApp_autoscalingToggle(t *testing.T) {
 				{
 					Config: testAccAptibleAppautoscalingPolicyWithScalingEnabled(rHandle, "5"),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.scaling_enabled", "true"),
+						checkScalingEnabled(pointerToBool(true)),
 					),
 				},
 
@@ -269,7 +269,7 @@ func TestAccResourceApp_updateautoscalingPolicy(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.min_containers", "2"),
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.scaling_enabled", "true"),
+						checkScalingEnabled(nil),
 					),
 				},
 				{
@@ -280,7 +280,7 @@ func TestAccResourceApp_updateautoscalingPolicy(t *testing.T) {
 				{
 					Config: testAccAptibleAppUpdateautoscalingPolicy(rHandle),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.scaling_enabled", "true"),
+						checkScalingEnabled(pointerToBool(true)),
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "vertical"),
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.mem_scale_down_threshold", "0.6"),
 					),
@@ -288,6 +288,10 @@ func TestAccResourceApp_updateautoscalingPolicy(t *testing.T) {
 			},
 		})
 	})
+}
+
+func pointerToBool(b bool) *bool {
+	return &b
 }
 
 func TestAccResourceApp_removeautoscalingPolicy(t *testing.T) {
@@ -440,6 +444,30 @@ func testAccCheckAppDestroy(s *terraform.State) error {
 		}
 	}
 	return nil
+}
+
+// Since TestCheckResourceAttr is not great for
+func checkScalingEnabled(expectedValue *bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources["aptible_app.test"]
+		if !ok {
+			return fmt.Errorf("not found: %s", "aptible_app.test")
+		}
+
+		attr, ok := rs.Primary.Attributes["service.0.autoscaling_policy.0.scaling_enabled"]
+		if !ok {
+			if expectedValue == nil {
+				return nil
+			}
+			return fmt.Errorf("scaling_enabled attribute not found")
+		}
+
+		if expectedValue != nil && attr != fmt.Sprintf("%v", *expectedValue) {
+			return fmt.Errorf("expected scaling_enabled to be %v, got %s", *expectedValue, attr)
+		}
+
+		return nil
+	}
 }
 
 func testAccAptibleAppBasic(handle string) string {
