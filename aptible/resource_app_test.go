@@ -290,6 +290,7 @@ func TestAccResourceApp_updateautoscalingPolicy(t *testing.T) {
 	})
 }
 
+// Simple pointer to bool function for handling nil values in the checkScalingEnabled function
 func pointerToBool(b bool) *bool {
 	return &b
 }
@@ -446,7 +447,7 @@ func testAccCheckAppDestroy(s *terraform.State) error {
 	return nil
 }
 
-// Since TestCheckResourceAttr is not great for
+// Since TestCheckResourceAttr is not great for checking boolean values, we use this function, which checks to make sure the scaling_enabled attribute is set to the expected value
 func checkScalingEnabled(expectedValue *bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources["aptible_app.test"]
