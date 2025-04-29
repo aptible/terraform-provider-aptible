@@ -190,7 +190,7 @@ func TestAccResourceApp_scaleDown(t *testing.T) {
 	})
 }
 
-func TestAccResourceApp_autoscalingToggle(t *testing.T) {
+func TestAccResourceApp_autoscalingDisabledThenEnabled(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
 	WithTestAccEnvironment(t, func(env aptible.Environment) {
@@ -199,11 +199,19 @@ func TestAccResourceApp_autoscalingToggle(t *testing.T) {
 			Providers:    testAccProviders,
 			CheckDestroy: testAccCheckAppDestroy,
 			Steps: []resource.TestStep{
-				// Use the initial configuration that has scaling_enabled set to false
 				{
-					Config: testAccAptibleAppautoscalingPolicyWithScalingDisabled(rHandle, "4"),
+					Config: testAccAptibleAppDeploy(rHandle, "4"),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.scaling_enabled", "false"),
+						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:4"),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
+							"force_zero_downtime": "true",
+							"simple_health_check": "true",
+						}),
 					),
 				},
 				{
@@ -211,14 +219,13 @@ func TestAccResourceApp_autoscalingToggle(t *testing.T) {
 					ImportState:       true,
 					ImportStateVerify: true,
 				},
-				// Update configuration to enable autoscaling
 				{
-					Config: testAccAptibleAppautoscalingPolicyWithScalingEnabled(rHandle, "5"),
+					Config: testAccAptibleAppautoscalingPolicy(rHandle, "5"),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.scaling_enabled", "true"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.min_containers", "2"),
 					),
 				},
-
 				{
 					ResourceName:      "aptible_app.test",
 					ImportState:       true,
@@ -771,69 +778,6 @@ func testAccAptibleAppDeployOnlyOnePolicy(handle string) string {
 		}
 	}
 	`, handle, testOrganizationId, testStackId, handle)
-}
-func testAccAptibleAppautoscalingPolicyWithScalingDisabled(handle string, index string) string {
-	return fmt.Sprintf(`
-    resource "aptible_environment" "test" {
-        handle = "%s"
-        org_id = "%s"
-        stack_id = "%v"
-    }
-
-    resource "aptible_app" "test" {
-        env_id = aptible_environment.test.env_id
-        handle = "%v"
-        config = {
-            "APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:%s"
-            "WHATEVER" = "something"
-        }
-        service {
-            process_type           = "cmd"
-            container_profile      = "m5"
-            container_count        = 1
-            autoscaling_policy {
-                autoscaling_type  = "horizontal"
-                scaling_enabled   = false
-                min_containers    = 2
-                max_containers    = 4
-                min_cpu_threshold = 0.1
-                max_cpu_threshold = 0.9
-            }
-        }
-    }
-    `, handle, testOrganizationId, testStackId, handle, index)
-}
-
-func testAccAptibleAppautoscalingPolicyWithScalingEnabled(handle string, index string) string {
-	return fmt.Sprintf(`
-    resource "aptible_environment" "test" {
-        handle = "%s"
-        org_id = "%s"
-        stack_id = "%v"
-    }
-
-    resource "aptible_app" "test" {
-        env_id = aptible_environment.test.env_id
-        handle = "%v"
-        config = {
-            "APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:%s"
-            "WHATEVER" = "something"
-        }
-        service {
-            process_type           = "cmd"
-            container_profile      = "m5"
-            container_count        = 1
-            autoscaling_policy {
-                autoscaling_type  = "horizontal"
-                scaling_enabled   = true
-                min_containers    = 2
-                max_containers    = 4
-                min_cpu_threshold = 0.1
-                max_cpu_threshold = 0.9
-            }
-        }
-    }
-    `, handle, testOrganizationId, testStackId, handle, index)
 }
 
 func testAccAptibleAppDeployInvalidAutoscalingType(handle string) string {
