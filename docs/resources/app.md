@@ -121,7 +121,6 @@ The `autoscaling_policy` block supports:
   when autoscaling (ex: a value of 2 will go from 1->3->5). Container count will never exceed the configured maximum.
 - `scale_down_step` - (Default: 1) Horizontal autoscaling only - Sets the amount of containers to remove when
   autoscaling (ex: a value of 2 will go from 4->2->1). Container count will never exceed the configured minimum.
-- `scaling_enabled`  (Default: true) Specifies whether the autoscaling policy is enabled or disabled.
 
 ## Attribute Reference
 
