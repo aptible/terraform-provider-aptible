@@ -377,7 +377,7 @@ func testAccAptibleEndpointCustomDomain(appHandle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:20"
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:31"
 		}
 		service {
 			process_type = "cmd"
