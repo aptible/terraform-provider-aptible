@@ -96,6 +96,11 @@ func resourceService() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"stop_timeout": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  10,
+			},
 			"service_sizing_policy": {
 				Type:       schema.TypeSet,
 				Optional:   true,
@@ -585,11 +590,20 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 
 		forceZeroDowntime := serviceData["force_zero_downtime"].(bool)
 		naiveHealthCheck := serviceData["simple_health_check"].(bool)
+		stopTimeout := int32(serviceData["stop_timeout"].(int))
 
 		forceZeroDowntimeChanged := forceZeroDowntime != apiService.ForceZeroDowntime
 		naiveHealthCheckChanged := naiveHealthCheck != apiService.NaiveHealthCheck
 
-		if !forceZeroDowntimeChanged && !naiveHealthCheckChanged {
+		var stopTimeoutChanged bool
+		if apiService.StopTimeout.IsSet() && apiService.StopTimeout.Get() != nil {
+			currentTimeout := apiService.StopTimeout.Get()
+			stopTimeoutChanged = stopTimeout != *currentTimeout
+		} else {
+			stopTimeoutChanged = stopTimeout > 0
+		}
+
+		if !forceZeroDowntimeChanged && !naiveHealthCheckChanged && !stopTimeoutChanged {
 			log.Printf("[INFO] No relevant changes detected for service %s, skipping update.", processType)
 			continue
 		}
@@ -598,15 +612,22 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 		svcType := processType
 		svcZeroDowntime := forceZeroDowntime
 		svcHealthCheck := naiveHealthCheck
+		svcStopTimeout := stopTimeout
 		svcID := apiService.Id
-		log.Printf("About to update service %s: force_zero_downtime: %t, simple_health_check: %t", svcType, svcZeroDowntime, svcHealthCheck)
+		log.Printf("About to update service %s: force_zero_downtime: %t, simple_health_check: %t, stop_timeout: %d",
+			svcType, svcZeroDowntime, svcHealthCheck, svcStopTimeout)
 
 		g.Go(func() error {
 			payload := aptibleapi.NewUpdateServiceRequest()
 			payload.SetForceZeroDowntime(svcZeroDowntime)
 			payload.SetNaiveHealthCheck(svcHealthCheck)
 
-			log.Printf("Updating service %s: force_zero_downtime: %t, simple_health_check: %t", svcType, svcZeroDowntime, svcHealthCheck)
+			if svcStopTimeout > 0 {
+				payload.SetStopTimeout(svcStopTimeout)
+			}
+
+			log.Printf("Updating service %s: force_zero_downtime: %t, simple_health_check: %t, stop_timeout: %d",
+				svcType, svcZeroDowntime, svcHealthCheck, svcStopTimeout)
 
 			_, err := client.ServicesAPI.UpdateService(ctx, svcID).UpdateServiceRequest(*payload).Execute()
 			if err != nil {
