@@ -424,6 +424,41 @@ func TestAccResourceApp_invalidAutoscalingType(t *testing.T) {
 	})
 }
 
+func TestAccResourceApp_stopTimeout(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleAppDeploy(rHandle, "16"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:16"),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
+							"force_zero_downtime": "true",
+							"simple_health_check": "true",
+							"stop_timeout":        "60",
+						}),
+					),
+				},
+				{
+					ResourceName:      "aptible_app.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+}
+
 func testAccCheckAppDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
 	for _, rs := range s.RootModule().Resources {
