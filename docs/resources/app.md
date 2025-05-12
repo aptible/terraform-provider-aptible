@@ -80,6 +80,7 @@ The `service` block supports:
   [For more information please see the docs](https://www.aptible.com/docs/core-concepts/apps/deploying-apps/releases/overview).
 - `simple_health_check` - (Default: false) For services without endpoints, if
   force_zero_downtime is enabled, do a simple uptime check instead of using docker healthchecks.
+- `stop_timeout` - (Default: 10) The number of seconds to wait for the service containers to stop gracefully on release before killing it.
 - `service_sizing_policy` - **Deprecated** (Optional) A block to manage autoscaling for services. See
   the main provider docs for additional details.
 - `autoscaling_policy` - (Optional) A block to manage autoscaling for services. See
