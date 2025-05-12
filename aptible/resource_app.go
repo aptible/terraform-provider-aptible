@@ -395,6 +395,9 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("ZDD flags: %t, %t", s.ForceZeroDowntime, s.NaiveHealthCheck)
 		service["force_zero_downtime"] = s.ForceZeroDowntime
 		service["simple_health_check"] = s.NaiveHealthCheck
+		if s.StopTimeout.IsSet() && s.StopTimeout.Get() != nil {
+			service["stop_timeout"] = *s.StopTimeout.Get()
+		}
 		// Find service_sizing_policy if any
 		var policy *aptibleapi.ServiceSizingPolicy
 		policy, err = getServiceSizingPolicyForService(s.Id, ctx, meta)

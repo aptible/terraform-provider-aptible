@@ -434,7 +434,7 @@ func TestAccResourceApp_stopTimeout(t *testing.T) {
 			CheckDestroy: testAccCheckAppDestroy,
 			Steps: []resource.TestStep{
 				{
-					Config: testAccAptibleAppDeploy(rHandle, "16"),
+					Config: testAccAptibleAppDeployStopTimeout(rHandle, "16"),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
@@ -522,6 +522,35 @@ func testAccAptibleAppDeploy(handle string, index string) string {
 			container_count = 1
 			force_zero_downtime = true
 			simple_health_check = true
+		}
+	}
+	`, handle, testOrganizationId, testStackId, handle, index)
+}
+
+func testAccAptibleAppDeployStopTimeout(handle string, index string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:%s"
+			"WHATEVER" = "something"
+			"OOPS" = "mistake"
+		}
+    service {
+			process_type = "cmd"
+			container_profile = "m5"
+			container_memory_limit = 512
+			container_count = 1
+			force_zero_downtime = true
+			simple_health_check = true
+			stop_timeout = 60
 		}
 	}
 	`, handle, testOrganizationId, testStackId, handle, index)
