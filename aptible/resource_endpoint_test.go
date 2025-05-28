@@ -313,6 +313,14 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 				Config:      testAccAptibleEndpointInvalidMultipleContainerPortFields(),
 				ExpectError: regexp.MustCompile(`(?i)do not specify container ports AND container port`),
 			},
+			{
+				Config:      testAccAptibleEndpointInvalidSharedWithNoDomain(),
+				ExpectError: regexp.MustCompile(`(?i)must specify a domain`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidSharedWithWildcardDomain(),
+				ExpectError: regexp.MustCompile(`(?i)cannot use domain`),
+			},
 		},
 	})
 }
@@ -764,6 +772,43 @@ func testAccAptibleEndpointInvalidMultipleContainerPortFields() string {
 		managed = true
 		container_port = 3000
 		container_ports = [3000]
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidSharedWithNoDomain() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "https"
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		default_domain = false
+		platform = "alb"
+		managed = true
+		container_port = 3000
+                shared = true
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidSharedWithWildcardDomain() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "https"
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		default_domain = false
+                domain = "*.example.com"
+		platform = "alb"
+		managed = true
+		container_port = 3000
+                shared = true
 	}`
 	log.Println("HCL generated: ", output)
 	return output

@@ -95,6 +95,10 @@ resource "aws_route53_record" "dns01" {
   allow traffic from. If not provided, the Endpoint will not filter traffic. See
   the [IP Filtering](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/ip-filtering)
   documentation for more details.
+- `shared` - (Optional, App only) If set, use shared load balancer resources
+  with other apps on the same stack. Shared endpoints can only be used if your
+  clients support SNI (most modern clients do) and you either use a default
+  domain or an exact (non-wildcard) custom domain.
 
 ## Attribute Reference
 

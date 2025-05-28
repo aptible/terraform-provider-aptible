@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
 	"github.com/aptible/go-deploy/aptible"
@@ -124,6 +125,11 @@ func resourceEndpoint() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"shared": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -182,6 +188,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 	defaultDomain := d.Get("default_domain").(bool)
 	managed := d.Get("managed").(bool)
+	shared := d.Get("shared").(bool)
 	domain := d.Get("domain").(string)
 
 	if defaultDomain && managed {
@@ -203,6 +210,20 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 			Severity: diag.Error,
 			Summary:  "Validation Error",
 			Detail:   "Cannot specify domain when using Default Domain",
+		})
+	}
+	if shared && !defaultDomain && domain == "" {
+		return append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Validation Error",
+			Detail:   "Shared endpoints must specify a domain",
+		})
+	}
+	if shared && strings.ContainsAny(domain, "*?") {
+		return append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Validation Error",
+			Detail:   "Shared endpoints cannot use domains containing '*' or '?'",
 		})
 	}
 
@@ -249,6 +270,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	attrs.SetPlatform(d.Get("platform").(string))
 	attrs.SetDefault(defaultDomain)
 	attrs.SetAcme(managed)
+	attrs.SetShared(shared)
 
 	containerPort := int32(d.Get("container_port").(int))
 
@@ -381,6 +403,7 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 	_ = d.Set("ip_filtering", endpoint.GetIpWhitelist())
 	_ = d.Set("platform", endpoint.GetPlatform())
 	_ = d.Set("external_hostname", endpoint.GetExternalHost())
+	_ = d.Set("shared", endpoint.GetShared())
 
 	for _, c := range endpoint.GetAcmeConfiguration().Challenges {
 		// Skip non-DNS challenges
@@ -421,27 +444,92 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).LegacyClient
-	endpointID := int64(d.Get("endpoint_id").(int))
-	interfaceSlice := d.Get("ip_filtering").([]interface{})
-	ipWhitelist, _ := aptible.MakeStringSlice(interfaceSlice)
-	interfaceContainerPortsSlice := d.Get("container_ports").([]interface{})
-	containerPorts, _ := aptible.MakeInt64Slice(interfaceContainerPortsSlice)
+	m := meta.(*providerMetadata)
+	client := m.Client
+	legacy := m.LegacyClient
+	ctx = m.APIContext(ctx)
+	diags := diag.Diagnostics{}
 
-	updates := aptible.EndpointUpdates{
-		ContainerPort:  int64(d.Get("container_port").(int)),
-		ContainerPorts: containerPorts,
-		IPWhitelist:    ipWhitelist,
-		Platform:       d.Get("platform").(string),
+	endpointID := int32(d.Get("endpoint_id").(int))
+
+	needsDeploy := false
+	attrs := aptibleapi.NewUpdateVhostRequest()
+
+	if d.HasChange("ip_filtering") {
+		needsDeploy = true
+		ipWhitelist, err := makeStringSlice(d.Get("ip_filtering").([]interface{}))
+		if err != nil {
+			return append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Validation Error",
+				Detail:   fmt.Sprintf("Failed to parse ip_filtering: %s", err.Error()),
+			})
+		}
+		attrs.SetIpWhitelist(ipWhitelist)
 	}
 
-	err := client.UpdateEndpoint(endpointID, updates)
+	if d.HasChange("container_port") {
+		needsDeploy = true
+		attrs.SetContainerPort(int32(d.Get("container_port").(int)))
+	}
+
+	if d.HasChange("container_ports") {
+		needsDeploy = true
+		containerPorts, err := makeInt32Slice(d.Get("container_ports").([]interface{}))
+		if err != nil {
+			return append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Validation Error",
+				Detail:   fmt.Sprintf("Failed to parse container_ports: %s", err.Error()),
+			})
+		}
+		attrs.SetContainerPorts(containerPorts)
+	}
+
+	if d.HasChange("shared") {
+		needsDeploy = true
+		attrs.SetShared(d.Get("shared").(bool))
+	}
+
+	_, err := client.VhostsAPI.
+		UpdateVhost(ctx, endpointID).
+		UpdateVhostRequest(*attrs).
+		Execute()
 	if err != nil {
-		log.Println("There was an error when completing the request.\n[ERROR] -", err)
-		return generateDiagnosticsFromClientError(err)
+		log.Printf("error: %v", err)
+		return append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to update endpoint",
+			Detail:   err.Error(),
+		})
 	}
 
-	return resourceEndpointRead(ctx, d, meta)
+	if needsDeploy {
+		payload := aptibleapi.NewCreateOperationRequest("provision")
+		operation, _, err := client.OperationsAPI.
+			CreateOperationForVhost(ctx, endpointID).
+			CreateOperationRequest(*payload).
+			Execute()
+		if err != nil {
+			return append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to create operation",
+				Detail:   err.Error(),
+			})
+		}
+
+		_, err = legacy.WaitForOperation(int64(operation.Id))
+		if err != nil {
+			// Do not return here so that the read method can hydrate the state
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("Failed to update endpoint %d", endpointID),
+				Detail:   err.Error(),
+			})
+		}
+	}
+
+	return append(diags, resourceEndpointRead(ctx, d, meta)...)
 }
 
 func resourceEndpointDelete(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
