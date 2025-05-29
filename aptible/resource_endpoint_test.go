@@ -267,6 +267,37 @@ func TestAccResourceEndpoint_provisionFailure(t *testing.T) {
 	})
 }
 
+func TestAccResourceEndpoint_sharedUpgrade(t *testing.T) {
+	// Test that a dedicated endpoint can be upgraded to a shared endpoint just
+	// by flipping the shared flag and applying.
+	appHandle := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleEndpointSetShared(appHandle, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "shared", "false"),
+				),
+			},
+			{
+				ResourceName:      "aptible_endpoint.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config: testAccAptibleEndpointSetShared(appHandle, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "shared", "true"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceEndpoint_expectError(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -312,6 +343,14 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 			{
 				Config:      testAccAptibleEndpointInvalidMultipleContainerPortFields(),
 				ExpectError: regexp.MustCompile(`(?i)do not specify container ports AND container port`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidSharedWithNoDomain(),
+				ExpectError: regexp.MustCompile(`(?i)must specify a domain`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidSharedWithWildcardDomain(),
+				ExpectError: regexp.MustCompile(`(?i)cannot use domain`),
 			},
 		},
 	})
@@ -574,6 +613,42 @@ func testAccAptibleEndpointUpdateIPWhitelist(appHandle string) string {
 	return output
 }
 
+func testAccAptibleEndpointSetShared(appHandle string, shared bool) string {
+	output := fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:32"
+		}
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+		}
+	}
+
+	resource "aptible_endpoint" "test" {
+		env_id = aptible_environment.test.env_id
+		resource_id = aptible_app.test.app_id
+		resource_type = "app"
+		process_type = "cmd"
+		endpoint_type = "https"
+		default_domain = true
+		platform = "alb"
+                shared = %t
+	}
+`, appHandle, testOrganizationId, testStackId, appHandle, shared)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
 func testAccAptibleEndpointBadPort(appHandle string) string {
 	// Use a bad port to make the provision operation fail
 	output := fmt.Sprintf(`
@@ -764,6 +839,43 @@ func testAccAptibleEndpointInvalidMultipleContainerPortFields() string {
 		managed = true
 		container_port = 3000
 		container_ports = [3000]
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidSharedWithNoDomain() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "https"
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		default_domain = false
+		platform = "alb"
+		managed = true
+		container_port = 3000
+                shared = true
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidSharedWithWildcardDomain() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "https"
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		default_domain = false
+                domain = "*.example.com"
+		platform = "alb"
+		managed = true
+		container_port = 3000
+                shared = true
 	}`
 	log.Println("HCL generated: ", output)
 	return output
