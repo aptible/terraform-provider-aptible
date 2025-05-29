@@ -267,6 +267,37 @@ func TestAccResourceEndpoint_provisionFailure(t *testing.T) {
 	})
 }
 
+func TestAccResourceEndpoint_sharedUpgrade(t *testing.T) {
+	// Test that a dedicated endpoint can be upgraded to a shared endpoint just
+        // by flipping the shared flag and applying.
+	appHandle := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+                                Config: testAccAptibleEndpointSetShared(appHandle, /*shared=*/false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "shared", "false"),
+				),
+			},
+			{
+				ResourceName:      "aptible_endpoint.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+                                Config: testAccAptibleEndpointSetShared(appHandle, /*shared=*/true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "shared", "true"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceEndpoint_expectError(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -578,6 +609,42 @@ func testAccAptibleEndpointUpdateIPWhitelist(appHandle string) string {
 		]
 	}
 `, appHandle, testOrganizationId, testStackId, appHandle)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointSetShared(appHandle string, shared bool) string {
+	output := fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:32"
+		}
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+		}
+	}
+
+	resource "aptible_endpoint" "test" {
+		env_id = aptible_environment.test.env_id
+		resource_id = aptible_app.test.app_id
+		resource_type = "app"
+		process_type = "cmd"
+		endpoint_type = "https"
+		default_domain = true
+		platform = "alb"
+                shared = %t
+	}
+`, appHandle, testOrganizationId, testStackId, appHandle, shared)
 	log.Println("HCL generated: ", output)
 	return output
 }
