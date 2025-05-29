@@ -278,7 +278,7 @@ func TestAccResourceEndpoint_sharedUpgrade(t *testing.T) {
 		CheckDestroy: testAccCheckEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
-                                Config: testAccAptibleEndpointSetShared(appHandle, /*shared=*/false),
+				Config: testAccAptibleEndpointSetShared(appHandle, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "shared", "false"),
 				),
@@ -289,7 +289,7 @@ func TestAccResourceEndpoint_sharedUpgrade(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-                                Config: testAccAptibleEndpointSetShared(appHandle, /*shared=*/true),
+				Config: testAccAptibleEndpointSetShared(appHandle, true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "shared", "true"),
 				),
