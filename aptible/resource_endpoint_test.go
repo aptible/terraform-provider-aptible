@@ -269,7 +269,7 @@ func TestAccResourceEndpoint_provisionFailure(t *testing.T) {
 
 func TestAccResourceEndpoint_sharedUpgrade(t *testing.T) {
 	// Test that a dedicated endpoint can be upgraded to a shared endpoint just
-        // by flipping the shared flag and applying.
+	// by flipping the shared flag and applying.
 	appHandle := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
