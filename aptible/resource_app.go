@@ -227,6 +227,11 @@ func resourceServiceSizingPolicy() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
+			"use_horizontal_scale": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Whether to use restart-free scaling for this service.",
+			},
 		},
 	}
 }
@@ -426,6 +431,7 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 			serviceSizingPolicy["max_containers"] = policy.GetMaxContainers()
 			serviceSizingPolicy["scale_up_step"] = policy.GetScaleUpStep()
 			serviceSizingPolicy["scale_down_step"] = policy.GetScaleDownStep()
+			serviceSizingPolicy["use_horizontal_scale"] = policy.GetUseHorizontalScale()
 
 			service["autoscaling_policy"] = []map[string]interface{}{serviceSizingPolicy}
 		}
