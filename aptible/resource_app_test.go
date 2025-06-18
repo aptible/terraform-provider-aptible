@@ -459,6 +459,66 @@ func TestAccResourceApp_stopTimeout(t *testing.T) {
 	})
 }
 
+func TestAccResourceApp_updateRestartFreeScaling(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleAppDeployWithRestartFreeScaling(rHandle, false),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:16"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
+							"process_type":           "cmd",
+							"container_count":        "1",
+							"container_memory_limit": "512",
+						}),
+						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*.autoscaling_policy.*", map[string]string{
+							"autoscaling_type":     "horizontal",
+							"use_horizontal_scale": "false",
+							"min_containers":       "1",
+							"max_containers":       "3",
+							"min_cpu_threshold":    "0.4",
+							"max_cpu_threshold":    "0.8",
+						}),
+					),
+				},
+				{
+					Config: testAccAptibleAppDeployWithRestartFreeScaling(rHandle, true),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
+						resource.TestCheckResourceAttr("aptible_app.test", "config.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:16"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
+							"process_type":           "cmd",
+							"container_count":        "1",
+							"container_memory_limit": "512",
+						}),
+						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*.autoscaling_policy.*", map[string]string{
+							"autoscaling_type":     "horizontal",
+							"use_horizontal_scale": "true",
+							"min_containers":       "1",
+							"max_containers":       "3",
+							"min_cpu_threshold":    "0.4",
+							"max_cpu_threshold":    "0.8",
+						}),
+					),
+				},
+			},
+		})
+	})
+}
+
 func testAccCheckAppDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
 	for _, rs := range s.RootModule().Resources {
@@ -869,4 +929,36 @@ func testAccAptibleAppDeployInvalidAutoscalingType(handle string) string {
 		}
 	}
 	`, handle, testOrganizationId, testStackId, handle)
+}
+
+func testAccAptibleAppDeployWithRestartFreeScaling(handle string, restartFreeScaling bool) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:16"
+		}
+		service {
+			process_type = "cmd"
+			container_profile = "m5"
+			container_memory_limit = 512
+			container_count = 1
+			autoscaling_policy {
+				autoscaling_type = "horizontal"
+				use_horizontal_scale = %t
+				min_containers = 1
+				max_containers = 3
+				min_cpu_threshold = 0.4
+				max_cpu_threshold = 0.8
+			}
+		}
+	}
+	`, handle, testOrganizationId, testStackId, handle, restartFreeScaling)
 }
