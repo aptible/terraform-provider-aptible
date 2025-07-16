@@ -298,6 +298,28 @@ func TestAccResourceEndpoint_sharedUpgrade(t *testing.T) {
 	})
 }
 
+func TestAccResourceEndpoint_lbAlgorithm(t *testing.T) {
+	appHandle := acctest.RandString(10)
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleEndpointLbAlgorithm(appHandle, "least_outstanding_requests"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "load_balancing_algorithm_Type", "least_outstanding_requests"),
+				),
+			},
+			{
+				ResourceName:      "aptible_endpoint.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccResourceEndpoint_expectError(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -319,6 +341,10 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 			{
 				Config:      testAccAptibleEndpointInvalidDomain(),
 				ExpectError: regexp.MustCompile(`(?i)managed endpoints must specify a domain`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidLbAlgorithm(),
+				ExpectError: regexp.MustCompile(`(?i)expected load_balancing_algorithm_type to be one of .*, got should-error`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidContainerPort(),
@@ -351,6 +377,10 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 			{
 				Config:      testAccAptibleEndpointInvalidSharedWithWildcardDomain(),
 				ExpectError: regexp.MustCompile(`(?i)cannot use domain`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidLbAlgorithmWithElb(),
+				ExpectError: regexp.MustCompile(`(?i)do not specify a load balancing algorithm with elb endpoint`),
 			},
 		},
 	})
