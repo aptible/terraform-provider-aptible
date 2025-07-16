@@ -99,6 +99,8 @@ resource "aws_route53_record" "dns01" {
   with other apps on the same stack. Shared endpoints can only be used if your
   clients support SNI (most modern clients do) and you either use a default
   domain or an exact (non-wildcard) custom domain.
+- `load_balancing_algorithm_type` - (Optional, ALB endpoints only) Determines which algorithm to use for 
+  [request routing](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/https-endpoints/overview#traffic). Valid options are `round_robin`, `least_outstanding_requests`, and `weighted_random`. The default is `round_robin`. 
 
 ## Attribute Reference
 
