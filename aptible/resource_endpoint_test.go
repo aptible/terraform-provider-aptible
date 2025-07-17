@@ -308,7 +308,7 @@ func TestAccResourceEndpoint_lbAlgorithm(t *testing.T) {
 			{
 				Config: testAccAptibleEndpointLbAlgorithm(appHandle, "least_outstanding_requests"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "load_balancing_algorithm_Type", "least_outstanding_requests"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "load_balancing_algorithm_type", "least_outstanding_requests"),
 				),
 			},
 			{
