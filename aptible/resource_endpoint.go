@@ -131,9 +131,12 @@ func resourceEndpoint() *schema.Resource {
 				Default:  false,
 			},
 			"load_balancing_algorithm_type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice(validLbAlgorithms, false),
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: validation.Any(
+					validation.StringIsEmpty,
+					validation.StringInSlice(validLbAlgorithms, false),
+				),
 			},
 		},
 	}
