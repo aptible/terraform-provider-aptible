@@ -130,6 +130,11 @@ func resourceEndpoint() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"load_balancing_algorithm_type": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice(validLbAlgorithms, false),
+			},
 		},
 	}
 }
@@ -140,6 +145,8 @@ func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ in
 	containerPorts, _ := aptible.MakeInt64Slice(interfaceContainerPortsSlice)
 	containerPort, _ := (d.Get("container_port").(int))
 	endpointType := d.Get("endpoint_type").(string)
+	platform := d.Get("platform").(string)
+	lbAlgorithmType := d.Get("load_balancing_algorithm_type").(string)
 	var err error
 
 	// container_port and container ports are mutually exclusive fields
@@ -154,6 +161,11 @@ func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ in
 	// container ports can only be used with tls/tcp
 	if len(containerPorts) != 0 && (endpointType == "https" || endpointType == "grpc") {
 		err = multierror.Append(err, fmt.Errorf("do not specify container ports with %s endpoint (see terraform docs)", endpointType))
+	}
+
+	// load balancing algorithm can only be used with ALBs
+	if (lbAlgorithmType != "round_robin") && (platform != "alb") {
+		err = multierror.Append(err, fmt.Errorf("do not specify a load balancing algorithm with %s endpoint", platform))
 	}
 
 	return err
@@ -271,6 +283,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	attrs.SetDefault(defaultDomain)
 	attrs.SetAcme(managed)
 	attrs.SetShared(shared)
+	attrs.SetLoadBalancingAlgorithmType(d.Get("load_balancing_algorithm_type").(string))
 
 	containerPort := int32(d.Get("container_port").(int))
 
@@ -404,6 +417,7 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 	_ = d.Set("platform", endpoint.GetPlatform())
 	_ = d.Set("external_hostname", endpoint.GetExternalHost())
 	_ = d.Set("shared", endpoint.GetShared())
+	_ = d.Set("load_balancing_algorithm_type", endpoint.GetLoadBalancingAlgorithmType())
 
 	for _, c := range endpoint.GetAcmeConfiguration().Challenges {
 		// Skip non-DNS challenges
@@ -491,6 +505,11 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		attrs.SetShared(d.Get("shared").(bool))
 	}
 
+	if d.HasChange("load_balancing_algorithm_type") {
+		needsDeploy = true
+		attrs.SetLoadBalancingAlgorithmType(d.Get("load_balancing_algorithm_type").(string))
+	}
+
 	_, err := client.VhostsAPI.
 		UpdateVhost(ctx, endpointID).
 		UpdateVhostRequest(*attrs).
@@ -560,4 +579,10 @@ var validPlatforms = []string{
 var validResourceTypes = []string{
 	"app",
 	"database",
+}
+
+var validLbAlgorithms = []string{
+	"round_robin",
+	"least_outstanding_requests",
+	"weighted_random",
 }
