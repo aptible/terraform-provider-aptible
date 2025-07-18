@@ -308,7 +308,7 @@ func TestAccResourceEndpoint_lbAlgorithm(t *testing.T) {
 			{
 				Config: testAccAptibleEndpointLbAlgorithm(appHandle, "least_outstanding_requests"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "load_balancing_algorithm_Type", "least_outstanding_requests"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "load_balancing_algorithm_type", "least_outstanding_requests"),
 				),
 			},
 			{
@@ -706,10 +706,9 @@ func testAccAptibleEndpointLbAlgorithm(appHandle string, lbAlgorithm string) str
 		resource_type = "app"
 		process_type = "cmd"
 		endpoint_type = "https"
-		managed = true
 		default_domain = true
 		platform = "alb"
-		load_balancing_algorithm_type: "%s"
+		load_balancing_algorithm_type = "%s"
 	}
 `, appHandle, testOrganizationId, testStackId, appHandle, lbAlgorithm)
 	log.Println("HCL generated: ", output)
@@ -973,8 +972,7 @@ func testAccAptibleEndpointInvalidLbAlgorithmWithElb() string {
 		process_type = "cmd"
 		default_domain = true
 		platform = "elb"
-		managed = true
-		container_port = 3000
+		load_balancing_algorithm_type = "round_robin"
 	}`
 	log.Println("HCL generated: ", output)
 	return output

@@ -164,7 +164,7 @@ func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ in
 	}
 
 	// load balancing algorithm can only be used with ALBs
-	if (lbAlgorithmType != "round_robin") && (platform != "alb") {
+	if (lbAlgorithmType != "") && (platform != "alb") {
 		err = multierror.Append(err, fmt.Errorf("do not specify a load balancing algorithm with %s endpoint", platform))
 	}
 
@@ -283,7 +283,10 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	attrs.SetDefault(defaultDomain)
 	attrs.SetAcme(managed)
 	attrs.SetShared(shared)
-	attrs.SetLoadBalancingAlgorithmType(d.Get("load_balancing_algorithm_type").(string))
+	lbAlgorithmType := d.Get("load_balancing_algorithm_type").(string)
+	if lbAlgorithmType != "" {
+		attrs.SetLoadBalancingAlgorithmType(lbAlgorithmType)
+	}
 
 	containerPort := int32(d.Get("container_port").(int))
 
@@ -507,7 +510,10 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 
 	if d.HasChange("load_balancing_algorithm_type") {
 		needsDeploy = true
-		attrs.SetLoadBalancingAlgorithmType(d.Get("load_balancing_algorithm_type").(string))
+		lbAlgorithmType := d.Get("load_balancing_algorithm_type").(string)
+		if lbAlgorithmType != "" {
+			attrs.SetLoadBalancingAlgorithmType(lbAlgorithmType)
+		}
 	}
 
 	_, err := client.VhostsAPI.
