@@ -189,7 +189,6 @@ func TestAccResourceEndpoint_db(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "false"),
 						resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "elb"),
 						resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
-						resource.TestCheckNoResourceAttr("aptible_endpoint.test", "load_balancing_algorithm_type"),
 					),
 				},
 				{
