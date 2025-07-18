@@ -582,7 +582,6 @@ var validResourceTypes = []string{
 }
 
 var validLbAlgorithms = []string{
-	"",
 	"round_robin",
 	"least_outstanding_requests",
 	"weighted_random",

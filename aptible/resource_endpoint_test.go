@@ -975,7 +975,6 @@ func testAccAptibleEndpointInvalidLbAlgorithmWithElb() string {
 		default_domain = true
 		platform = "elb"
 		managed = true
-		container_port = 3000
 	}`
 	log.Println("HCL generated: ", output)
 	return output
