@@ -709,7 +709,7 @@ func testAccAptibleEndpointLbAlgorithm(appHandle string, lbAlgorithm string) str
 		managed = true
 		default_domain = true
 		platform = "alb"
-		load_balancing_algorithm_type: "%s"
+		load_balancing_algorithm_type = "%s"
 	}
 `, appHandle, testOrganizationId, testStackId, appHandle, lbAlgorithm)
 	log.Println("HCL generated: ", output)
