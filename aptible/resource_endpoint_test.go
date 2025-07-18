@@ -974,7 +974,6 @@ func testAccAptibleEndpointInvalidLbAlgorithmWithElb() string {
 		process_type = "cmd"
 		default_domain = true
 		platform = "elb"
-		managed = true
 	}`
 	log.Println("HCL generated: ", output)
 	return output
