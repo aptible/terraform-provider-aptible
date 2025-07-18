@@ -154,6 +154,7 @@ func TestAccResourceEndpoint_appContainerPorts(t *testing.T) {
 					resource.TestMatchResourceAttr("aptible_endpoint.test", "external_hostname", regexp.MustCompile(`elb.*`)),
 					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_record"),
 					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_value"),
+					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "load_balancing_algorithm_type"),
 				),
 			},
 			{
@@ -188,6 +189,7 @@ func TestAccResourceEndpoint_db(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "false"),
 						resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "elb"),
 						resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
+						resource.TestCheckNoResourceAttr("aptible_endpoint.test", "load_balancing_algorithm_type"),
 					),
 				},
 				{
@@ -706,7 +708,6 @@ func testAccAptibleEndpointLbAlgorithm(appHandle string, lbAlgorithm string) str
 		resource_type = "app"
 		process_type = "cmd"
 		endpoint_type = "https"
-		managed = true
 		default_domain = true
 		platform = "alb"
 		load_balancing_algorithm_type = "%s"
