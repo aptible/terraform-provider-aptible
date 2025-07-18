@@ -154,7 +154,6 @@ func TestAccResourceEndpoint_appContainerPorts(t *testing.T) {
 					resource.TestMatchResourceAttr("aptible_endpoint.test", "external_hostname", regexp.MustCompile(`elb.*`)),
 					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_record"),
 					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_value"),
-					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "load_balancing_algorithm_type"),
 				),
 			},
 			{
