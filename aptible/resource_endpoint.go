@@ -134,6 +134,7 @@ func resourceEndpoint() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(validLbAlgorithms, false),
+				Default:      nil,
 			},
 		},
 	}
