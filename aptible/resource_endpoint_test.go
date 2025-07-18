@@ -973,6 +973,7 @@ func testAccAptibleEndpointInvalidLbAlgorithmWithElb() string {
 		process_type = "cmd"
 		default_domain = true
 		platform = "elb"
+		load_balancing_algorithm_type = "round_robin"
 	}`
 	log.Println("HCL generated: ", output)
 	return output
