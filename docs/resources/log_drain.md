@@ -45,7 +45,7 @@ isn't necessarily set up properly in Aptible.
   case, and only contain letters, numbers, `-`, `_`, or `.`.
 - `drain_type` (Required) - The type of log drain: `syslog_tls_tcp`,
   `elasticsearch_database`, `https_post`, `sumologic`, `logdna`, `datadog`,
-  `papertrail`.
+  `papertrail`, `solarwinds`.
 - `drain_apps` - (Optional, default `True`) If the drain should collect logs
   from apps.
 - `drain_databases` - (Optional, default `True`) If the drain should collect
@@ -58,8 +58,8 @@ isn't necessarily set up properly in Aptible.
   `elasticsearch_database` drains should send logs to.
 - `drain_host` - The host name of the destination to send logs to.
 - `drain_port` - The port for the destination where logs drains will be sent.
-- `logging_token` - The logging token prepended to logs by `syslog` and
-  `papertrail` drains.
+- `logging_token` - The logging token prepended to logs by `syslog`, 
+  `papertrail`, and `solarwinds` drains.
 - `url` - The destination url where the logs will be sent.
 - `tags` - A comma-separated list of additional tags to apply logs collected by
   `logdna` and `datadog` drains.
@@ -115,6 +115,11 @@ The following arguments are required for all log drains:
 - `drain_host` (Required)
 - `drain_port` (Required)
 - `logging_token` (Optional)
+
+#### `solarwinds`
+
+- `drain_host` (Required)
+- `logging_token` (Required)
 
 ## Attribute Reference
 
