@@ -423,7 +423,7 @@ func testAccAptibleLogDrainSolarwinds(handle string) string {
 		handle = "%v"
 		drain_type = "solarwinds"
 		drain_host = "www.solarwinds.com"
-		drain_token = "secrettoken"
+		logging_token = "secrettoken"
 	}
 `, handle, testOrganizationId, testStackId, handle)
 }
