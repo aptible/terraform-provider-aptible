@@ -239,7 +239,7 @@ func TestAccResourceLogDrain_solarwinds(t *testing.T) {
 					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_log_drain.test", "env_id"),
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "handle", rHandle),
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_host", "www.solarwinds.com"),
-					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_token", "secrettoken"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "logging_token", "secrettoken"),
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_apps", "true"),
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_databases", "true"),
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_ephemeral_sessions", "true"),
