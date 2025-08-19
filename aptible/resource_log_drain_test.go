@@ -224,6 +224,36 @@ func TestAccResourceLogDrain_papertrail(t *testing.T) {
 	})
 }
 
+func TestAccResourceLogDrain_solarwinds(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLogDrainDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleLogDrainSolarwinds(rHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_type", "solarwinds"),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_log_drain.test", "env_id"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "handle", rHandle),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_host", "www.solarwinds.com"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_token", "secrettoken"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_apps", "true"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_databases", "true"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_ephemeral_sessions", "true"),
+					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_proxies", "false"),
+				),
+			}, {
+				ResourceName:      "aptible_log_drain.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccCheckLogDrainDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
 	for _, rs := range s.RootModule().Resources {
@@ -376,6 +406,24 @@ func testAccAptibleLogDrainPapertrail(handle string) string {
 		drain_type = "papertrail"
 		drain_host = "www.papertrail.com"
 		drain_port = "1234"
+	}
+`, handle, testOrganizationId, testStackId, handle)
+}
+
+func testAccAptibleLogDrainSolarwinds(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_log_drain" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		drain_type = "solarwinds"
+		drain_host = "www.solarwinds.com"
+		drain_token = "secrettoken"
 	}
 `, handle, testOrganizationId, testStackId, handle)
 }
