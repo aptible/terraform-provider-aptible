@@ -820,7 +820,7 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 					return fmt.Errorf("failed to delete autoscaling policy for service %s: %w", serviceName, err)
 				}
 			}
-			return nil
+			continue
 		}
 
 		// There's only ever one policy, but we have to model this as a list
