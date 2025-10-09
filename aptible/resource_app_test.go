@@ -459,6 +459,50 @@ func TestAccResourceApp_stopTimeout(t *testing.T) {
 	})
 }
 
+func TestAccResourceApp_multipleServicesWithPartialAutoscaling(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleAppMultipleServicesWithPartialAutoscaling(rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
+						resource.TestCheckResourceAttr("aptible_app.test", "service.#", "2"),
+						// Check that the worker service has autoscaling policy
+						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
+							"process_type": "web",
+						}),
+						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*.autoscaling_policy.*", map[string]string{
+							"autoscaling_type": "vertical",
+							"minimum_memory":   "512",
+							"maximum_memory":   "1024",
+						}),
+						// Check that the web service exists but has no autoscaling policy
+						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
+							"process_type": "rabbitB",
+						}),
+					),
+				},
+				{
+					Config:   testAccAptibleAppMultipleServicesWithPartialAutoscaling(rHandle),
+					PlanOnly: true,
+				},
+				{
+					ResourceName:      "aptible_app.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+			},
+		})
+	})
+}
+
 func TestAccResourceApp_updateRestartFreeScaling(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
@@ -961,4 +1005,46 @@ func testAccAptibleAppDeployWithRestartFreeScaling(handle string, restartFreeSca
 		}
 	}
 	`, handle, testOrganizationId, testStackId, handle, restartFreeScaling)
+}
+
+func testAccAptibleAppMultipleServicesWithPartialAutoscaling(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/terraform-multiservice-test:policy_order"
+		}
+		service {
+			process_type           = "rabbitB"
+			container_count        = 1
+			container_memory_limit = 1024
+		}
+		service {
+			process_type           = "web"
+			container_count        = 1
+			container_memory_limit = 512
+			autoscaling_policy {
+				autoscaling_type = "vertical"
+				percentile = 75.0
+				minimum_memory = 512
+				maximum_memory = 1024
+				mem_scale_up_threshold = 0.9
+				mem_scale_down_threshold = 0.75
+				mem_cpu_ratio_r_threshold = 4.0
+				mem_cpu_ratio_c_threshold = 2.0
+				metric_lookback_seconds = 300
+				post_scale_up_cooldown_seconds = 60
+				post_scale_down_cooldown_seconds = 300
+				post_release_cooldown_seconds = 60
+			}
+		}
+	}
+	`, handle, testOrganizationId, testStackId, handle)
 }
