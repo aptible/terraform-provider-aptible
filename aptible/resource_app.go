@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -302,24 +301,46 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 }
 
 func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).LegacyClient
-	envID := int64(d.Get("env_id").(int))
+	m := meta.(*providerMetadata)
+	client := m.Client
+	legacy := m.LegacyClient
+	ctx := m.APIContext(context.Background())
+
+	envID := int32(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
 
-	app, err := client.CreateApp(handle, envID)
+	// Create the app using the modern API
+	createReq := aptibleapi.NewCreateAppRequest(handle)
+	app, _, err := client.AppsAPI.CreateApp(ctx, envID).CreateAppRequest(*createReq).Execute()
 	if err != nil {
 		log.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
-		return generateErrorFromClientError(err)
+		return err
 	}
-	d.SetId(strconv.Itoa(int(app.ID)))
-	_ = d.Set("app_id", app.ID)
+	d.SetId(strconv.Itoa(int(app.Id)))
+	_ = d.Set("app_id", app.Id)
 
 	config := d.Get("config").(map[string]interface{})
 
 	if len(config) != 0 {
-		err := client.DeployApp(config, app.ID)
+		// Convert config to map[string]string
+		envConfig := make(map[string]string)
+		for k, v := range config {
+			envConfig[k] = v.(string)
+		}
+
+		// Create deploy operation using the modern API
+		payload := aptibleapi.NewCreateOperationRequest("deploy")
+		payload.SetEnv(envConfig)
+		op, _, err := client.OperationsAPI.CreateOperationForApp(ctx, app.Id).CreateOperationRequest(*payload).Execute()
 		if err != nil {
 			log.Println("There was an error when completing the request to configure the app.\n[ERROR] -", err)
+			return err
+		}
+
+		// Wait for operation to complete (still uses legacy client)
+		_, err = legacy.WaitForOperation(int64(op.Id))
+		if err != nil {
+			log.Println("There was an error waiting for the app deployment.\n[ERROR] -", err)
 			return generateErrorFromClientError(err)
 		}
 	}
@@ -447,8 +468,11 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).LegacyClient
-	appID := int64(d.Get("app_id").(int))
+	m := meta.(*providerMetadata)
+	client := m.Client
+	legacy := m.LegacyClient
+	ctx := m.APIContext(c)
+	appID := int32(d.Get("app_id").(int))
 
 	var diags diag.Diagnostics
 
@@ -464,9 +488,9 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 	}
 
 	if d.HasChange("config") {
-		o, c := d.GetChange("config")
+		o, newConfig := d.GetChange("config")
 		old := o.(map[string]interface{})
-		config := c.(map[string]interface{})
+		config := newConfig.(map[string]interface{})
 		// Set any old keys that are not present to an empty string.
 		// The API will then clear them during normalization otherwise
 		// the old values will be merged with the new
@@ -476,14 +500,35 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 			}
 		}
 
-		err := client.DeployApp(config, appID)
+		// Convert config to map[string]string
+		envConfig := make(map[string]string)
+		for k, v := range config {
+			envConfig[k] = v.(string)
+		}
+
+		// Create deploy operation using the modern API
+		payload := aptibleapi.NewCreateOperationRequest("deploy")
+		payload.SetEnv(envConfig)
+		op, _, err := client.OperationsAPI.CreateOperationForApp(ctx, appID).CreateOperationRequest(*payload).Execute()
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "There was an error when trying to deploy the app.",
-				Detail:   generateErrorFromClientError(err).Error(),
+				Detail:   err.Error(),
 			})
 			log.Println("There was an error when completing the request.\n[ERROR] -", err)
+			return diags
+		}
+
+		// Wait for operation to complete
+		_, err = legacy.WaitForOperation(int64(op.Id))
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error waiting for the app deployment.",
+				Detail:   generateErrorFromClientError(err).Error(),
+			})
+			log.Println("There was an error waiting for the deployment operation.\n[ERROR] -", err)
 			return diags
 		}
 	}
@@ -511,15 +556,15 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 
 	handle := d.Get("handle").(string)
 	if d.HasChange("handle") {
-		updates := aptible.AppUpdates{
-			Handle: handle,
-		}
+		updateReq := aptibleapi.NewUpdateAppRequest()
+		updateReq.SetHandle(handle)
 		log.Printf("[INFO] Updating handle to %s\n", handle)
-		if err := client.UpdateApp(appID, updates); err != nil {
+		_, err := client.AppsAPI.UpdateApp(ctx, appID).UpdateAppRequest(*updateReq).Execute()
+		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "There was an error when trying to update the handle.",
-				Detail:   generateErrorFromClientError(err).Error(),
+				Detail:   err.Error(),
 			})
 			return diags
 		}
@@ -534,7 +579,7 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "There was an error when trying to retrieve the updated state of the app.",
-			Detail:   generateErrorFromClientError(err).Error(),
+			Detail:   err.Error(),
 		})
 	}
 
