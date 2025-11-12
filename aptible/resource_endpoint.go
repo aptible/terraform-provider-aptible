@@ -371,7 +371,7 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 
 	serviceID := ExtractIdFromLink(endpoint.Links.Service.GetHref())
 
-	service, _, err := client.ServicesAPI.GetService(ctx, serviceID).Execute()
+	service, _, err := client.ServicesAPI.GetServiceWithOperationStatus(ctx, serviceID).Execute()
 	if err != nil {
 		return append(diags, diag.Diagnostic{
 			Severity: diag.Error,

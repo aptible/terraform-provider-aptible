@@ -234,7 +234,7 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	service, _, err := client.ServicesAPI.GetService(ctx, serviceID).Execute()
+	service, _, err := client.ServicesAPI.GetServiceWithOperationStatus(ctx, serviceID).Execute()
 	if err != nil {
 		return err
 	}
