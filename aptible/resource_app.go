@@ -15,6 +15,14 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// sensitiveSettingsKeys is the list of setting keys that should be treated as sensitive
+// You _need_ to mirror Sweetness::Helpers::ResourceSettings::SENSITIVE_LIST here!
+// lib/sweetness/helpers/resource_settings.rb
+var sensitiveSettingsKeys = map[string]bool{
+	"APTIBLE_PRIVATE_REGISTRY_PASSWORD": true,
+	"APTIBLE_PRIVATE_REGISTRY_USERNAME": true,
+}
+
 func resourceApp() *schema.Resource {
 	return &schema.Resource{
 		Create:        resourceAppCreate, // POST
@@ -36,6 +44,13 @@ func resourceApp() *schema.Resource {
 				Required: true,
 			},
 			"config": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"settings": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -320,17 +335,39 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("app_id", app.Id)
 
 	config := d.Get("config").(map[string]interface{})
+	settings := d.Get("settings").(map[string]interface{})
 
-	if len(config) != 0 {
-		// Convert config to map[string]string
-		envConfig := make(map[string]string)
-		for k, v := range config {
-			envConfig[k] = v.(string)
+	envConfig := make(map[string]string)
+	settingKeys := make(map[string]string)
+	settingSensitiveKeys := make(map[string]string)
+
+	if len(config) != 0 || len(settings) != 0 {
+		// Convert config and settings to map[string]string
+		if len(config) != 0 {
+			for k, v := range config {
+				envConfig[k] = v.(string)
+			}
+		}
+
+		if len(settings) != 0 {
+			for k, v := range settings {
+				// Convert any type to string
+				strVal := fmt.Sprintf("%v", v)
+
+				if sensitiveSettingsKeys[k] {
+					settingSensitiveKeys[k] = strVal
+				} else {
+					settingKeys[k] = strVal
+				}
+			}
 		}
 
 		// Create deploy operation using the modern API
 		payload := aptibleapi.NewCreateOperationRequest("deploy")
+		// TODO check if it's okay that these are empty maps
 		payload.SetEnv(envConfig)
+		payload.SetSettings(settingKeys)
+		payload.SetSensitiveSettings(settingSensitiveKeys)
 		op, _, err := client.OperationsAPI.CreateOperationForApp(ctx, app.Id).CreateOperationRequest(*payload).Execute()
 		if err != nil {
 			log.Println("There was an error when completing the request to configure the app.\n[ERROR] -", err)
@@ -487,9 +524,13 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 		return diags
 	}
 
+	envConfig := make(map[string]string)
+	settingKeys := make(map[string]string)
+	settingSensitiveKeys := make(map[string]string)
+
 	if d.HasChange("config") {
-		o, newConfig := d.GetChange("config")
-		old := o.(map[string]interface{})
+		oc, newConfig := d.GetChange("config")
+		old := oc.(map[string]interface{})
 		config := newConfig.(map[string]interface{})
 		// Set any old keys that are not present to an empty string.
 		// The API will then clear them during normalization otherwise
@@ -501,14 +542,43 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 		}
 
 		// Convert config to map[string]string
-		envConfig := make(map[string]string)
 		for k, v := range config {
 			envConfig[k] = v.(string)
 		}
+	}
 
+	if d.HasChange("settings") {
+		os, newSetting := d.GetChange("settings")
+		oldKeys := os.(map[string]interface{})
+		setting := newSetting.(map[string]interface{})
+		// Set any old keys that are not present to an empty string.
+		// The API will then clear them during normalization otherwise
+		// the old values will be merged with the new
+		for key := range oldKeys {
+			if _, present := setting[key]; !present {
+				setting[key] = ""
+			}
+		}
+
+		// Convert config to map[string]string
+		for k, v := range setting {
+			// Convert any type to string
+			strVal := fmt.Sprintf("%v", v)
+
+			if sensitiveSettingsKeys[k] {
+				settingSensitiveKeys[k] = strVal
+			} else {
+				settingKeys[k] = strVal
+			}
+		}
+	}
+
+	if d.HasChange("config") || d.HasChange("settings") {
 		// Create deploy operation using the modern API
 		payload := aptibleapi.NewCreateOperationRequest("deploy")
 		payload.SetEnv(envConfig)
+		payload.SetSettings(settingKeys)
+		payload.SetSensitiveSettings(settingSensitiveKeys)
 		op, _, err := client.OperationsAPI.CreateOperationForApp(ctx, appID).CreateOperationRequest(*payload).Execute()
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
