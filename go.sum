@@ -109,8 +109,8 @@ github.com/apparentlymart/go-textseg v1.0.0/go.mod h1:z96Txxhf3xSFMPmb5X/1W05FF/
 github.com/apparentlymart/go-textseg/v12 v12.0.0/go.mod h1:S/4uRK2UtaQttw1GenVJEynmyUenKwP++x/+DdGV/Ec=
 github.com/apparentlymart/go-textseg/v15 v15.0.0 h1:uYvfpb3DyLSCGWnctWKGj857c6ew1u1fNQOlOtuGxQY=
 github.com/apparentlymart/go-textseg/v15 v15.0.0/go.mod h1:K8XmNZdhEBkdlyDdvbmmsvpAG721bKi0joRfFdHIWJ4=
-github.com/aptible/aptible-api-go v0.11.1-0.20251112190832-cace82b1651f h1:7AiROEtl1ACl5j/4MqxYVTiTy40DnHhI9O/z7akmt/s=
-github.com/aptible/aptible-api-go v0.11.1-0.20251112190832-cace82b1651f/go.mod h1:JIQ26rTFdhNrST98Ji1TI9OMd0/YqqxIkmiZld2YN7s=
+github.com/aptible/aptible-api-go v0.11.1 h1:le1zCtU4PjWfolrC8K/trL3S0/SRebWQNGvxz+cEXvQ=
+github.com/aptible/aptible-api-go v0.11.1/go.mod h1:JIQ26rTFdhNrST98Ji1TI9OMd0/YqqxIkmiZld2YN7s=
 github.com/aptible/go-deploy v0.5.4 h1:fUXkJ5kzJhl2alknsV7OndpHirLIXHd8l8Zp6bhIlL0=
 github.com/aptible/go-deploy v0.5.4/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
