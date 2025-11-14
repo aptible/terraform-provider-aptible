@@ -5,7 +5,7 @@ go 1.22.0
 toolchain go1.23.1
 
 require (
-	github.com/aptible/aptible-api-go v0.11.1-0.20251112190832-cace82b1651f
+	github.com/aptible/aptible-api-go v0.11.1
 	github.com/aptible/go-deploy v0.5.4
 	github.com/bflad/tfproviderdocs v0.9.1
 	github.com/bflad/tfproviderlint v0.28.1
@@ -228,5 +228,3 @@ require (
 	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
 	mvdan.cc/unparam v0.0.0-20210520122750-2ac67f130a88 // indirect
 )
-
-replace github.com/aptible/aptible-api-go => github.com/aptible/aptible-api-go v0.11.1-0.20251112190832-cace82b1651f
