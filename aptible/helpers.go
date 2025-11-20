@@ -25,23 +25,24 @@ func makeInt32Slice(interfaceSlice []interface{}) ([]int32, error) {
 	for i := 0; i < len(interfaceSlice); i++ {
 		kind := reflect.TypeOf(interfaceSlice[i]).Kind()
 
-		if kind == reflect.Int32 {
+		switch kind {
+		case reflect.Int32:
 			int32Slice[i] = interfaceSlice[i].(int32)
-		} else if kind == reflect.Int {
+		case reflect.Int:
 			num := interfaceSlice[i].(int)
 			if fitsInt32(num) {
 				int32Slice[i] = int32(num)
 			} else {
 				return []int32{}, fmt.Errorf("slice contains int elements larger than 32 bits: %d", num)
 			}
-		} else if kind == reflect.Int64 {
+		case reflect.Int64:
 			num := interfaceSlice[i].(int64)
 			if fitsInt32(num) {
 				int32Slice[i] = int32(num)
 			} else {
 				return []int32{}, fmt.Errorf("slice contains int elements larger than 32 bits: %d", num)
 			}
-		} else {
+		default:
 			return []int32{}, fmt.Errorf("slice contains non-int elements")
 		}
 	}

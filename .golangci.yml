@@ -1,20 +1,24 @@
+version: "2"
+
 run:
-  deadline: 3m
+  timeout: 3m
   modules-download-mode: vendor
 
 issues:
-  max-per-linter: 0
+  max-issues-per-linter: 0
   max-same-issues: 0
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - errcheck
-    - gofmt
-    - gosimple
     - ineffassign
     - misspell
     - staticcheck
     - unconvert
     - unused
-    - vet
+    - govet
+
+formatters:
+  enable:
+    - gofmt

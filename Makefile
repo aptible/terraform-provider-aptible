@@ -38,11 +38,11 @@ fmtcheck:
 
 lint:
 	@bin/golangci-lint run ./$(PKG_NAME)/...
-	@tfproviderlint ./...
+	@$$(go env GOPATH)/bin/tfproviderlint ./...
 
 tools:
 	@go mod vendor
 	@go install github.com/bflad/tfproviderlint/cmd/tfproviderlint
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.63.4
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v2.6.2
 
 .PHONY: build gen test testacc fmt fmtcheck lint tools local-install

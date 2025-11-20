@@ -60,8 +60,9 @@ func TestAccResourceApp_deploy(t *testing.T) {
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
-							"force_zero_downtime": "true",
-							"simple_health_check": "true",
+							"force_zero_downtime":  "true",
+							"restart_free_scaling": "false",
+							"simple_health_check":  "true",
 						}),
 					),
 				},
@@ -625,6 +626,7 @@ func testAccAptibleAppDeploy(handle string, index string) string {
 			container_memory_limit = 512
 			container_count = 1
 			force_zero_downtime = true
+			restart_free_scaling = false
 			simple_health_check = true
 		}
 	}

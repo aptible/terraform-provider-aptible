@@ -37,6 +37,7 @@ resource "aptible_app" "APP" {
         container_count = 2
         container_memory_limit = 2048
         force_zero_downtime = true
+        restart_free_scaling = true
         autoscaling_policy {
           autoscaling_type = "horizontal"
           min_containers = 2
@@ -78,6 +79,8 @@ The `service` block supports:
   a zero-downtime release and leverage docker healthchecks for the containers. Please
   note that docker healthchecks are required unless `simple_health_check` is enabled.
   [For more information please see the docs](https://www.aptible.com/docs/core-concepts/apps/deploying-apps/releases/overview).
+- `restart_free_scaling` - (Default: false) Enable restart-free scaling for the service,
+  allowing containers to be added or removed without restarting existing containers.
 - `simple_health_check` - (Default: false) For services without endpoints, if
   force_zero_downtime is enabled, do a simple uptime check instead of using docker healthchecks.
 - `stop_timeout` - (Default: 10) The number of seconds to wait for the service containers to stop gracefully on release before killing it.

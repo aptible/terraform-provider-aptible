@@ -235,18 +235,18 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 
 	imageID := ExtractIdFromLink(database.Links.DatabaseImage.GetHref())
 	if imageID == 0 {
-		return fmt.Errorf("Could not find database image ID")
+		return fmt.Errorf("could not find database image ID")
 	}
 	serviceID := ExtractIdFromLink(database.Links.Service.GetHref())
 	if serviceID == 0 {
-		return fmt.Errorf("Could not find database service ID")
+		return fmt.Errorf("could not find database service ID")
 	}
 	accountID := ExtractIdFromLink(database.Links.Account.GetHref())
 	if accountID == 0 {
-		return fmt.Errorf("Could not find database account ID")
+		return fmt.Errorf("could not find database account ID")
 	}
 
-	service, _, err := client.ServicesAPI.GetService(ctx, serviceID).Execute()
+	service, _, err := client.ServicesAPI.GetServiceWithOperationStatus(ctx, serviceID).Execute()
 	if err != nil {
 		return err
 	}
