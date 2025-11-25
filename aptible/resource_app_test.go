@@ -525,6 +525,7 @@ func TestAccResourceApp_updateRestartFreeScaling(t *testing.T) {
 							"process_type":           "cmd",
 							"container_count":        "1",
 							"container_memory_limit": "512",
+							"restart_free_scaling":   "false",
 						}),
 						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*.autoscaling_policy.*", map[string]string{
 							"autoscaling_type":     "horizontal",
@@ -548,6 +549,7 @@ func TestAccResourceApp_updateRestartFreeScaling(t *testing.T) {
 							"process_type":           "cmd",
 							"container_count":        "1",
 							"container_memory_limit": "512",
+							"restart_free_scaling":   "true",
 						}),
 						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*.autoscaling_policy.*", map[string]string{
 							"autoscaling_type":     "horizontal",
@@ -996,6 +998,7 @@ func testAccAptibleAppDeployWithRestartFreeScaling(handle string, restartFreeSca
 			container_profile = "m5"
 			container_memory_limit = 512
 			container_count = 1
+			restart_free_scaling = %t
 			autoscaling_policy {
 				autoscaling_type = "horizontal"
 				use_horizontal_scale = %t
@@ -1006,7 +1009,7 @@ func testAccAptibleAppDeployWithRestartFreeScaling(handle string, restartFreeSca
 			}
 		}
 	}
-	`, handle, testOrganizationId, testStackId, handle, restartFreeScaling)
+	`, handle, testOrganizationId, testStackId, handle, restartFreeScaling, restartFreeScaling)
 }
 
 func testAccAptibleAppMultipleServicesWithPartialAutoscaling(handle string) string {
