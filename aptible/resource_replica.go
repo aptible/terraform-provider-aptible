@@ -246,7 +246,7 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Could not find database account ID")
 	}
 
-	service, _, err := client.ServicesAPI.GetService(ctx, serviceID).Execute()
+	service, _, err := client.ServicesAPI.GetServiceWithOperationStatus(ctx, serviceID).Execute()
 	if err != nil {
 		return err
 	}

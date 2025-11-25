@@ -91,6 +91,11 @@ func resourceService() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"restart_free_scaling": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"simple_health_check": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -267,13 +272,14 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 					"min_cpu_threshold",
 					"max_cpu_threshold",
 				}
-				if autoscalingType == "horizontal" {
+				switch autoscalingType {
+				case "horizontal":
 					for _, attr := range attrsToCheck {
 						if val, ok := policyMap[attr]; !ok || val == nil || val == 0 {
 							return fmt.Errorf("%s is required when autoscaling_type is set to 'horizontal'", attr)
 						}
 					}
-				} else if autoscalingType == "vertical" {
+				case "vertical":
 					for _, attr := range attrsToCheck {
 						// NOTE: terraform sets numeric values to `0`, they're never nil
 						val := policyMap[attr]
@@ -292,6 +298,8 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 							return fmt.Errorf("unknown issue occurred when validating %s", attr)
 						}
 					}
+				default:
+					return fmt.Errorf("invalid autoscaling_type '%s', must be either 'horizontal' or 'vertical'", autoscalingType)
 				}
 			} else if len(policies) > 0 {
 				return fmt.Errorf("only one autoscaling_policy is allowed per service")
@@ -399,6 +407,7 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 		service["process_type"] = s.ProcessType
 		log.Printf("ZDD flags: %t, %t", s.ForceZeroDowntime, s.NaiveHealthCheck)
 		service["force_zero_downtime"] = s.ForceZeroDowntime
+		service["restart_free_scaling"] = s.RestartFreeScaling
 		service["simple_health_check"] = s.NaiveHealthCheck
 		if s.StopTimeout.IsSet() && s.StopTimeout.Get() != nil {
 			service["stop_timeout"] = *s.StopTimeout.Get()
@@ -598,10 +607,12 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 		}
 
 		forceZeroDowntime := serviceData["force_zero_downtime"].(bool)
+		restartFreeScaling := serviceData["restart_free_scaling"].(bool)
 		naiveHealthCheck := serviceData["simple_health_check"].(bool)
 		stopTimeout := int32(serviceData["stop_timeout"].(int))
 
 		forceZeroDowntimeChanged := forceZeroDowntime != apiService.ForceZeroDowntime
+		restartFreeScalingChanged := restartFreeScaling != apiService.RestartFreeScaling
 		naiveHealthCheckChanged := naiveHealthCheck != apiService.NaiveHealthCheck
 
 		var stopTimeoutChanged bool
@@ -612,7 +623,7 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 			stopTimeoutChanged = stopTimeout > 0
 		}
 
-		if !forceZeroDowntimeChanged && !naiveHealthCheckChanged && !stopTimeoutChanged {
+		if !forceZeroDowntimeChanged && !restartFreeScalingChanged && !naiveHealthCheckChanged && !stopTimeoutChanged {
 			log.Printf("[INFO] No relevant changes detected for service %s, skipping update.", processType)
 			continue
 		}
@@ -620,23 +631,25 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 		// Clone values inside the goroutine to avoid race conditions
 		svcType := processType
 		svcZeroDowntime := forceZeroDowntime
+		svcRestartFreeScaling := restartFreeScaling
 		svcHealthCheck := naiveHealthCheck
 		svcStopTimeout := stopTimeout
 		svcID := apiService.Id
-		log.Printf("About to update service %s: force_zero_downtime: %t, simple_health_check: %t, stop_timeout: %d",
-			svcType, svcZeroDowntime, svcHealthCheck, svcStopTimeout)
+		log.Printf("About to update service %s: force_zero_downtime: %t, restart_free_scaling: %t, simple_health_check: %t, stop_timeout: %d",
+			svcType, svcZeroDowntime, svcRestartFreeScaling, svcHealthCheck, svcStopTimeout)
 
 		g.Go(func() error {
 			payload := aptibleapi.NewUpdateServiceRequest()
 			payload.SetForceZeroDowntime(svcZeroDowntime)
+			payload.SetRestartFreeScaling(svcRestartFreeScaling)
 			payload.SetNaiveHealthCheck(svcHealthCheck)
 
 			if svcStopTimeout > 0 {
 				payload.SetStopTimeout(svcStopTimeout)
 			}
 
-			log.Printf("Updating service %s: force_zero_downtime: %t, simple_health_check: %t, stop_timeout: %d",
-				svcType, svcZeroDowntime, svcHealthCheck, svcStopTimeout)
+			log.Printf("Updating service %s: force_zero_downtime: %t, restart_free_scaling: %t, simple_health_check: %t, stop_timeout: %d",
+				svcType, svcZeroDowntime, svcRestartFreeScaling, svcHealthCheck, svcStopTimeout)
 
 			_, err := client.ServicesAPI.UpdateService(ctx, svcID).UpdateServiceRequest(*payload).Execute()
 			if err != nil {
@@ -689,7 +702,7 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 		}
 		shouldScale := false
 		for key, newValue := range serviceInterface {
-			if key == "force_zero_downtime" || key == "simple_health_check" || key == "autoscaling_policy" || key == "service_sizing_policy" {
+			if key == "force_zero_downtime" || key == "restart_free_scaling" || key == "simple_health_check" || key == "autoscaling_policy" || key == "service_sizing_policy" {
 				continue // Skip checking these keys. Nothing to do with manual scaling
 			}
 
@@ -828,9 +841,10 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 
 		autoscaling := serviceSizingPolicyMap["autoscaling_type"].(string)
 		delete(serviceSizingPolicyMap, "autoscaling_type")
-		if autoscaling == "horizontal" {
+		switch autoscaling {
+		case "horizontal":
 			delete(serviceSizingPolicyMap, "maximum_memory")
-		} else if autoscaling == "vertical" {
+		case "vertical":
 			// First, remove values without defaults that aren't used in VAS
 			delete(serviceSizingPolicyMap, "min_containers")
 			delete(serviceSizingPolicyMap, "max_containers")
@@ -840,6 +854,8 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 			if serviceSizingPolicyMap["maximum_memory"] == 0 {
 				delete(serviceSizingPolicyMap, "maximum_memory")
 			}
+		default:
+			return fmt.Errorf("invalid autoscaling_type '%s', must be either 'horizontal' or 'vertical'", autoscaling)
 		}
 		// Get rid of anything marked as `0` since that is what terraform sets things not set by the user
 		// Also, 0 is not a valid value for any of ServiceSizingPolicy attributes

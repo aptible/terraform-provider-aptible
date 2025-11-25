@@ -60,8 +60,9 @@ func TestAccResourceApp_deploy(t *testing.T) {
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
-							"force_zero_downtime": "true",
-							"simple_health_check": "true",
+							"force_zero_downtime":  "true",
+							"restart_free_scaling": "false",
+							"simple_health_check":  "true",
 						}),
 					),
 				},
@@ -524,6 +525,7 @@ func TestAccResourceApp_updateRestartFreeScaling(t *testing.T) {
 							"process_type":           "cmd",
 							"container_count":        "1",
 							"container_memory_limit": "512",
+							"restart_free_scaling":   "false",
 						}),
 						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*.autoscaling_policy.*", map[string]string{
 							"autoscaling_type":     "horizontal",
@@ -547,6 +549,7 @@ func TestAccResourceApp_updateRestartFreeScaling(t *testing.T) {
 							"process_type":           "cmd",
 							"container_count":        "1",
 							"container_memory_limit": "512",
+							"restart_free_scaling":   "true",
 						}),
 						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*.autoscaling_policy.*", map[string]string{
 							"autoscaling_type":     "horizontal",
@@ -625,6 +628,7 @@ func testAccAptibleAppDeploy(handle string, index string) string {
 			container_memory_limit = 512
 			container_count = 1
 			force_zero_downtime = true
+			restart_free_scaling = false
 			simple_health_check = true
 		}
 	}
@@ -994,6 +998,7 @@ func testAccAptibleAppDeployWithRestartFreeScaling(handle string, restartFreeSca
 			container_profile = "m5"
 			container_memory_limit = 512
 			container_count = 1
+			restart_free_scaling = %t
 			autoscaling_policy {
 				autoscaling_type = "horizontal"
 				use_horizontal_scale = %t
@@ -1004,7 +1009,7 @@ func testAccAptibleAppDeployWithRestartFreeScaling(handle string, restartFreeSca
 			}
 		}
 	}
-	`, handle, testOrganizationId, testStackId, handle, restartFreeScaling)
+	`, handle, testOrganizationId, testStackId, handle, restartFreeScaling, restartFreeScaling)
 }
 
 func testAccAptibleAppMultipleServicesWithPartialAutoscaling(handle string) string {

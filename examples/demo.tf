@@ -27,11 +27,13 @@ resource "aptible_app" "demo-app" {
     process_type           = "web"
     container_count        = 2
     container_memory_limit = 512
+    restart_free_scaling   = true
   }
   service {
     process_type           = "background"
     container_count        = 1
     container_memory_limit = 512
+    restart_free_scaling   = false
   }
 }
 
