@@ -36,12 +36,12 @@ func generateErrorFromClientError(abstractedError interface{}) error {
 	log.Println("[ERROR] error received and being processed", abstractedError)
 	data, err := json.Marshal(&abstractedError)
 	if err != nil {
-		return fmt.Errorf("unable to properly decode error in marshal from client - %s", err.Error())
+		return fmt.Errorf("Unable to properly decode error in marshal from client - %s\n", err.Error())
 	}
 
 	var out clientError
 	if err := json.Unmarshal(data, &out); err != nil {
-		return fmt.Errorf("unable to properly decode error in unmarshal from client - %s", err.Error())
+		return fmt.Errorf("Unable to properly decode error in unmarshal from client - %s\n", err.Error())
 	}
 
 	// payload is a pointer and can be nil, but we don't have all our information from a http code, so we construct it
@@ -63,7 +63,7 @@ func generateErrorFromClientError(abstractedError interface{}) error {
 		}
 
 		return fmt.Errorf(
-			"unable to properly decode error (missing fields to properly generate error) - %s",
+			"unable to properly decode error (missing fields to properly generate error) - %s\n",
 			errorString,
 		)
 	} else {

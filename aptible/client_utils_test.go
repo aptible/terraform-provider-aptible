@@ -60,7 +60,7 @@ func TestGenerateErrorFromClientError(t *testing.T) {
 				},
 			},
 			wantErr:   true,
-			errorBody: "unable to properly decode error (missing fields to properly generate error) -  error (not_found) error message (resource not found)",
+			errorBody: "unable to properly decode error (missing fields to properly generate error) -  error (not_found) error message (resource not found)\n",
 		},
 		{
 			name: "return a pre-baked error when error code not found",
@@ -74,7 +74,7 @@ func TestGenerateErrorFromClientError(t *testing.T) {
 				},
 			},
 			wantErr:   true,
-			errorBody: "unable to properly decode error (missing fields to properly generate error) -  status code (400) error message (resource not found)",
+			errorBody: "unable to properly decode error (missing fields to properly generate error) -  status code (400) error message (resource not found)\n",
 		},
 		{
 			name: "return a marshalable error with a nil payload should break early",
@@ -90,7 +90,7 @@ func TestGenerateErrorFromClientError(t *testing.T) {
 				abstractedError: "{",
 			},
 			wantErr:   true,
-			errorBody: "unable to properly decode error in unmarshal from client - json: cannot unmarshal string into Go value of type aptible.clientError",
+			errorBody: "Unable to properly decode error in unmarshal from client - json: cannot unmarshal string into Go value of type aptible.clientError\n",
 		},
 		{
 			name: "return a marshalable error but without a payload (regular errors, non-swagger client)",

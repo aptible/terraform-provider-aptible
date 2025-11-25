@@ -298,6 +298,8 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 							return fmt.Errorf("unknown issue occurred when validating %s", attr)
 						}
 					}
+				default:
+					return fmt.Errorf("invalid autoscaling_type '%s', must be either 'horizontal' or 'vertical'", autoscalingType)
 				}
 			} else if len(policies) > 0 {
 				return fmt.Errorf("only one autoscaling_policy is allowed per service")
@@ -852,6 +854,8 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 			if serviceSizingPolicyMap["maximum_memory"] == 0 {
 				delete(serviceSizingPolicyMap, "maximum_memory")
 			}
+		default:
+			return fmt.Errorf("invalid autoscaling_type '%s', must be either 'horizontal' or 'vertical'", autoscaling)
 		}
 		// Get rid of anything marked as `0` since that is what terraform sets things not set by the user
 		// Also, 0 is not a valid value for any of ServiceSizingPolicy attributes
