@@ -190,6 +190,8 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, meta
 		return diags
 	}
 
+	// TODO: If PITR Days changes, we need to trigger a configure_backup_policy operation
+
 	return resourceEnvironmentRead(ctx, d, meta)
 }
 

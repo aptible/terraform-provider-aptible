@@ -276,26 +276,28 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	iops := int32(d.Get("iops").(int))
 	handle := d.Get("handle").(string)
 	enableBackups := d.Get("enable_backups").(bool)
-	needsOperation := false
+	enablePitr := d.Get("enable_pitr").(bool)
+	needsRestartOperation := false
+	needsPitrOperation := false
 	var diags diag.Diagnostics
 
 	ctx = meta.(*providerMetadata).APIContext(ctx)
 	payload := aptibleapi.NewCreateOperationRequest("restart")
 
 	if d.HasChange("container_size") {
-		needsOperation = true
+		needsRestartOperation = true
 		payload.SetContainerSize(containerSize)
 	}
 	if d.HasChange("iops") {
-		needsOperation = true
+		needsRestartOperation = true
 		payload.SetProvisionedIops(iops)
 	}
 	if d.HasChange("container_profile") {
-		needsOperation = true
+		needsRestartOperation = true
 		payload.SetInstanceProfile(profile)
 	}
 	if d.HasChange("disk_size") {
-		needsOperation = true
+		needsRestartOperation = true
 		payload.SetDiskSize(diskSize)
 	}
 	if d.HasChange("enable_backups") {
@@ -316,6 +318,10 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
+	if d.HasChange("enable_pitr") {
+		needsPitrOperation = true
+	}
+
 	if d.HasChange("handle") {
 		_, err := client.
 			DatabasesAPI.
@@ -334,7 +340,42 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
-	if needsOperation {
+	if needsRestartOperation {
+		op, _, err := client.
+			OperationsAPI.
+			CreateOperationForDatabase(ctx, databaseID).
+			CreateOperationRequest(*payload).Execute()
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when trying to update the database.",
+				Detail:   err.Error(),
+			})
+			return diags
+		}
+
+		del, err := legacy.WaitForOperation(int64(op.Id))
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "There was an error when trying to update the database.",
+				Detail:   generateErrorFromClientError(err).Error(),
+			})
+			return diags
+		}
+		if del {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("The replica with handle: %s was unexpectedly deleted", handle),
+				Detail:   "The replica was unexpectedly deleted",
+			})
+			return diags
+		}
+	}
+
+	if needsPitrOperation {
+		payload := aptibleapi.NewCreateOperationRequest("configure_backup_policy")
+		payload.SetEnablePitr(enablePitr)
 		op, _, err := client.
 			OperationsAPI.
 			CreateOperationForDatabase(ctx, databaseID).
