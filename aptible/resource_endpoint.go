@@ -135,6 +135,22 @@ func resourceEndpoint() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(validLbAlgorithms, false),
 			},
+			"settings": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			// Not yet needed or supported in Sweetness
+			// "sensitive_settings": {
+			// 	Type:     schema.TypeMap,
+			// 	Optional: true,
+			// 	// Sensitive: true,
+			// 	Elem: &schema.Schema{
+			// 		Type: schema.TypeString,
+			// 	},
+			// },
 		},
 	}
 }
@@ -312,7 +328,37 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 		})
 	}
 
+	settingsRaw, hasSettings := d.GetOk("settings")
+	// Not yet needed or supported in Sweetness
+	// sensitiveSettingsRaw, hasSensitiveSettings := d.GetOk("sensitive_settings")
+
 	payload := aptibleapi.NewCreateOperationRequest("provision")
+
+	if hasSettings {
+		log.Printf("Has settings")
+		settingsMap := map[string]string{}
+		for k, v := range settingsRaw.(map[string]interface{}) {
+			settingsMap[k] = v.(string)
+		}
+		if len(settingsMap) > 0 {
+			log.Printf("Settings length %d", len(settingsMap))
+			payload.SetSettings(settingsMap)
+		}
+	}
+
+	// Not yet needed or supported in Sweetness
+	// if hasSensitiveSettings {
+	// 	log.Printf("Has sensitive settings")
+	// 	sensitiveSettingsMap := map[string]string{}
+	// 	for k, v := range sensitiveSettingsRaw.(map[string]interface{}) {
+	// 		sensitiveSettingsMap[k] = v.(string)
+	// 	}
+	// 	if len(sensitiveSettingsMap) > 0 {
+	// 		log.Printf("Sensitive settings length %d", len(sensitiveSettingsMap))
+	// 		payload.SetSensitiveSettings(sensitiveSettingsMap)
+	// 	}
+	// }
+
 	operation, _, err := client.OperationsAPI.
 		CreateOperationForVhost(ctx, endpoint.Id).
 		CreateOperationRequest(*payload).
@@ -454,6 +500,19 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 		_ = d.Set("dns_validation_record", c.From.GetName())
 		_ = d.Set("dns_validation_value", toName)
 		break
+	}
+
+	currentSettingLink, hasCurrentSetting := endpoint.Links.GetCurrentSettingOk()
+	if hasCurrentSetting {
+		currentSettingID := ExtractIdFromLink(currentSettingLink.GetHref())
+		if currentSettingID != 0 {
+			currentSetting, _, err := client.SettingsAPI.GetSetting(ctx, currentSettingID).Execute()
+			if err == nil {
+				_ = d.Set("settings", currentSetting.GetSettings())
+				// Not yet needed or supported in Sweetness
+				// _ = d.Set("sensitive_settings", currentSetting.GetSensitiveSettings())
+			}
+		}
 	}
 
 	return nil
