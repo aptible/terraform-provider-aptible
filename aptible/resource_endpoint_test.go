@@ -162,6 +162,52 @@ func TestAccResourceEndpoint_settings(t *testing.T) {
 	})
 }
 
+func TestAccResourceEndpoint_settingsUpdate(t *testing.T) {
+	appHandle := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleEndpointAppWithSettings(appHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_endpoint.test", "env_id"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "app"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
+					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "settings.IDLE_TIMEOUT", "31"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "settings.FORCE_SSL", "true"),
+					// Not yet needed or supported in Sweetness
+					// resource.TestCheckResourceAttr("aptible_endpoint.test", "sensitive_settings.HYPOTHETICAL", "noneya"),
+				),
+			},
+			{
+				ResourceName:      "aptible_endpoint.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config: testAccAptibleEndpointAppUpdateSettings(appHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "settings.IDLE_TIMEOUT", "63"),
+					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "settings.FORCE_SSL"),
+					// Not yet needed or supported in Sweetness
+					// resource.TestCheckResourceAttr("aptible_endpoint.test", "sensitive_settings.HYPOTHETICAL", "rotated"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceEndpoint_appContainerPorts(t *testing.T) {
 	appHandle := acctest.RandString(10)
 
@@ -653,6 +699,49 @@ func testAccAptibleEndpointAppWithSettings(appHandle string) string {
 		// Not yet needed or supported in Sweetness
 		// sensitive_settings = {
 		// 	"HYPOTHETICAL" = "noneya"
+		// }
+	}
+`, appHandle, testOrganizationId, testStackId, appHandle)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointAppUpdateSettings(appHandle string) string {
+	output := fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		config = {
+			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:34"
+		}
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+		}
+	}
+
+	resource "aptible_endpoint" "test" {
+		env_id = aptible_environment.test.env_id
+		resource_id = aptible_app.test.app_id
+		resource_type = "app"
+		process_type = "cmd"
+		endpoint_type = "https"
+		default_domain = true
+		platform = "alb"
+		settings = {
+			"IDLE_TIMEOUT" = "63"
+			// FORCE_SSL has been removed
+		}
+		// Not yet needed or supported in Sweetness
+		// sensitive_settings = {
+		// 	"HYPOTHETICAL" = "rotated"
 		// }
 	}
 `, appHandle, testOrganizationId, testStackId, appHandle)

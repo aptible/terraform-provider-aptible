@@ -335,26 +335,22 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	payload := aptibleapi.NewCreateOperationRequest("provision")
 
 	if hasSettings {
-		log.Printf("Has settings")
 		settingsMap := map[string]string{}
 		for k, v := range settingsRaw.(map[string]interface{}) {
 			settingsMap[k] = v.(string)
 		}
 		if len(settingsMap) > 0 {
-			log.Printf("Settings length %d", len(settingsMap))
 			payload.SetSettings(settingsMap)
 		}
 	}
 
 	// Not yet needed or supported in Sweetness
 	// if hasSensitiveSettings {
-	// 	log.Printf("Has sensitive settings")
 	// 	sensitiveSettingsMap := map[string]string{}
 	// 	for k, v := range sensitiveSettingsRaw.(map[string]interface{}) {
 	// 		sensitiveSettingsMap[k] = v.(string)
 	// 	}
 	// 	if len(sensitiveSettingsMap) > 0 {
-	// 		log.Printf("Sensitive settings length %d", len(sensitiveSettingsMap))
 	// 		payload.SetSensitiveSettings(sensitiveSettingsMap)
 	// 	}
 	// }
@@ -529,6 +525,8 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	endpointID := int32(d.Get("endpoint_id").(int))
 
 	needsDeploy := false
+	settingsMap := map[string]string{}
+	sensitiveSettingsMap := map[string]string{}
 	attrs := aptibleapi.NewUpdateVhostRequest()
 
 	if d.HasChange("ip_filtering") {
@@ -588,8 +586,53 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		})
 	}
 
+	if d.HasChange("settings") {
+		needsDeploy = true
+
+		// We must pass blank strings to remove settings
+		o, s := d.GetChange("settings")
+		old := o.(map[string]interface{})
+		settings := s.(map[string]interface{})
+
+		for key := range old {
+			if _, present := settings[key]; !present {
+				settings[key] = ""
+			}
+		}
+
+		for k, v := range settings {
+			settingsMap[k] = v.(string)
+		}
+	}
+
+	// Not yet needed or supported in Sweetness
+	// if d.HasChange("sensitive_settings") {
+	// 	needsDeploy = true
+
+	// 	// We must pass blank strings to remove settings
+	// 	o, s := d.GetChange("sensitive_settings")
+	// 	old := o.(map[string]interface{})
+	// 	sensitiveSettings := s.(map[string]interface{})
+
+	// 	for key := range old {
+	// 		if _, present := sensitiveSettings[key]; !present {
+	// 			sensitiveSettings[key] = ""
+	// 		}
+	// 	}
+
+	// 	for k, v := range sensitiveSettings {
+	// 		sensitiveSettingsMap[k] = v.(string)
+	// 	}
+	// }
+
 	if needsDeploy {
 		payload := aptibleapi.NewCreateOperationRequest("provision")
+		if len(settingsMap) > 0 {
+			payload.SetSettings(settingsMap)
+		}
+		if len(sensitiveSettingsMap) > 0 {
+			payload.SetSensitiveSettings(sensitiveSettingsMap)
+		}
 		operation, _, err := client.OperationsAPI.
 			CreateOperationForVhost(ctx, endpointID).
 			CreateOperationRequest(*payload).
