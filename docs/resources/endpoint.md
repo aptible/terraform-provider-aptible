@@ -70,7 +70,7 @@ resource "aptible_endpoint" "example_settings" {
   platform       = "alb"
   settings = {
     "IDLE_TIMEOUT"         = "120"
-    "FORCE_SSL             = "true"
+    "FORCE_SSL"            = "true"
     "MAINTENANCE_PAGE_URL" = "https://httpstatuses.maor.io/503"
   }
 }
