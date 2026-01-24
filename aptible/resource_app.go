@@ -476,14 +476,26 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).LegacyClient
-	appID := int64(d.Get("app_id").(int))
+func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	m := meta.(*providerMetadata)
+	legacy := meta.(*providerMetadata).LegacyClient
+	client := m.Client
+	ctx = m.APIContext(ctx)
+	appID := int32(d.Get("app_id").(int))
 
 	var diags diag.Diagnostics
 
+	needsDeploy := false
+	needsConfigure := false
+
+	envMap := map[string]string{}
+	settingsMap := map[string]string{}
+	sensitiveSettingsMap := map[string]string{}
+
+	operationType := "none"
+
 	// Check if any updates for Service settings. If so, change before deploying
-	err := updateServices(c, d, meta)
+	err := updateServices(ctx, d, meta)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -494,31 +506,97 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 	}
 
 	if d.HasChange("config") {
+		needsConfigure = true
 		o, c := d.GetChange("config")
 		old := o.(map[string]interface{})
-		config := c.(map[string]interface{})
+		env := c.(map[string]interface{})
 		// Set any old keys that are not present to an empty string.
 		// The API will then clear them during normalization otherwise
 		// the old values will be merged with the new
 		for key := range old {
-			if _, present := config[key]; !present {
-				config[key] = ""
+			if _, present := env[key]; !present {
+				env[key] = ""
 			}
 		}
 
-		err := client.DeployApp(config, appID)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "There was an error when trying to deploy the app.",
-				Detail:   generateErrorFromClientError(err).Error(),
-			})
-			log.Println("There was an error when completing the request.\n[ERROR] -", err)
-			return diags
+		for k, v := range env {
+			envMap[k] = v.(string)
 		}
 	}
 
-	err = scaleServices(c, d, meta)
+	if d.HasChange("settings") {
+		needsDeploy = true
+		o, s := d.GetChange("settings")
+		old := o.(map[string]interface{})
+		settings := s.(map[string]interface{})
+
+		// Set any old keys that are no longer present to an empty string.
+		// This is explicitly required for removal
+		for key := range old {
+			if _, present := settings[key]; !present {
+				settings[key] = ""
+			}
+		}
+
+		for k, v := range settings {
+			settingsMap[k] = v.(string)
+		}
+	}
+
+	if d.HasChange("sensitive_settings") {
+		needsDeploy = true
+		o, ss := d.GetChange("sensitive_settings")
+		old := o.(map[string]interface{})
+		sensitiveSettings := ss.(map[string]interface{})
+
+		// Set any old keys that are no longer present to an empty string.
+		// This is explicitly required for removal
+		for key := range old {
+			if _, present := sensitiveSettings[key]; !present {
+				sensitiveSettings[key] = ""
+			}
+		}
+
+		for k, v := range sensitiveSettings {
+			sensitiveSettingsMap[k] = v.(string)
+		}
+	}
+
+	if needsDeploy {
+		operationType = "deploy"
+	} else if needsConfigure {
+		operationType = "configure"
+	}
+
+	if operationType != "none" {
+		payload := aptibleapi.NewCreateOperationRequest(operationType)
+		payload.SetEnv(envMap)
+		payload.SetSettings(settingsMap)
+		payload.SetSensitiveSettings(sensitiveSettingsMap)
+
+		operation, _, err := client.OperationsAPI.
+			CreateOperationForApp(ctx, appID).
+			CreateOperationRequest(*payload).
+			Execute()
+		if err != nil {
+			return append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to create operation",
+				Detail:   err.Error(),
+			})
+		}
+		_, err = legacy.WaitForOperation(int64(operation.Id))
+		if err != nil {
+			// Do not return here so that the read method can hydrate the state
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("Failed to update App %d", appID),
+				Detail:   err.Error(),
+			})
+		}
+	}
+
+	err = scaleServices(ctx, d, meta)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -529,7 +607,7 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 	}
 
 	// Now that services are settled, go ahead and update scaling policy
-	err = updateServiceSizingPolicy(c, d, meta)
+	err = updateServiceSizingPolicy(ctx, d, meta)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -545,7 +623,7 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 			Handle: handle,
 		}
 		log.Printf("[INFO] Updating handle to %s\n", handle)
-		if err := client.UpdateApp(appID, updates); err != nil {
+		if err := legacy.UpdateApp(int64(appID), updates); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "There was an error when trying to update the handle.",
@@ -560,7 +638,7 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 		log.Printf("[WARN] In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.\n", handle)
 	}
 
-	diags = append(diags, resourceAppRead(c, d, meta)...)
+	diags = append(diags, resourceAppRead(ctx, d, meta)...)
 	return diags
 }
 
