@@ -570,9 +570,16 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 
 	if operationType != "none" {
 		payload := aptibleapi.NewCreateOperationRequest(operationType)
-		payload.SetEnv(envMap)
-		payload.SetSettings(settingsMap)
-		payload.SetSensitiveSettings(sensitiveSettingsMap)
+
+		if d.HasChange("config") {
+			payload.SetEnv(envMap)
+		}
+		if d.HasChange("settings") {
+			payload.SetSettings(settingsMap)
+		}
+		if d.HasChange("sensitive_settings") {
+			payload.SetSensitiveSettings(sensitiveSettingsMap)
+		}
 
 		operation, _, err := client.OperationsAPI.
 			CreateOperationForApp(ctx, appID).
