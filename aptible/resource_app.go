@@ -56,6 +56,21 @@ func resourceApp() *schema.Resource {
 				Optional: true,
 				Elem:     resourceService(),
 			},
+			"settings": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"sensitive_settings": {
+				Type:      schema.TypeMap,
+				Optional:  true,
+				Sensitive: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 		CustomizeDiff: validateServiceSizingPolicy,
 	}
@@ -391,6 +406,15 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 		currConf, _, err := client.ConfigurationsAPI.GetConfiguration(ctx, currConfId).Execute()
 		if err == nil {
 			_ = d.Set("config", currConf.Env)
+		}
+	}
+
+	currSettingId := ExtractIdFromLink(app.Links.CurrentSetting.GetHref())
+	if currSettingId != 0 {
+		currSetting, _, err := client.SettingsAPI.GetSetting(ctx, currSettingId).Execute()
+		if err == nil {
+			_ = d.Set("settings", currSetting.Settings)
+			_ = d.Set("sensitive_settings", currSetting.SensitiveSettings)
 		}
 	}
 
