@@ -330,7 +330,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 
 	payload := aptibleapi.NewCreateOperationRequest("provision")
 
-	if settingsRaw, ok := d.GetOk("settings"); ok{
+	if settingsRaw, ok := d.GetOk("settings"); ok {
 		settingsMap := map[string]string{}
 		for k, v := range settingsRaw.(map[string]interface{}) {
 			settingsMap[k] = v.(string)
