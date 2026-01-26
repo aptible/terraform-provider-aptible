@@ -352,29 +352,16 @@ func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 	settings := d.Get("settings").(map[string]interface{})
 	sensitiveSettings := d.Get("sensitive_settings").(map[string]interface{})
 
-	envMap := make(map[string]string, len(config))
-	settingsMap := make(map[string]string, len(settings))
-	sensitiveSettingsMap := make(map[string]string, len(sensitiveSettings))
-
-	for k, v := range config {
-		envMap[k] = v.(string)
-	}
-	for k, v := range settings {
-		settingsMap[k] = v.(string)
-	}
-	for k, v := range sensitiveSettings {
-		sensitiveSettingsMap[k] = v.(string)
-	}
-
 	payload := aptibleapi.NewCreateOperationRequest("deploy")
-	if len(envMap) > 0 {
-		payload.SetEnv(envMap)
+
+	if env := toStringMap(config); env != nil {
+		payload.SetEnv(env)
 	}
-	if len(settingsMap) > 0 {
-		payload.SetSettings(settingsMap)
+	if s := toStringMap(settings); s != nil {
+		payload.SetSettings(s)
 	}
-	if len(sensitiveSettingsMap) > 0 {
-		payload.SetSensitiveSettings(sensitiveSettingsMap)
+	if ss := toStringMap(sensitiveSettings); ss != nil {
+		payload.SetSensitiveSettings(ss)
 	}
 
 	operation, _, err := client.OperationsAPI.
@@ -1055,4 +1042,16 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 		}
 	}
 	return nil
+}
+
+func toStringMap(m map[string]interface{}) map[string]string {
+	if len(m) == 0 {
+		return nil
+	}
+
+	out := make(map[string]string, len(m))
+	for k, v := range m {
+		out[k] = v.(string)
+	}
+	return out
 }
