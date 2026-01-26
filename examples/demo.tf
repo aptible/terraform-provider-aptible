@@ -19,9 +19,11 @@ resource "aptible_app" "demo-app" {
   env_id = data.aptible_environment.demo.env_id
   handle = "demo-app"
   config = {
+    "DATABASE_URL" = aptible_database.demo-pg.default_connection_url
+    "REDIS_URL"    = aptible_database.demo-redis.default_connection_url
+  }
+  settings = {
     "APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/deploy-demo-app"
-    "DATABASE_URL"         = aptible_database.demo-pg.default_connection_url
-    "REDIS_URL"            = aptible_database.demo-redis.default_connection_url
   }
   service {
     process_type           = "web"

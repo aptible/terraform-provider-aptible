@@ -26,7 +26,7 @@ data "aptible_environment" "example" {
 resource "aptible_app" "nginx" {
   env_id = data.aptible_environment.demo.env_id
   handle = "nginx"
-  config = {
+  settings = {
     "APTIBLE_DOCKER_IMAGE" = "nginx"
   }
 }

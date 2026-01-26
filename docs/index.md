@@ -76,7 +76,7 @@ data "aptible_app" "APP" {
 !> Currently the only supported deployment method via Terraform is of
 Docker images hosted in a Docker image registry.
 
-Apps configurations can be managed via the nested `config` element.
+Application environment variables can be managed via the nested `config` element.
 
 ```hcl
 resource "aptible_app" "APP" {
@@ -88,20 +88,19 @@ resource "aptible_app" "APP" {
 }
 ```
 
-If you specify a Docker image as the `APTIBLE_DOCKER_IMAGE`
-configuration value, that Docker image will be deployed to the App.
-Authentication for Docker images located in
-private repositories can be provided using the
-`APTIBLE_PRIVATE_REGISTRY_USERNAME` and
-`APTIBLE_PRIVATE_REGISTRY_PASSWORD` configuration values.
+To deploy a Docker image, set `APTIBLE_DOCKER_IMAGE` in `settings`.
+Authentication for Docker images located in private repositories can be provided
+using `APTIBLE_PRIVATE_REGISTRY_USERNAME` and
+`APTIBLE_PRIVATE_REGISTRY_PASSWORD` in `sensitive_settings`.
 
 ```hcl
 resource "aptible_app" "APP" {
     env_id = ENVIRONMENT_ID
     handle = "APP_HANDLE"
-    config = {
-        "KEY" = "value"
+    settings = {
         "APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/deploy-demo-app"
+    }
+    sensitive_settings = {
         "APTIBLE_PRIVATE_REGISTRY_USERNAME" = "registry_username"
         "APTIBLE_PRIVATE_REGISTRY_PASSWORD" = "registry_password"
     }
