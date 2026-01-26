@@ -18,8 +18,8 @@ import (
 
 func resourceApp() *schema.Resource {
 	return &schema.Resource{
-		Create:        resourceAppCreate, // POST
-		Read:          resourceAppRead,   // GET
+		CreateContext: resourceAppCreate, // POST
+		ReadContext:   resourceAppRead,   // GET
 		UpdateContext: resourceAppUpdate, // PUT
 		Delete:        resourceAppDelete, // DELETE
 		Importer: &schema.ResourceImporter{
@@ -309,7 +309,7 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 	return nil
 }
 
-func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*providerMetadata).LegacyClient
 	envID := int64(d.Get("env_id").(int))
 	handle := d.Get("handle").(string)
@@ -317,25 +317,23 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	app, err := client.CreateApp(handle, envID)
 	if err != nil {
 		log.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
-		return generateErrorFromClientError(err)
+		return generateDiagnosticsFromClientError(err)
 	}
 	d.SetId(strconv.Itoa(int(app.ID)))
 	_ = d.Set("app_id", app.ID)
 
 	config := d.Get("config").(map[string]interface{})
-
 	if len(config) != 0 {
 		err := client.DeployApp(config, app.ID)
 		if err != nil {
 			log.Println("There was an error when completing the request to configure the app.\n[ERROR] -", err)
-			return generateErrorFromClientError(err)
+			return generateDiagnosticsFromClientError(err)
 		}
 	}
 
 	// Services do not exist before App creation, so we need to wait until after to update settings, unlike when updating an App
-	err = updateServices(context.Background(), d, meta)
-	if err != nil {
-		return err
+	if err := updateServices(ctx, d, meta); err != nil {
+		return diag.FromErr(err)
 	}
 
 	// Our model prevents editing services or configurations directly. As a result, any services
@@ -344,32 +342,32 @@ func resourceAppCreate(d *schema.ResourceData, meta interface{}) error {
 	// which I'm not prepared to do quite yet. So instead we're handling scaling after deployment, rather than
 	// at the time of deployment.
 	// TODO: We can check for services scaled to 1 GB/1 container before scaling.
-	err = scaleServices(context.Background(), d, meta)
-	if err != nil {
-		return err
+	if err := scaleServices(ctx, d, meta); err != nil {
+		return diag.FromErr(err)
 	}
 
 	// Now that services exist and are scaled properly, let's see about creating any scaling policies we need
-	err = updateServiceSizingPolicy(context.Background(), d, meta)
-	if err != nil {
-		return err
+	if err := updateServiceSizingPolicy(ctx, d, meta); err != nil {
+		return diag.FromErr(err)
 	}
 
-	return resourceAppRead(d, meta)
+	return resourceAppRead(ctx, d, meta)
 }
 
 func resourceAppImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	appID, _ := strconv.Atoi(d.Id())
 	_ = d.Set("app_id", appID)
-	err := resourceAppRead(d, meta)
-	return []*schema.ResourceData{d}, err
+	if err := diagnosticsToError(resourceAppRead(context.Background(), d, meta)); err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
 }
 
 // syncs Terraform state with changes made via the API outside of Terraform
-func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*providerMetadata).Client
 	appID := int32(d.Get("app_id").(int))
-	ctx := meta.(*providerMetadata).APIContext(context.Background())
+	ctx = meta.(*providerMetadata).APIContext(ctx)
 
 	log.Println("Getting App with ID: " + strconv.Itoa(int(appID)))
 
@@ -381,7 +379,7 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	if err != nil {
 		log.Println(err)
-		return err
+		return diag.FromErr(err)
 	}
 
 	_ = d.Set("app_id", int(app.Id))
@@ -413,11 +411,10 @@ func resourceAppRead(d *schema.ResourceData, meta interface{}) error {
 			service["stop_timeout"] = *s.StopTimeout.Get()
 		}
 		// Find service_sizing_policy if any
-		var policy *aptibleapi.ServiceSizingPolicy
-		policy, err = getServiceSizingPolicyForService(s.Id, ctx, meta)
+		policy, err := getServiceSizingPolicyForService(s.Id, ctx, meta)
 		if err != nil {
 			log.Println(err)
-			return err
+			return diag.FromErr(err)
 		}
 		if policy != nil {
 			serviceSizingPolicy := make(map[string]interface{})
@@ -539,32 +536,28 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 		log.Printf("[WARN] In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.\n", handle)
 	}
 
-	if err = resourceAppRead(d, meta); err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "There was an error when trying to retrieve the updated state of the app.",
-			Detail:   generateErrorFromClientError(err).Error(),
-		})
-	}
-
+	diags = append(diags, resourceAppRead(c, d, meta)...)
 	return diags
 }
 
 func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
-	readErr := resourceAppRead(d, meta)
-	if readErr == nil {
-		appID := int64(d.Get("app_id").(int))
-		client := meta.(*providerMetadata).LegacyClient
-		deleted, err := client.DeleteApp(appID)
-		if deleted {
-			d.SetId("")
-			return nil
-		}
-		if err != nil {
-			log.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
-			return generateErrorFromClientError(err)
-		}
+	readDiags := resourceAppRead(context.Background(), d, meta)
+	if readDiags.HasError() {
+		return diagnosticsToError(readDiags)
 	}
+
+	appID := int64(d.Get("app_id").(int))
+	client := meta.(*providerMetadata).LegacyClient
+	deleted, err := client.DeleteApp(appID)
+	if deleted {
+		d.SetId("")
+		return nil
+	}
+	if err != nil {
+		log.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
+		return generateErrorFromClientError(err)
+	}
+
 	d.SetId("")
 	return nil
 }
