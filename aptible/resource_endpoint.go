@@ -328,13 +328,9 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 		})
 	}
 
-	settingsRaw, hasSettings := d.GetOk("settings")
-	// Not yet needed or supported in Sweetness
-	// sensitiveSettingsRaw, hasSensitiveSettings := d.GetOk("sensitive_settings")
-
 	payload := aptibleapi.NewCreateOperationRequest("provision")
 
-	if hasSettings {
+	if settingsRaw, ok := d.GetOk("settings"); ok{
 		settingsMap := map[string]string{}
 		for k, v := range settingsRaw.(map[string]interface{}) {
 			settingsMap[k] = v.(string)
@@ -345,7 +341,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	// Not yet needed or supported in Sweetness
-	// if hasSensitiveSettings {
+	// if sensitiveSettingsRaw, ok := d.GetOk("sensitive_settings"); ok {
 	// 	sensitiveSettingsMap := map[string]string{}
 	// 	for k, v := range sensitiveSettingsRaw.(map[string]interface{}) {
 	// 		sensitiveSettingsMap[k] = v.(string)
