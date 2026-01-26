@@ -332,7 +332,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 
 	if settingsRaw, ok := d.GetOk("settings"); ok {
 		settingsMap := map[string]string{}
-		for k, v := range settingsRaw.(map[string]interface{}) {
+		for k, v := range settingsRaw.(map[string]any) {
 			settingsMap[k] = v.(string)
 		}
 		if len(settingsMap) > 0 {
@@ -343,7 +343,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	// Not yet needed or supported in Sweetness
 	// if sensitiveSettingsRaw, ok := d.GetOk("sensitive_settings"); ok {
 	// 	sensitiveSettingsMap := map[string]string{}
-	// 	for k, v := range sensitiveSettingsRaw.(map[string]interface{}) {
+	// 	for k, v := range sensitiveSettingsRaw.(map[string]any) {
 	// 		sensitiveSettingsMap[k] = v.(string)
 	// 	}
 	// 	if len(sensitiveSettingsMap) > 0 {
