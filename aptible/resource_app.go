@@ -419,7 +419,7 @@ func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 		return diag.FromErr(err)
 	}
 
-	return resourceAppRead(ctx, d, meta)
+	return append(diags, resourceAppRead(ctx, d, meta)...)
 }
 
 func resourceAppImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
