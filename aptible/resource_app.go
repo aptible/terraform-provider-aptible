@@ -548,58 +548,19 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 	if d.HasChange("config") {
 		needsConfigure = true
 		o, c := d.GetChange("config")
-		old := o.(map[string]interface{})
-		env := c.(map[string]interface{})
-		// Set any old keys that are not present to an empty string.
-		// The API will then clear them during normalization otherwise
-		// the old values will be merged with the new
-		for key := range old {
-			if _, present := env[key]; !present {
-				env[key] = ""
-			}
-		}
-
-		for k, v := range env {
-			envMap[k] = v.(string)
-		}
+		envMap = normalizeStringMapOnChange(o.(map[string]interface{}), c.(map[string]interface{}))
 	}
 
 	if d.HasChange("settings") {
 		needsDeploy = true
 		o, s := d.GetChange("settings")
-		old := o.(map[string]interface{})
-		settings := s.(map[string]interface{})
-
-		// Set any old keys that are no longer present to an empty string.
-		// This is explicitly required for removal
-		for key := range old {
-			if _, present := settings[key]; !present {
-				settings[key] = ""
-			}
-		}
-
-		for k, v := range settings {
-			settingsMap[k] = v.(string)
-		}
+		settingsMap = normalizeStringMapOnChange(o.(map[string]interface{}), s.(map[string]interface{}))
 	}
 
 	if d.HasChange("sensitive_settings") {
 		needsDeploy = true
 		o, ss := d.GetChange("sensitive_settings")
-		old := o.(map[string]interface{})
-		sensitiveSettings := ss.(map[string]interface{})
-
-		// Set any old keys that are no longer present to an empty string.
-		// This is explicitly required for removal
-		for key := range old {
-			if _, present := sensitiveSettings[key]; !present {
-				sensitiveSettings[key] = ""
-			}
-		}
-
-		for k, v := range sensitiveSettings {
-			sensitiveSettingsMap[k] = v.(string)
-		}
+		sensitiveSettingsMap = normalizeStringMapOnChange(o.(map[string]interface{}), ss.(map[string]interface{}))
 	}
 
 	if needsDeploy {
@@ -1051,6 +1012,21 @@ func toStringMap(m map[string]interface{}) map[string]string {
 
 	out := make(map[string]string, len(m))
 	for k, v := range m {
+		out[k] = v.(string)
+	}
+	return out
+}
+
+func normalizeStringMapOnChange(oldRaw, newRaw map[string]interface{}) map[string]string {
+	// Ensure keys removed from config/settings are explicitly cleared.
+	for key := range oldRaw {
+		if _, present := newRaw[key]; !present {
+			newRaw[key] = ""
+		}
+	}
+
+	out := make(map[string]string, len(newRaw))
+	for k, v := range newRaw {
 		out[k] = v.(string)
 	}
 	return out
