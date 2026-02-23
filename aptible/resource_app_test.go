@@ -280,6 +280,7 @@ func TestAccResourceApp_horizontalAutoscalingDoesNotCauseContainerCountDrift(t *
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.container_count", "1"),
 						testAccScaleServiceOutsideTerraform("aptible_app.test", "cmd", 3),
+						testAccCheckServiceContainerCount("aptible_app.test", "cmd", 3),
 					),
 				},
 				{
@@ -291,6 +292,11 @@ func TestAccResourceApp_horizontalAutoscalingDoesNotCauseContainerCountDrift(t *
 							"container_count": "1",
 						}),
 					),
+				},
+				{
+					ResourceName:      "aptible_app.test",
+					ImportState:       true,
+					ImportStateVerify: true,
 				},
 				{
 					Config:   testAccAptibleAppautoscalingPolicyUnrelatedUpdate(rHandle, "17"),

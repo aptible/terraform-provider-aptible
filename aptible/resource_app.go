@@ -713,14 +713,11 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 		if !shouldScale {
 			continue
 		}
-		serviceData := serviceInterface
-		horizontalAutoscaling := hasHorizontalAutoscaling
-
 		g.Go(func() error {
-			memoryLimit := int32(serviceData["container_memory_limit"].(int))
-			containerProfile := serviceData["container_profile"].(string)
-			containerCount := int32(serviceData["container_count"].(int))
-			processType := serviceData["process_type"].(string)
+			memoryLimit := int32(serviceInterface["container_memory_limit"].(int))
+			containerProfile := serviceInterface["container_profile"].(string)
+			containerCount := int32(serviceInterface["container_count"].(int))
+			processType := serviceInterface["process_type"].(string)
 
 			log.Printf(
 				"Updating %s service to count: %d, limit: %d, and container profile: %s\n",
@@ -730,7 +727,7 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 			if service == nil {
 				return fmt.Errorf("there was an error when finding the service: %s", processType)
 			}
-			if horizontalAutoscaling {
+			if hasHorizontalAutoscaling {
 				containerCount = service.ContainerCount
 			}
 
