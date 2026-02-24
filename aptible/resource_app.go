@@ -711,7 +711,8 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 			}
 		}
 		oldHasHorizontalAutoscaling := oldServiceData != nil && serviceHasHorizontalAutoscaling(oldServiceData)
-		if !shouldScale && oldHasHorizontalAutoscaling && !hasHorizontalAutoscaling {
+		removingHorizontalAutoscaling := oldHasHorizontalAutoscaling && !hasHorizontalAutoscaling
+		if !shouldScale && removingHorizontalAutoscaling {
 			desiredContainerCount := serviceInterface["container_count"].(int)
 			processType := serviceInterface["process_type"].(string)
 			service := findApiServiceByName(apiServices, processType)
