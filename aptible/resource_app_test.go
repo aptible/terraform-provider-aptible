@@ -372,6 +372,8 @@ func TestAccResourceApp_removeautoscalingPolicy(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						// Ensure the autoscaling_policy block is no longer present
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.#", "0"),
+						// Ensure runtime service count is reconciled after removing horizontal autoscaling policy.
+						testAccCheckServiceContainerCount("aptible_app.test", "cmd", 1),
 					),
 				},
 			},
