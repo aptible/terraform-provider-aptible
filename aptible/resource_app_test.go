@@ -1,14 +1,12 @@
 package aptible
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"regexp"
 	"strconv"
 	"testing"
 
-	"github.com/aptible/aptible-api-go/aptibleapi"
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -259,48 +257,6 @@ func TestAccResourceApp_autoscalingPolicy(t *testing.T) {
 					ResourceName:      "aptible_app.test",
 					ImportState:       true,
 					ImportStateVerify: true,
-				},
-			},
-		})
-	})
-}
-
-func TestAccResourceApp_horizontalAutoscalingDoesNotCauseContainerCountDrift(t *testing.T) {
-	rHandle := acctest.RandString(10)
-
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
-		resource.ParallelTest(t, resource.TestCase{
-			PreCheck:     func() { testAccPreCheck(t) },
-			Providers:    testAccProviders,
-			CheckDestroy: testAccCheckAppDestroy,
-			Steps: []resource.TestStep{
-				{
-					Config: testAccAptibleAppautoscalingPolicy(rHandle, "17"),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
-						resource.TestCheckResourceAttr("aptible_app.test", "service.0.container_count", "1"),
-						testAccScaleServiceOutsideTerraform("aptible_app.test", "cmd", 3),
-						testAccCheckServiceContainerCount("aptible_app.test", "cmd", 3),
-					),
-				},
-				{
-					Config: testAccAptibleAppautoscalingPolicyUnrelatedUpdate(rHandle, "17"),
-					Check: resource.ComposeTestCheckFunc(
-						testAccCheckServiceContainerCount("aptible_app.test", "cmd", 3),
-						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
-							"process_type":    "cmd",
-							"container_count": "1",
-						}),
-					),
-				},
-				{
-					ResourceName:      "aptible_app.test",
-					ImportState:       true,
-					ImportStateVerify: true,
-				},
-				{
-					Config:   testAccAptibleAppautoscalingPolicyUnrelatedUpdate(rHandle, "17"),
-					PlanOnly: true,
 				},
 			},
 		})
@@ -635,78 +591,6 @@ func testAccCheckAppDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccScaleServiceOutsideTerraform(resourceName, processType string, containerCount int32) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[resourceName]
-		if !ok {
-			return fmt.Errorf("resource %s not found", resourceName)
-		}
-
-		appID, err := strconv.Atoi(rs.Primary.Attributes["app_id"])
-		if err != nil {
-			return err
-		}
-
-		meta := testAccProvider.Meta().(*providerMetadata)
-		ctx := meta.APIContext(context.Background())
-
-		apiServicesResp, _, err := meta.Client.ServicesAPI.ListServicesForApp(ctx, int32(appID)).Execute()
-		if err != nil {
-			return err
-		}
-		service := findApiServiceByName(apiServicesResp.Embedded.Services, processType)
-		if service == nil {
-			return fmt.Errorf("service %s not found", processType)
-		}
-
-		payload := aptibleapi.NewCreateOperationRequest("scale")
-		payload.SetContainerCount(containerCount)
-		if service.ContainerMemoryLimitMb.IsSet() && service.ContainerMemoryLimitMb.Get() != nil {
-			payload.SetContainerSize(*service.ContainerMemoryLimitMb.Get())
-		}
-		payload.SetInstanceProfile(service.InstanceClass)
-
-		resp, _, err := meta.Client.OperationsAPI.CreateOperationForService(ctx, service.Id).CreateOperationRequest(*payload).Execute()
-		if err != nil {
-			return err
-		}
-
-		_, err = meta.LegacyClient.WaitForOperation(int64(resp.Id))
-		return err
-	}
-}
-
-func testAccCheckServiceContainerCount(resourceName, processType string, expected int32) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[resourceName]
-		if !ok {
-			return fmt.Errorf("resource %s not found", resourceName)
-		}
-
-		appID, err := strconv.Atoi(rs.Primary.Attributes["app_id"])
-		if err != nil {
-			return err
-		}
-
-		meta := testAccProvider.Meta().(*providerMetadata)
-		ctx := meta.APIContext(context.Background())
-
-		apiServicesResp, _, err := meta.Client.ServicesAPI.ListServicesForApp(ctx, int32(appID)).Execute()
-		if err != nil {
-			return err
-		}
-		service := findApiServiceByName(apiServicesResp.Embedded.Services, processType)
-		if service == nil {
-			return fmt.Errorf("service %s not found", processType)
-		}
-
-		if service.ContainerCount != expected {
-			return fmt.Errorf("expected %s container_count to be %d, got %d", processType, expected, service.ContainerCount)
-		}
-		return nil
-	}
-}
-
 func testAccAptibleAppBasic(handle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_environment" "test" {
@@ -876,37 +760,6 @@ func testAccAptibleAppautoscalingPolicy(handle string, index string) string {
 		config = {
 			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:%s"
 			"WHATEVER" = "something"
-		}
-		service {
-			process_type           = "cmd"
-			container_profile      = "m5"
-			container_count        = 1
-			autoscaling_policy {
-				autoscaling_type  = "horizontal"
-				min_containers    = 2
-				max_containers	  = 4
-				min_cpu_threshold = 0.1
-				max_cpu_threshold = 0.9
-			}
-		}
-	}
-	`, handle, testOrganizationId, testStackId, handle, index)
-}
-
-func testAccAptibleAppautoscalingPolicyUnrelatedUpdate(handle string, index string) string {
-	return fmt.Sprintf(`
-	resource "aptible_environment" "test" {
-		handle = "%s"
-		org_id = "%s"
-		stack_id = "%v"
-	}
-
-	resource "aptible_app" "test" {
-		env_id = aptible_environment.test.env_id
-		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:%s"
-			"WHATEVER" = "something-else"
 		}
 		service {
 			process_type           = "cmd"

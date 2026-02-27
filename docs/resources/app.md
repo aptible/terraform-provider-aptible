@@ -68,9 +68,6 @@ The `service` block supports:
   have a single Service with the `process_type` of `cmd`.
 - `container_count` - (Default: 1) The number of unique containers running the
   service.
-  - When `autoscaling_policy.autoscaling_type = "horizontal"` is configured,
-    Terraform treats `container_count` as externally managed by autoscaling and
-    does not enforce drift updates from the live container count.
 - `container_memory_limit` - (Default: 1024) The memory limit (in MB) of the
   service's containers.
 - `container_profile` - (Default: `m5`) Changes the CPU:RAM ratio of the
@@ -122,7 +119,6 @@ The `autoscaling_policy` block supports:
   an up-scaling action is triggered.
 - `min_containers` - Horizontal autoscaling only - Sets the lowest container count to which
   the service can be scaled down by Autoscaler.
-  This is the effective floor for autoscaled container counts.
 - `max_containers` - Horizontal autoscaling only - Sets the highest container count to which
   the service can be scaled up to by Autoscaler.
 - `scale_up_step` - (Default: 1) Horizontal autoscaling only - Sets the amount of containers to add
