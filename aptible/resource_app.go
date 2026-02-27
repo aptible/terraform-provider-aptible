@@ -710,19 +710,6 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 				break
 			}
 		}
-		oldHasHorizontalAutoscaling := oldServiceData != nil && serviceHasHorizontalAutoscaling(oldServiceData)
-		removingHorizontalAutoscaling := oldHasHorizontalAutoscaling && !hasHorizontalAutoscaling
-		if !shouldScale && removingHorizontalAutoscaling {
-			desiredContainerCount := serviceInterface["container_count"].(int)
-			processType := serviceInterface["process_type"].(string)
-			service := findApiServiceByName(apiServices, processType)
-			if service == nil {
-				return fmt.Errorf("there was an error when finding the service: %s", processType)
-			}
-			// State keeps configured container_count while HAS is enabled to avoid drift,
-			// so compare desired count to runtime API count when disabling HAS.
-			shouldScale = int(service.ContainerCount) != desiredContainerCount
-		}
 		if !shouldScale {
 			continue
 		}
@@ -740,8 +727,6 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 			if service == nil {
 				return fmt.Errorf("there was an error when finding the service: %s", processType)
 			}
-			// If autoscaling is still horizontal, preserve the runtime count managed by autoscaling.
-			// When transitioning away from horizontal autoscaling, we must use configured count to reconcile.
 			if hasHorizontalAutoscaling {
 				containerCount = service.ContainerCount
 			}
