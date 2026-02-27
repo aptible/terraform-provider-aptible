@@ -397,6 +397,7 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 	var services = make([]map[string]interface{}, len(app.Embedded.Services))
 	for i, s := range app.Embedded.Services {
 		service := make(map[string]interface{})
+		service["container_count"] = s.ContainerCount
 		if s.ContainerMemoryLimitMb.IsSet() {
 			service["container_memory_limit"] = *s.ContainerMemoryLimitMb.Get()
 		}
@@ -415,12 +416,6 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 			log.Println(err)
 			return diag.FromErr(err)
 		}
-		containerCount := int(s.ContainerCount)
-		if policy != nil && policy.Autoscaling == "horizontal" {
-			// Keep configured count in state so horizontal autoscaling does not produce drift.
-			containerCount = getConfigContainerCount(d, s.ProcessType)
-		}
-		service["container_count"] = containerCount
 		if policy != nil {
 			serviceSizingPolicy := make(map[string]interface{})
 			serviceSizingPolicy["autoscaling_type"] = policy.Autoscaling
@@ -689,7 +684,6 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 
 	for _, service := range services {
 		serviceInterface := service.(map[string]interface{})
-		hasHorizontalAutoscaling := serviceHasHorizontalAutoscaling(serviceInterface)
 		// Find the corresponding old service
 		var oldServiceData map[string]interface{}
 		for _, oldS := range oldService.(*schema.Set).List() {
@@ -701,7 +695,7 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 		}
 		shouldScale := false
 		for key, newValue := range serviceInterface {
-			if key == "force_zero_downtime" || key == "restart_free_scaling" || key == "simple_health_check" || key == "autoscaling_policy" || key == "service_sizing_policy" || (hasHorizontalAutoscaling && key == "container_count") {
+			if key == "force_zero_downtime" || key == "restart_free_scaling" || key == "simple_health_check" || key == "autoscaling_policy" || key == "service_sizing_policy" {
 				continue // Skip checking these keys. Nothing to do with manual scaling
 			}
 
@@ -711,8 +705,9 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 			}
 		}
 		if !shouldScale {
-			continue
+			return nil
 		}
+
 		g.Go(func() error {
 			memoryLimit := int32(serviceInterface["container_memory_limit"].(int))
 			containerProfile := serviceInterface["container_profile"].(string)
@@ -726,9 +721,6 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 			service := findApiServiceByName(apiServices, processType)
 			if service == nil {
 				return fmt.Errorf("there was an error when finding the service: %s", processType)
-			}
-			if hasHorizontalAutoscaling {
-				containerCount = service.ContainerCount
 			}
 
 			payload := aptibleapi.NewCreateOperationRequest("scale")
@@ -756,53 +748,6 @@ func findApiServiceByName(services []aptibleapi.Service, serviceName string) *ap
 		}
 	}
 	return nil
-}
-
-func serviceHasHorizontalAutoscaling(service map[string]interface{}) bool {
-	for _, policyKey := range []string{"autoscaling_policy", "service_sizing_policy"} {
-		policiesRaw, ok := service[policyKey]
-		if !ok {
-			continue
-		}
-		policies, ok := policiesRaw.(*schema.Set)
-		if !ok {
-			continue
-		}
-		for _, policyRaw := range policies.List() {
-			policy, ok := policyRaw.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			if policy["autoscaling_type"] == "horizontal" {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func getConfigContainerCount(d *schema.ResourceData, processType string) int {
-	servicesRaw, ok := d.GetOk("service")
-	if !ok {
-		return 1
-	}
-	services, ok := servicesRaw.(*schema.Set)
-	if !ok {
-		return 1
-	}
-	for _, serviceRaw := range services.List() {
-		service, ok := serviceRaw.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		if service["process_type"] == processType {
-			containerCount, ok := service["container_count"].(int)
-			if ok {
-				return containerCount
-			}
-		}
-	}
-	return 1
 }
 
 func getServiceIdForAppByName(ctx context.Context, meta interface{}, appId int32, processType string) (int32, error) {
