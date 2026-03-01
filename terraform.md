@@ -64,12 +64,13 @@ Below are the attributes defined in the app config with the accepted values.
 
   > `handle = "test"`
 
-- **config**: the configuration for your app. This can include:
-  - `APTIBLE_DOCKER_IMAGE` which is the docker image you want to use to deploy.
-  - `DATABASE_URL` which is the connection URL for a database.
-  - [More examples](https://www.aptible.com/docs/core-concepts/apps/deploying-apps/configuration)
-    For example, if you wanted to deploy using the `nginx` image, then the config should contain:
-    > `config = {"APTIBLE_DOCKER_IMAGE" = "nginx"}`
+- **config**: environment variables for your app (e.g., `DATABASE_URL`).
+- **settings**: App settings. To deploy a Docker image, set `APTIBLE_DOCKER_IMAGE` here.
+- **sensitive_settings**: App settings treated as sensitive by Terraform (e.g., private registry credentials).
+
+For example, if you wanted to deploy using the `nginx` image, then the config should contain:
+
+> `settings = {"APTIBLE_DOCKER_IMAGE" = "nginx"}`
 
 The `app_id` and `git_repo` attributes will be generated upon running
 `terraform apply`.
