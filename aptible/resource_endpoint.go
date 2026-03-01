@@ -135,6 +135,22 @@ func resourceEndpoint() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(validLbAlgorithms, false),
 			},
+			"settings": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			// Not yet needed or supported in Sweetness
+			// "sensitive_settings": {
+			// 	Type:     schema.TypeMap,
+			// 	Optional: true,
+			// 	// Sensitive: true,
+			// 	Elem: &schema.Schema{
+			// 		Type: schema.TypeString,
+			// 	},
+			// },
 		},
 	}
 }
@@ -313,6 +329,28 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	payload := aptibleapi.NewCreateOperationRequest("provision")
+
+	if settingsRaw, ok := d.GetOk("settings"); ok {
+		settingsMap := map[string]string{}
+		for k, v := range settingsRaw.(map[string]any) {
+			settingsMap[k] = v.(string)
+		}
+		if len(settingsMap) > 0 {
+			payload.SetSettings(settingsMap)
+		}
+	}
+
+	// Not yet needed or supported in Sweetness
+	// if sensitiveSettingsRaw, ok := d.GetOk("sensitive_settings"); ok {
+	// 	sensitiveSettingsMap := map[string]string{}
+	// 	for k, v := range sensitiveSettingsRaw.(map[string]any) {
+	// 		sensitiveSettingsMap[k] = v.(string)
+	// 	}
+	// 	if len(sensitiveSettingsMap) > 0 {
+	// 		payload.SetSensitiveSettings(sensitiveSettingsMap)
+	// 	}
+	// }
+
 	operation, _, err := client.OperationsAPI.
 		CreateOperationForVhost(ctx, endpoint.Id).
 		CreateOperationRequest(*payload).
@@ -456,6 +494,19 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 		break
 	}
 
+	currentSettingLink, hasCurrentSetting := endpoint.Links.GetCurrentSettingOk()
+	if hasCurrentSetting {
+		currentSettingID := ExtractIdFromLink(currentSettingLink.GetHref())
+		if currentSettingID != 0 {
+			currentSetting, _, err := client.SettingsAPI.GetSetting(ctx, currentSettingID).Execute()
+			if err == nil {
+				_ = d.Set("settings", currentSetting.GetSettings())
+				// Not yet needed or supported in Sweetness
+				// _ = d.Set("sensitive_settings", currentSetting.GetSensitiveSettings())
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -470,6 +521,8 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	endpointID := int32(d.Get("endpoint_id").(int))
 
 	needsDeploy := false
+	settingsMap := map[string]string{}
+	sensitiveSettingsMap := map[string]string{}
 	attrs := aptibleapi.NewUpdateVhostRequest()
 
 	if d.HasChange("ip_filtering") {
@@ -529,8 +582,53 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		})
 	}
 
+	if d.HasChange("settings") {
+		needsDeploy = true
+
+		// We must pass blank strings to remove settings
+		o, s := d.GetChange("settings")
+		old := o.(map[string]interface{})
+		settings := s.(map[string]interface{})
+
+		for key := range old {
+			if _, present := settings[key]; !present {
+				settings[key] = ""
+			}
+		}
+
+		for k, v := range settings {
+			settingsMap[k] = v.(string)
+		}
+	}
+
+	// Not yet needed or supported in Sweetness
+	// if d.HasChange("sensitive_settings") {
+	// 	needsDeploy = true
+
+	// 	// We must pass blank strings to remove settings
+	// 	o, s := d.GetChange("sensitive_settings")
+	// 	old := o.(map[string]interface{})
+	// 	sensitiveSettings := s.(map[string]interface{})
+
+	// 	for key := range old {
+	// 		if _, present := sensitiveSettings[key]; !present {
+	// 			sensitiveSettings[key] = ""
+	// 		}
+	// 	}
+
+	// 	for k, v := range sensitiveSettings {
+	// 		sensitiveSettingsMap[k] = v.(string)
+	// 	}
+	// }
+
 	if needsDeploy {
 		payload := aptibleapi.NewCreateOperationRequest("provision")
+		if len(settingsMap) > 0 {
+			payload.SetSettings(settingsMap)
+		}
+		if len(sensitiveSettingsMap) > 0 {
+			payload.SetSensitiveSettings(sensitiveSettingsMap)
+		}
 		operation, _, err := client.OperationsAPI.
 			CreateOperationForVhost(ctx, endpointID).
 			CreateOperationRequest(*payload).

@@ -55,6 +55,27 @@ resource "aws_route53_record" "dns01" {
 }
 ```
 
+## Endpoint Settings Example
+
+Use the `settings` map to configure endpoint-level options for an Application Endpoint. All values must be strings. Supported keys vary by platform and endpoint type, refer to the [Endpoint Documentation](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/overview) for the type of Endpoint you are managing.
+
+```hcl
+resource "aptible_endpoint" "example_settings" {
+  env_id         = data.aptible_environment.example.env_id
+  resource_id    = aptible_app.example.app_id
+  resource_type  = "app"
+  process_type   = "cmd"
+  endpoint_type  = "https"
+  default_domain = true
+  platform       = "alb"
+  settings = {
+    "IDLE_TIMEOUT"         = "120"
+    "FORCE_SSL"            = "true"
+    "MAINTENANCE_PAGE_URL" = "https://httpstatuses.maor.io/503"
+  }
+}
+```
+
 ## Argument Reference
 
 - `env_id` - (Required) The ID of the environment you would like to deploy your
@@ -99,8 +120,9 @@ resource "aws_route53_record" "dns01" {
   with other apps on the same stack. Shared endpoints can only be used if your
   clients support SNI (most modern clients do) and you either use a default
   domain or an exact (non-wildcard) custom domain.
-- `load_balancing_algorithm_type` - (Optional, ALB endpoints only) Determines which algorithm to use for 
-  [request routing](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/https-endpoints/overview#traffic). Valid options are `round_robin`, `least_outstanding_requests`, and `weighted_random`. The default is `round_robin`. 
+- `load_balancing_algorithm_type` - (Optional, ALB endpoints only) Determines which algorithm to use for
+  [request routing](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/https-endpoints/overview#traffic). Valid options are `round_robin`, `least_outstanding_requests`, and `weighted_random`. The default is `round_robin`.
+- `settings` - (Optional) Map of string key/value pairs for endpoint-level configuration. Only valid for Application Endpoints. Values must be strings.
 
 ## Attribute Reference
 
