@@ -462,7 +462,7 @@ func testAccAptibleEndpointCustomDomain(appHandle string) string {
 		process_type = "cmd"
 		endpoint_type = "https"
 		managed = true
-		domain = "www.aptible-test-demo.fake"
+		domain = "www.aptible-test-demo.pizza"
 		internal = true
 		platform = "alb"
 	}
@@ -744,7 +744,7 @@ func testAccAptibleEndpointBadPort(appHandle string) string {
 		process_type = "cmd"
 		endpoint_type = "https"
 		managed = true
-		domain = "www.aptible-test-demo.fake"
+		domain = "www.aptible-test-demo.pizza"
 		internal = true
 		platform = "alb"
 		container_port = 666
