@@ -56,7 +56,8 @@ func resourceReplica() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateContainerProfile,
-				Default:      "m5",
+				StateFunc:    normalizeContainerProfile,
+				Default:      "m",
 			},
 			"iops": {
 				Type:     schema.TypeInt,
@@ -261,7 +262,7 @@ func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
 	_ = d.Set("handle", database.GetHandle())
 	_ = d.Set("env_id", accountID)
 	_ = d.Set("primary_database_id", primaryDatabaseID)
-	_ = d.Set("container_profile", profile)
+	_ = d.Set("container_profile", normalizeContainerProfile(profile))
 	_ = d.Set("iops", database.Embedded.Disk.GetProvisionedIops())
 	_ = d.Set("enable_backups", database.GetEnableBackups())
 	d.SetId(strconv.Itoa(int(database.Id)))
