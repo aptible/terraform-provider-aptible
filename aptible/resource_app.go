@@ -369,53 +369,74 @@ func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 	d.SetId(strconv.Itoa(int(app.Id)))
 	_ = d.Set("app_id", app.Id)
 
-	config := d.Get("config").(map[string]interface{})
+	needsDeploy := false
+	needsConfigure := false
 
-	settings := map[string]string{}
+	envMap := map[string]string{}
+	settingsMap := map[string]string{}
+	sensitiveSettingsMap := map[string]string{}
+
+	if v := toStringMap(d.Get("config").(map[string]interface{})); v != nil {
+		needsConfigure = true
+		envMap = v
+	}
+
 	if v := d.Get("docker_image").(string); v != "" {
-		settings["APTIBLE_DOCKER_IMAGE"] = v
+		needsDeploy = true
+		settingsMap["APTIBLE_DOCKER_IMAGE"] = v
 	}
 
-	sensitiveSettings := map[string]string{}
 	if v := d.Get("private_registry_username").(string); v != "" {
-		sensitiveSettings["APTIBLE_PRIVATE_REGISTRY_USERNAME"] = v
+		needsDeploy = true
+		sensitiveSettingsMap["APTIBLE_PRIVATE_REGISTRY_USERNAME"] = v
 	}
+
 	if v := d.Get("private_registry_password").(string); v != "" {
-		sensitiveSettings["APTIBLE_PRIVATE_REGISTRY_PASSWORD"] = v
+		needsDeploy = true
+		sensitiveSettingsMap["APTIBLE_PRIVATE_REGISTRY_PASSWORD"] = v
 	}
 
-	payload := aptibleapi.NewCreateOperationRequest("deploy")
-
-	if env := toStringMap(config); env != nil {
-		payload.SetEnv(env)
-	}
-	if len(settings) > 0 {
-		payload.SetSettings(settings)
-	}
-	if len(sensitiveSettings) > 0 {
-		payload.SetSensitiveSettings(sensitiveSettings)
+	operationType := "none"
+	if needsDeploy {
+		operationType = "deploy"
+	} else if needsConfigure {
+		operationType = "configure"
 	}
 
-	operation, _, err := client.OperationsAPI.
-		CreateOperationForApp(ctx, app.Id).
-		CreateOperationRequest(*payload).
-		Execute()
-	if err != nil {
-		return append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Failed to create app deploy operation",
-			Detail:   err.Error(),
-		})
-	}
+	if operationType != "none" {
+		payload := aptibleapi.NewCreateOperationRequest(operationType)
 
-	_, err = legacy.WaitForOperation(int64(operation.Id))
-	if err != nil {
-		// Do not return here so that the read method can hydrate the state
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  fmt.Sprintf("App provision operation failed %d", operation.Id),
-			Detail:   err.Error(),
-		})
+		if needsConfigure {
+			payload.SetEnv(envMap)
+		}
+		if len(settingsMap) > 0 {
+			payload.SetSettings(settingsMap)
+		}
+		if len(sensitiveSettingsMap) > 0 {
+			payload.SetSensitiveSettings(sensitiveSettingsMap)
+		}
+
+		operation, _, err := client.OperationsAPI.
+			CreateOperationForApp(ctx, app.Id).
+			CreateOperationRequest(*payload).
+			Execute()
+		if err != nil {
+			return append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to create app deploy operation",
+				Detail:   err.Error(),
+			})
+		}
+
+		_, err = legacy.WaitForOperation(int64(operation.Id))
+		if err != nil {
+			// Do not return here so that the read method can hydrate the state
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("App provision operation failed %d", operation.Id),
+				Detail:   err.Error(),
+			})
+		}
 	}
 
 	// Services do not exist before App creation, so we need to wait until after to update settings, unlike when updating an App
