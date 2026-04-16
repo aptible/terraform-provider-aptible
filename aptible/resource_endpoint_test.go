@@ -203,9 +203,9 @@ func TestAccResourceEndpoint_settingsUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "release_healthcheck_timeout", "0"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "idle_timeout", "63"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "show_elb_healthchecks", "true"),
-					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "release_healthcheck_timeout"),
-					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "force_ssl"),
-					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "ssl_protocols_override"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "release_healthcheck_timeout", "0"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "force_ssl", "false"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "ssl_protocols_override", ""),
 				),
 			},
 		},
@@ -484,7 +484,7 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 			// Setting format violations
 			{
 				Config:      testAccAptibleEndpointInvalidMaintenancePageURL(),
-				ExpectError: regexp.MustCompile(`(?i)expected .* to have a url with schema`),
+				ExpectError: regexp.MustCompile(`(?i)expected .* to have a host`),
 			},
 			{
 				Config:      testAccAptibleEndpointInvalidSslProtocol(),
@@ -853,7 +853,7 @@ func testAccAptibleEndpointSetShared(appHandle string, shared bool) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		docker_image" = "quay.io/aptible/nginx-mirror:32"
+		docker_image = "quay.io/aptible/nginx-mirror:32"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -888,7 +888,6 @@ func testAccAptibleEndpointLbAlgorithm(appHandle string, lbAlgorithm string) str
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		docker_image = "quay.io/aptible/nginx-mirror:33"
-		}
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -938,7 +937,7 @@ func testAccAptibleEndpointBadPort(appHandle string) string {
 		process_type = "cmd"
 		endpoint_type = "https"
 		managed = true
-		domain = "www.aptible-test-demo.fake"
+		domain = "www.aptible-test-demo.com"
 		internal = true
 		platform = "alb"
 		container_port = 666
