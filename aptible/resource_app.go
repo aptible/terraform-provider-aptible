@@ -591,16 +591,13 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 
 	if d.HasChange("docker_image") {
 		needsDeploy = true
-		_, newVal := d.GetChange("docker_image")
-		settingsMap["APTIBLE_DOCKER_IMAGE"] = newVal.(string)
+		settingsMap["APTIBLE_DOCKER_IMAGE"] = d.Get("docker_image").(string)
 	}
 
-	if d.HasChange("private_registry_username") || d.HasChange("private_registry_password") {
+	if d.HasChanges("private_registry_username", "private_registry_password") {
 		needsDeploy = true
-		_, newUser := d.GetChange("private_registry_username")
-		sensitiveSettingsMap["APTIBLE_PRIVATE_REGISTRY_USERNAME"] = newUser.(string)
-		_, newPass := d.GetChange("private_registry_password")
-		sensitiveSettingsMap["APTIBLE_PRIVATE_REGISTRY_PASSWORD"] = newPass.(string)
+		sensitiveSettingsMap["APTIBLE_PRIVATE_REGISTRY_USERNAME"] = d.Get("private_registry_username").(string)
+		sensitiveSettingsMap["APTIBLE_PRIVATE_REGISTRY_PASSWORD"] = d.Get("private_registry_password").(string)
 	}
 
 	if needsDeploy {
@@ -618,7 +615,7 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 		if d.HasChange("docker_image") {
 			payload.SetSettings(settingsMap)
 		}
-		if d.HasChange("private_registry_username") || d.HasChange("private_registry_password") {
+		if d.HasChanges("private_registry_username", "private_registry_password") {
 			payload.SetSensitiveSettings(sensitiveSettingsMap)
 		}
 
