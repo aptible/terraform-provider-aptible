@@ -1206,6 +1206,11 @@ func testAccAptibleAppPrivateRegistry(handle, username, password string) string 
 		docker_image = "quay.io/aptible/test-private-repo:httpd-alpine"
 		private_registry_username = "%s"
 		private_registry_password = "%s"
+		service {
+			process_type           = "cmd"
+			container_count        = 1
+			container_memory_limit = 1024
+		}
 	}
 	`, handle, testOrganizationId, testStackId, handle, username, password)
 }
@@ -1222,6 +1227,11 @@ func testAccAptibleAppPublicImageNoRegistry(handle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		docker_image = "quay.io/aptible/nginx-mirror:17"
+		service {
+			process_type           = "cmd"
+			container_count        = 1
+			container_memory_limit = 1024
+		}
 	}
 	`, handle, testOrganizationId, testStackId, handle)
 }
