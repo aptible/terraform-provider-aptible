@@ -1157,13 +1157,17 @@ func testAccAptibleAppRegistryCredsWithoutDockerImage(handle string) string {
 }
 
 func TestAccResourceApp_updateAndRemovePrivateRegistry(t *testing.T) {
-	rHandle := acctest.RandString(10)
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("Acceptance tests skipped unless TF_ACC is set")
+	}
 
 	registryUsername := os.Getenv("APTIBLE_PRIVATE_DOCKER_REPO_USERNAME")
 	registryPassword := os.Getenv("APTIBLE_PRIVATE_DOCKER_REPO_PASSWORD")
 	if registryUsername == "" || registryPassword == "" {
 		t.Fatal("APTIBLE_PRIVATE_DOCKER_REPO_USERNAME and APTIBLE_PRIVATE_DOCKER_REPO_PASSWORD must be set for this test")
 	}
+
+	rHandle := acctest.RandString(10)
 
 	WithTestAccEnvironment(t, func(env aptible.Environment) {
 		resource.ParallelTest(t, resource.TestCase{
