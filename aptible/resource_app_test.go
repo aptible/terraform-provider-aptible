@@ -3,6 +3,7 @@ package aptible
 import (
 	"fmt"
 	"log"
+	"os"
 	"regexp"
 	"strconv"
 	"testing"
@@ -55,8 +56,9 @@ func TestAccResourceApp_deploy(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-						resource.TestCheckResourceAttr("aptible_app.test", "settings.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:1"),
-						resource.TestCheckResourceAttr("aptible_app.test", "sensitive_settings.UNUSED", "value"),
+						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "quay.io/aptible/nginx-mirror:1"),
+						resource.TestCheckResourceAttr("aptible_app.test", "private_registry_username", "myuser"),
+						resource.TestCheckResourceAttr("aptible_app.test", "private_registry_password", "mypassword"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
@@ -91,8 +93,7 @@ func TestAccResourceApp_multiple_services(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-						resource.TestCheckResourceAttr("aptible_app.test", "settings.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/terraform-multiservice-test"),
-						resource.TestCheckResourceAttr("aptible_app.test", "sensitive_settings.UNUSED", "value"),
+						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "quay.io/aptible/terraform-multiservice-test"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
@@ -122,8 +123,7 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-						resource.TestCheckResourceAttr("aptible_app.test", "settings.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:2"),
-						resource.TestCheckResourceAttr("aptible_app.test", "sensitive_settings.UNUSED", "value"),
+						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "quay.io/aptible/nginx-mirror:2"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.OOPS", "mistake"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
@@ -143,8 +143,7 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 				{
 					Config: testAccAptibleAppUpdateConfig(rHandle),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_app.test", "settings.APTIBLE_DOCKER_IMAGE", "httpd:alpine"),
-						resource.TestCheckResourceAttr("aptible_app.test", "sensitive_settings.UNUSED", "different"),
+						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "httd:alpine"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "nothing"),
 						resource.TestCheckNoResourceAttr("aptible_app.test", "config.OOPS"),
 						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
@@ -172,8 +171,7 @@ func TestAccResourceApp_scaleDown(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-						resource.TestCheckResourceAttr("aptible_app.test", "settings.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:3"),
-						resource.TestCheckResourceAttr("aptible_app.test", "sensitive_settings.UNUSED", "value"),
+						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "quay.io/aptible/nginx-mirror:3"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
@@ -210,8 +208,7 @@ func TestAccResourceApp_autoscalingDisabledThenEnabled(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-						resource.TestCheckResourceAttr("aptible_app.test", "settings.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:4"),
-						resource.TestCheckResourceAttr("aptible_app.test", "sensitive_settings.UNUSED", "value"),
+						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "quay.io/aptible/nginx-mirror:4"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
@@ -445,8 +442,7 @@ func TestAccResourceApp_stopTimeout(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-						resource.TestCheckResourceAttr("aptible_app.test", "settings.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:16"),
-						resource.TestCheckResourceAttr("aptible_app.test", "sensitive_settings.UNUSED", "value"),
+						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "quay.io/aptible/nginx-mirror:16"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
@@ -525,8 +521,7 @@ func TestAccResourceApp_updateRestartFreeScaling(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-						resource.TestCheckResourceAttr("aptible_app.test", "settings.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:16"),
-						resource.TestCheckResourceAttr("aptible_app.test", "sensitive_settings.UNUSED", "value"),
+						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "quay.io/aptible/nginx-mirror:16"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
@@ -550,8 +545,7 @@ func TestAccResourceApp_updateRestartFreeScaling(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
-						resource.TestCheckResourceAttr("aptible_app.test", "settings.APTIBLE_DOCKER_IMAGE", "quay.io/aptible/nginx-mirror:16"),
-						resource.TestCheckResourceAttr("aptible_app.test", "sensitive_settings.UNUSED", "value"),
+						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "quay.io/aptible/nginx-mirror:16"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
@@ -626,12 +620,7 @@ func testAccAptibleAppDeploy(handle string, index string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:%s"
-		}
-		sensitive_settings = {
-			"UNUSED" = "value"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:%s"
 		config = {
 			"WHATEVER" = "something"
 			"OOPS" = "mistake"
@@ -660,12 +649,7 @@ func testAccAptibleAppDeployStopTimeout(handle string, index string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:%s"
-		}
-		sensitive_settings = {
-			"UNUSED" = "value"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:%s"
 		config = {
 			"WHATEVER" = "something"
 			"OOPS" = "mistake"
@@ -694,12 +678,7 @@ func testAccAptibleAppDeployMultipleServices(handle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/terraform-multiservice-test"
-		}
-		sensitive_settings = {
-			"UNUSED" = "value"
-		}
+		docker_image = "quay.io/aptible/terraform-multiservice-test"
 		config = {
 			"WHATEVER" = "something"
 			"OOPS" = "mistake"
@@ -731,12 +710,9 @@ func testAccAptibleAppUpdateConfig(handle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "httd:alpine"
-		}
-		sensitive_settings = {
-			"UNUSED" = "different"
-		}
+		docker_image = "httd:alpine"
+		private_registry_username = "updateduser"
+		private_registry_password = "updatedpassword"
 		config = {
 			"WHATEVER" = "nothing"
 		}
@@ -761,12 +737,7 @@ func testAccAptibleAppScaleDown(handle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:5"
-		}
-		sensitive_settings = {
-			"UNUSED" = "value"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:5"
 		config = {
 			"WHATEVER" = "something"
 			"OOPS" = "mistake"
@@ -791,12 +762,7 @@ func testAccAptibleAppautoscalingPolicy(handle string, index string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:%s"
-		}
-		sensitive_settings = {
-			"UNUSED" = "value"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:%s"
 		config = {
 			"WHATEVER" = "something"
 		}
@@ -827,12 +793,7 @@ func testAccAptibleAppWithoutautoscalingPolicy(handle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:9"
-		}
-		sensitive_settings = {
-			"UNUSED" = "value"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:9"
 		config = {
 			"WHATEVER" = "something"
 		}
@@ -856,12 +817,7 @@ func testAccAptibleAppUpdateautoscalingPolicy(handle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:10"
-		}
-		sensitive_settings = {
-			"UNUSED" = "value"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:10"
 		config = {
 			"WHATEVER" = "something"
 		}
@@ -890,12 +846,7 @@ func testAccAptibleAppDeployAutoscalingTypeHorizontalMissingAttributes(handle st
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:11"
-		}
-		sensitive_settings = {
-			"UNUSED" = "value"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:11"
 		config = {
 			"WHATEVER" = "something"
 		}
@@ -922,12 +873,7 @@ func testAccAptibleAppDeployAutoscalingOldAndNewPolicyAttribute(handle string) s
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:12"
-		}
-		sensitive_settings = {
-			"UNUSED" = "value"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:12"
 		config = {
 			"WHATEVER" = "nothing"
 		}
@@ -960,12 +906,7 @@ func testAccAptibleAppDeployAutoscalingTypeVerticalInvalidAttributes(handle stri
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:13"
-		}
-		sensitive_settings = {
-			"UNUSED" = "value"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:13"
 		config = {
 			"WHATEVER" = "something"
 		}
@@ -993,12 +934,7 @@ func testAccAptibleAppDeployOnlyOnePolicy(handle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:14"
-		}
-		sensitive_settings = {
-			"UNUSED" = "value"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:14"
 		config = {
 			"WHATEVER" = "something"
 		}
@@ -1032,12 +968,7 @@ func testAccAptibleAppDeployInvalidAutoscalingType(handle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:15"
-		}
-		sensitive_settings = {
-			"UNUSED" = "value"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:15"
 		config = {
 			"WHATEVER" = "something"
 		}
@@ -1064,9 +995,7 @@ func testAccAptibleAppDeployWithRestartFreeScaling(handle string, restartFreeSca
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:16"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:16"
 		service {
 			process_type = "cmd"
 			container_profile = "m5"
@@ -1097,9 +1026,7 @@ func testAccAptibleAppMultipleServicesWithPartialAutoscaling(handle string) stri
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		settings = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/terraform-multiservice-test:policy_order"
-		}
+		docker_image = "quay.io/aptible/terraform-multiservice-test:policy_order"
 		service {
 			process_type           = "rabbitB"
 			container_count        = 1
@@ -1124,6 +1051,181 @@ func testAccAptibleAppMultipleServicesWithPartialAutoscaling(handle string) stri
 				post_release_cooldown_seconds = 60
 			}
 		}
+	}
+	`, handle, testOrganizationId, testStackId, handle)
+}
+
+func TestAccResourceApp_usernameWithoutPassword(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config:      testAccAptibleAppUsernameWithoutPassword(rHandle),
+					ExpectError: regexp.MustCompile(`private_registry_password is required when private_registry_username is set`),
+				},
+			},
+		})
+	})
+}
+
+func TestAccResourceApp_passwordWithoutUsername(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config:      testAccAptibleAppPasswordWithoutUsername(rHandle),
+					ExpectError: regexp.MustCompile(`private_registry_username is required when private_registry_password is set`),
+				},
+			},
+		})
+	})
+}
+
+func TestAccResourceApp_registryCredsWithoutDockerImage(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config:      testAccAptibleAppRegistryCredsWithoutDockerImage(rHandle),
+					ExpectError: regexp.MustCompile(`docker_image is required when private_registry_username or private_registry_password is set`),
+				},
+			},
+		})
+	})
+}
+
+func testAccAptibleAppUsernameWithoutPassword(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		docker_image = "quay.io/aptible/nginx-mirror:latest"
+		private_registry_username = "myuser"
+	}
+	`, handle, testOrganizationId, testStackId, handle)
+}
+
+func testAccAptibleAppPasswordWithoutUsername(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		docker_image = "quay.io/aptible/nginx-mirror:latest"
+		private_registry_password = "mypassword"
+	}
+	`, handle, testOrganizationId, testStackId, handle)
+}
+
+func testAccAptibleAppRegistryCredsWithoutDockerImage(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		private_registry_username = "myuser"
+		private_registry_password = "mypassword"
+	}
+	`, handle, testOrganizationId, testStackId, handle)
+}
+
+func TestAccResourceApp_updateAndRemovePrivateRegistry(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	registryUsername := os.Getenv("APTIBLE_PRIVATE_DOCKER_REPO_USERNAME")
+	registryPassword := os.Getenv("APTIBLE_PRIVATE_DOCKER_REPO_PASSWORD")
+	if registryUsername == "" || registryPassword == "" {
+		t.Skip("APTIBLE_PRIVATE_DOCKER_REPO_USERNAME and APTIBLE_PRIVATE_DOCKER_REPO_PASSWORD must be set for this test")
+	}
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config: testAccAptibleAppPrivateRegistry(rHandle, registryUsername, registryPassword),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "quay.io/aptible/test-private-repo:httpd-alpine"),
+						resource.TestCheckResourceAttr("aptible_app.test", "private_registry_username", registryUsername),
+						resource.TestCheckResourceAttr("aptible_app.test", "private_registry_password", registryPassword),
+					),
+				},
+				{
+					Config: testAccAptibleAppPublicImageNoRegistry(rHandle),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "quay.io/aptible/nginx-mirror:17"),
+						resource.TestCheckResourceAttr("aptible_app.test", "private_registry_username", ""),
+						resource.TestCheckResourceAttr("aptible_app.test", "private_registry_password", ""),
+					),
+				},
+			},
+		})
+	})
+}
+
+func testAccAptibleAppPrivateRegistry(handle, username, password string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		docker_image = "quay.io/aptible/test-private-repo:httpd-alpine"
+		private_registry_username = "%s"
+		private_registry_password = "%s"
+	}
+	`, handle, testOrganizationId, testStackId, handle, username, password)
+}
+
+func testAccAptibleAppPublicImageNoRegistry(handle string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		docker_image = "quay.io/aptible/nginx-mirror:17"
 	}
 	`, handle, testOrganizationId, testStackId, handle)
 }

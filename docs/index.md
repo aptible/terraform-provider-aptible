@@ -88,22 +88,25 @@ resource "aptible_app" "APP" {
 }
 ```
 
-To deploy a Docker image, set `APTIBLE_DOCKER_IMAGE` in `settings`.
-Authentication for Docker images located in private repositories can be provided
-using `APTIBLE_PRIVATE_REGISTRY_USERNAME` and
-`APTIBLE_PRIVATE_REGISTRY_PASSWORD` in `sensitive_settings`.
+To deploy a Docker image, set `docker_image`. For images in private registries,
+also provide `private_registry_username` and `private_registry_password`
+(both are required together).
 
 ```hcl
 resource "aptible_app" "APP" {
     env_id = ENVIRONMENT_ID
     handle = "APP_HANDLE"
-    settings = {
-        "APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/deploy-demo-app"
-    }
-    sensitive_settings = {
-        "APTIBLE_PRIVATE_REGISTRY_USERNAME" = "registry_username"
-        "APTIBLE_PRIVATE_REGISTRY_PASSWORD" = "registry_password"
-    }
+    docker_image = "quay.io/aptible/deploy-demo-app"
+}
+```
+
+```hcl
+resource "aptible_app" "APP" {
+    env_id = ENVIRONMENT_ID
+    handle = "APP_HANDLE"
+    docker_image              = "quay.io/example/private-image"
+    private_registry_username = "registry_username"
+    private_registry_password = "registry_password"
 }
 ```
 

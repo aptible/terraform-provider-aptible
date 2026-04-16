@@ -56,23 +56,27 @@ func resourceApp() *schema.Resource {
 				Optional: true,
 				Elem:     resourceService(),
 			},
-			"settings": {
-				Type:     schema.TypeMap,
+			"docker_image": {
+				Type:     schema.TypeString,
 				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
 			},
-			"sensitive_settings": {
-				Type:      schema.TypeMap,
+			"private_registry_username": {
+				Type:      schema.TypeString,
 				Optional:  true,
 				Sensitive: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+			},
+			"private_registry_password": {
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
 			},
 		},
-		CustomizeDiff: validateServiceSizingPolicy,
+		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+			if err := validateServiceSizingPolicy(ctx, d, meta); err != nil {
+				return err
+			}
+			return validatePrivateRegistrySettings(ctx, d, meta)
+		},
 	}
 }
 
@@ -324,6 +328,23 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 	return nil
 }
 
+func validatePrivateRegistrySettings(ctx context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	username := d.Get("private_registry_username").(string)
+	password := d.Get("private_registry_password").(string)
+	dockerImage := d.Get("docker_image").(string)
+
+	if username != "" && password == "" {
+		return fmt.Errorf("private_registry_password is required when private_registry_username is set")
+	}
+	if password != "" && username == "" {
+		return fmt.Errorf("private_registry_username is required when private_registry_password is set")
+	}
+	if (username != "" || password != "") && dockerImage == "" {
+		return fmt.Errorf("docker_image is required when private_registry_username or private_registry_password is set")
+	}
+	return nil
+}
+
 func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
 	client := m.Client
@@ -349,19 +370,30 @@ func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 	_ = d.Set("app_id", app.Id)
 
 	config := d.Get("config").(map[string]interface{})
-	settings := d.Get("settings").(map[string]interface{})
-	sensitiveSettings := d.Get("sensitive_settings").(map[string]interface{})
+
+	settings := map[string]string{}
+	if v := d.Get("docker_image").(string); v != "" {
+		settings["APTIBLE_DOCKER_IMAGE"] = v
+	}
+
+	sensitiveSettings := map[string]string{}
+	if v := d.Get("private_registry_username").(string); v != "" {
+		sensitiveSettings["APTIBLE_PRIVATE_REGISTRY_USERNAME"] = v
+	}
+	if v := d.Get("private_registry_password").(string); v != "" {
+		sensitiveSettings["APTIBLE_PRIVATE_REGISTRY_PASSWORD"] = v
+	}
 
 	payload := aptibleapi.NewCreateOperationRequest("deploy")
 
 	if env := toStringMap(config); env != nil {
 		payload.SetEnv(env)
 	}
-	if s := toStringMap(settings); s != nil {
-		payload.SetSettings(s)
+	if len(settings) > 0 {
+		payload.SetSettings(settings)
 	}
-	if ss := toStringMap(sensitiveSettings); ss != nil {
-		payload.SetSensitiveSettings(ss)
+	if len(sensitiveSettings) > 0 {
+		payload.SetSensitiveSettings(sensitiveSettings)
 	}
 
 	operation, _, err := client.OperationsAPI.
@@ -453,8 +485,14 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 	if currSettingId != 0 {
 		currSetting, _, err := client.SettingsAPI.GetSetting(ctx, currSettingId).Execute()
 		if err == nil {
-			_ = d.Set("settings", currSetting.Settings)
-			_ = d.Set("sensitive_settings", currSetting.SensitiveSettings)
+			dockerImage, _ := currSetting.Settings["APTIBLE_DOCKER_IMAGE"].(string)
+			_ = d.Set("docker_image", dockerImage)
+
+			privRegUser, _ := currSetting.SensitiveSettings["APTIBLE_PRIVATE_REGISTRY_USERNAME"].(string)
+			_ = d.Set("private_registry_username", privRegUser)
+
+			privRegPass, _ := currSetting.SensitiveSettings["APTIBLE_PRIVATE_REGISTRY_PASSWORD"].(string)
+			_ = d.Set("private_registry_password", privRegPass)
 		}
 	}
 
@@ -551,16 +589,18 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 		envMap = normalizeStringMapOnChange(o.(map[string]interface{}), c.(map[string]interface{}))
 	}
 
-	if d.HasChange("settings") {
+	if d.HasChange("docker_image") {
 		needsDeploy = true
-		o, s := d.GetChange("settings")
-		settingsMap = normalizeStringMapOnChange(o.(map[string]interface{}), s.(map[string]interface{}))
+		_, newVal := d.GetChange("docker_image")
+		settingsMap["APTIBLE_DOCKER_IMAGE"] = newVal.(string)
 	}
 
-	if d.HasChange("sensitive_settings") {
+	if d.HasChange("private_registry_username") || d.HasChange("private_registry_password") {
 		needsDeploy = true
-		o, ss := d.GetChange("sensitive_settings")
-		sensitiveSettingsMap = normalizeStringMapOnChange(o.(map[string]interface{}), ss.(map[string]interface{}))
+		_, newUser := d.GetChange("private_registry_username")
+		sensitiveSettingsMap["APTIBLE_PRIVATE_REGISTRY_USERNAME"] = newUser.(string)
+		_, newPass := d.GetChange("private_registry_password")
+		sensitiveSettingsMap["APTIBLE_PRIVATE_REGISTRY_PASSWORD"] = newPass.(string)
 	}
 
 	if needsDeploy {
@@ -575,10 +615,10 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 		if d.HasChange("config") {
 			payload.SetEnv(envMap)
 		}
-		if d.HasChange("settings") {
+		if d.HasChange("docker_image") {
 			payload.SetSettings(settingsMap)
 		}
-		if d.HasChange("sensitive_settings") {
+		if d.HasChange("private_registry_username") || d.HasChange("private_registry_password") {
 			payload.SetSensitiveSettings(sensitiveSettingsMap)
 		}
 

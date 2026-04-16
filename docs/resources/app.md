@@ -15,14 +15,19 @@ resource "aptible_app" "example_app" {
     config = {
         "KEY" = "value"
     }
-    settings = {
-        "APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/deploy-demo-app"
-    }
-    sensitive_settings = {
-        // Only required for private registries
-        "APTIBLE_PRIVATE_REGISTRY_USERNAME" = "registry_username"
-        "APTIBLE_PRIVATE_REGISTRY_PASSWORD" = "registry_password"
-    }
+    docker_image = "quay.io/aptible/deploy-demo-app"
+}
+```
+
+Deploying from a private registry
+
+```hcl
+resource "aptible_app" "example_app" {
+    env_id = 123
+    handle = "example_app"
+    docker_image              = "quay.io/example/private-image"
+    private_registry_username = "registry_username"
+    private_registry_password = "registry_password"
 }
 ```
 
@@ -63,10 +68,11 @@ resource "aptible_app" "APP" {
   only contain letters, numbers, `-`, `_`, or `.`
 - `config` - (Optional) A map of environment variables for the App. Values are
   available to your running containers.
-- `settings` - (Optional) A map of App settings used when creating deploy
-  operations. To deploy a Docker image, set `APTIBLE_DOCKER_IMAGE` here.
-- `sensitive_settings` - (Optional) Same as `settings`, but treated as sensitive
-  by Terraform (e.g., private registry credentials).
+- `docker_image` - (Optional) The Docker image to deploy (e.g. `quay.io/aptible/deploy-demo-app`).
+- `private_registry_username` - (Optional, Sensitive) Username for authenticating with a private
+  Docker registry. Requires `docker_image` and `private_registry_password`.
+- `private_registry_password` - (Optional, Sensitive) Password for authenticating with a private
+  Docker registry. Requires `docker_image` and `private_registry_username`.
 - `service` - (Optional) A block to manage scaling for services. See the main
   provider docs for additional details.
 
