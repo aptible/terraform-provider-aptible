@@ -148,7 +148,9 @@ func TestAccResourceEndpoint_settings(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "idle_timeout", "31"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "release_healthcheck_timeout", "61"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "force_ssl", "true"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "ssl_protocols_override", "TLSv1.2 PFS"),
 				),
 			},
 			{
@@ -182,7 +184,9 @@ func TestAccResourceEndpoint_settingsUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "idle_timeout", "31"),
-					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "force_ssl"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "release_healthcheck_timeout", "61"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "force_ssl", "true"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "ssl_protocols_override", "TLSv1.2 PFS"),
 				),
 			},
 			{
@@ -195,7 +199,13 @@ func TestAccResourceEndpoint_settingsUpdate(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "idle_timeout", "63"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "force_ssl", ""),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "show_elb_healthchecks", "true"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "release_healthcheck_timeout", "0"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "idle_timeout", "63"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "show_elb_healthchecks", "true"),
+					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "release_healthcheck_timeout"),
+					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "force_ssl"),
+					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "ssl_protocols_override"),
 				),
 			},
 		},
@@ -458,6 +468,50 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 				Config:      testAccAptibleEndpointInvalidLbAlgorithmWithElb(),
 				ExpectError: regexp.MustCompile(`(?i)do not specify a load balancing algorithm with elb endpoint`),
 			},
+			// Setting range violations
+			{
+				Config:      testAccAptibleEndpointInvalidIdleTimeoutTooLow(),
+				ExpectError: regexp.MustCompile(`(?i)expected idle_timeout to be in the range \(30 \- 2400\)`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidIdleTimeoutTooHigh(),
+				ExpectError: regexp.MustCompile(`(?i)expected idle_timeout to be in the range \(30 \- 2400\)`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidReleaseHealthcheckTimeout(),
+				ExpectError: regexp.MustCompile(`(?i)expected release_healthcheck_timeout to be in the range \(1 \- 900\)`),
+			},
+			// Setting format violations
+			{
+				Config:      testAccAptibleEndpointInvalidMaintenancePageURL(),
+				ExpectError: regexp.MustCompile(`(?i)expected .* to have a url with schema`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidSslProtocol(),
+				ExpectError: regexp.MustCompile(`(?i)expected ssl_protocols_override to be one of`),
+			},
+			// Setting category violations
+			{
+				Config:      testAccAptibleEndpointForceSslOnTcp(),
+				ExpectError: regexp.MustCompile(`(?i)force_ssl is not supported for tcp endpoints`),
+			},
+			{
+				Config:      testAccAptibleEndpointMaintenancePageURLOnTls(),
+				ExpectError: regexp.MustCompile(`(?i)maintenance_page_url is not supported for tls endpoints`),
+			},
+			{
+				Config:      testAccAptibleEndpointSslCiphersOnAlb(),
+				ExpectError: regexp.MustCompile(`(?i)ssl_ciphers_override is not supported for alb endpoints`),
+			},
+			{
+				Config:      testAccAptibleEndpointDisableWeakCiphersOnAlb(),
+				ExpectError: regexp.MustCompile(`(?i)disable_weak_cipher_suites is not supported for alb endpoints`),
+			},
+			// PFS-only-on-ALB violation
+			{
+				Config:      testAccAptibleEndpointPfsSslProtocolOnElb(),
+				ExpectError: regexp.MustCompile(`(?i)pfs cipher suites are only supported on alb endpoints`),
+			},
 		},
 	})
 }
@@ -677,7 +731,9 @@ func testAccAptibleEndpointAppWithSettings(appHandle string) string {
 		default_domain = true
 		platform = "alb"
 		idle_timeout = 31
-		force_ssl    = "true"
+		release_healthcheck_timeout = 61
+		force_ssl    = true
+		ssl_protocols_override = "TLSv1.2 PFS"
 	}
 `, appHandle, testOrganizationId, testStackId, appHandle)
 	log.Println("HCL generated: ", output)
@@ -711,8 +767,15 @@ func testAccAptibleEndpointAppUpdateSettings(appHandle string) string {
 		endpoint_type = "https"
 		default_domain = true
 		platform = "alb"
+		// updated:
 		idle_timeout = 63
-		// force_ssl omitted
+		// added:
+		show_elb_healthchecks = true
+		// omitted to unset:
+	    // release_healthcheck_timeout
+		// force_ssl
+		// ssl_protocols_override
+
 	}
 `, appHandle, testOrganizationId, testStackId, appHandle)
 	log.Println("HCL generated: ", output)
@@ -1104,6 +1167,151 @@ func testAccAptibleEndpointInvalidLbAlgorithmWithElb() string {
 		default_domain = true
 		platform = "elb"
 		load_balancing_algorithm_type = "round_robin"
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidIdleTimeoutTooLow() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		idle_timeout = 10
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidIdleTimeoutTooHigh() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		idle_timeout = 9999
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidReleaseHealthcheckTimeout() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		release_healthcheck_timeout = 9999
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidMaintenancePageURL() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		maintenance_page_url = "not-a-url"
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidSslProtocol() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		ssl_protocols_override = "TLSv9.9"
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointForceSslOnTcp() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "tcp"
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "elb"
+		force_ssl = true
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointMaintenancePageURLOnTls() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "tls"
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "elb"
+		maintenance_page_url = "https://example.com/maintenance"
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointSslCiphersOnAlb() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "https"
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		ssl_ciphers_override = "ECDHE-RSA-AES128-GCM-SHA256"
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointDisableWeakCiphersOnAlb() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "https"
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		disable_weak_cipher_suites = true
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointPfsSslProtocolOnElb() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "https"
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "elb"
+		ssl_protocols_override = "TLSv1.2 PFS"
 	}`
 	log.Println("HCL generated: ", output)
 	return output

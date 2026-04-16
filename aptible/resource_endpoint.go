@@ -136,9 +136,8 @@ func resourceEndpoint() *schema.Resource {
 				ValidateFunc: validation.StringInSlice(validLbAlgorithms, false),
 			},
 			"force_ssl": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"true", "false", ""}, false),
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 			"maintenance_page_url": {
 				Type:         schema.TypeString,
@@ -148,35 +147,33 @@ func resourceEndpoint() *schema.Resource {
 			"idle_timeout": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				ValidateFunc: validateZeroOrIntBetween(30, 2400),
+				ValidateFunc: validation.IntBetween(30, 2400),
 			},
 			"release_healthcheck_timeout": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				ValidateFunc: validateZeroOrIntBetween(1, 900),
+				ValidateFunc: validation.IntBetween(1, 900),
 			},
 			"strict_health_checks": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"true", "false", ""}, false),
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 			"show_elb_healthchecks": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"true", "false", ""}, false),
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 			"ssl_protocols_override": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice(validSslProtocols, false),
 			},
 			"ssl_ciphers_override": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"disable_weak_cipher_suites": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"true", "false", ""}, false),
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 		},
 	}
@@ -247,6 +244,13 @@ func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ in
 		err = multierror.Append(err, fmt.Errorf("do not specify a load balancing algorithm with %s endpoint", platform))
 	}
 
+	// PFS cipher suites are only valid on ALB endpoints
+	if sslProto := d.Get("ssl_protocols_override").(string); strings.Contains(sslProto, "PFS") {
+		if category := endpointCategory(endpointType, platform); category != "" && category != "alb" {
+			err = multierror.Append(err, fmt.Errorf("ssl_protocols_override: PFS cipher suites are only supported on ALB endpoints"))
+		}
+	}
+
 	// Validate setting attributes against endpoint category
 	if category := endpointCategory(endpointType, platform); category != "" {
 		for attr, validCategories := range endpointSettingCategories {
@@ -274,6 +278,8 @@ func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ in
 func isEndpointSettingSet(d *schema.ResourceDiff, attr string) bool {
 	v := d.Get(attr)
 	switch val := v.(type) {
+	case bool:
+		return val
 	case int:
 		return val != 0
 	case string:
@@ -282,46 +288,36 @@ func isEndpointSettingSet(d *schema.ResourceDiff, attr string) bool {
 	return false
 }
 
-// validateZeroOrIntBetween returns a ValidateFunc that allows 0 (meaning
-// "unset") as well as any integer in [min, max].
-func validateZeroOrIntBetween(min, max int) schema.SchemaValidateFunc {
-	return func(val interface{}, key string) (warns []string, errs []error) {
-		if val.(int) == 0 {
-			return
-		}
-		return validation.IntBetween(min, max)(val, key)
-	}
-}
-
 // buildEndpointSettingsMap constructs the settings map for Create from the
-// individual typed attributes.  Only non-zero values are included.
+// individual typed attributes. Uses GetOkExists so that only attributes
+// explicitly set in config are included — unset attributes are omitted.
 func buildEndpointSettingsMap(d *schema.ResourceData) map[string]string {
 	m := map[string]string{}
-	if v := d.Get("force_ssl").(string); v == "true" {
+	if v, ok := d.GetOkExists("force_ssl"); ok && v.(bool) { //nolint:staticcheck
 		m["FORCE_SSL"] = "true"
 	}
-	if v := d.Get("maintenance_page_url").(string); v != "" {
-		m["MAINTENANCE_PAGE_URL"] = v
+	if v, ok := d.GetOkExists("maintenance_page_url"); ok && v.(string) != "" { //nolint:staticcheck
+		m["MAINTENANCE_PAGE_URL"] = v.(string)
 	}
-	if v := d.Get("idle_timeout").(int); v != 0 {
-		m["IDLE_TIMEOUT"] = strconv.Itoa(v)
+	if v, ok := d.GetOkExists("idle_timeout"); ok { //nolint:staticcheck
+		m["IDLE_TIMEOUT"] = strconv.Itoa(v.(int))
 	}
-	if v := d.Get("release_healthcheck_timeout").(int); v != 0 {
-		m["RELEASE_HEALTHCHECK_TIMEOUT"] = strconv.Itoa(v)
+	if v, ok := d.GetOkExists("release_healthcheck_timeout"); ok { //nolint:staticcheck
+		m["RELEASE_HEALTHCHECK_TIMEOUT"] = strconv.Itoa(v.(int))
 	}
-	if v := d.Get("strict_health_checks").(string); v == "true" {
+	if v, ok := d.GetOkExists("strict_health_checks"); ok && v.(bool) { //nolint:staticcheck
 		m["STRICT_HEALTH_CHECKS"] = "true"
 	}
-	if v := d.Get("show_elb_healthchecks").(string); v == "true" {
+	if v, ok := d.GetOkExists("show_elb_healthchecks"); ok && v.(bool) { //nolint:staticcheck
 		m["SHOW_ELB_HEALTHCHECKS"] = "true"
 	}
-	if v := d.Get("ssl_protocols_override").(string); v != "" {
-		m["SSL_PROTOCOLS_OVERRIDE"] = v
+	if v, ok := d.GetOkExists("ssl_protocols_override"); ok && v.(string) != "" { //nolint:staticcheck
+		m["SSL_PROTOCOLS_OVERRIDE"] = v.(string)
 	}
-	if v := d.Get("ssl_ciphers_override").(string); v != "" {
-		m["SSL_CIPHERS_OVERRIDE"] = v
+	if v, ok := d.GetOkExists("ssl_ciphers_override"); ok && v.(string) != "" { //nolint:staticcheck
+		m["SSL_CIPHERS_OVERRIDE"] = v.(string)
 	}
-	if v := d.Get("disable_weak_cipher_suites").(string); v == "true" {
+	if v, ok := d.GetOkExists("disable_weak_cipher_suites"); ok && v.(bool) { //nolint:staticcheck
 		m["DISABLE_WEAK_CIPHER_SUITES"] = "true"
 	}
 	return m
@@ -331,7 +327,7 @@ func buildEndpointSettingsMap(d *schema.ResourceData) map[string]string {
 // map and sets each typed attribute in Terraform state.
 func applyEndpointSettingsToState(d *schema.ResourceData, settings map[string]interface{}) {
 	forceSslStr, _ := settings["FORCE_SSL"].(string)
-	_ = d.Set("force_ssl", forceSslStr)
+	_ = d.Set("force_ssl", forceSslStr == "true")
 	maintenancePageURL, _ := settings["MAINTENANCE_PAGE_URL"].(string)
 	_ = d.Set("maintenance_page_url", maintenancePageURL)
 	idleTimeoutStr, _ := settings["IDLE_TIMEOUT"].(string)
@@ -341,15 +337,15 @@ func applyEndpointSettingsToState(d *schema.ResourceData, settings map[string]in
 	rht, _ := strconv.Atoi(rhtStr)
 	_ = d.Set("release_healthcheck_timeout", rht)
 	strictStr, _ := settings["STRICT_HEALTH_CHECKS"].(string)
-	_ = d.Set("strict_health_checks", strictStr)
+	_ = d.Set("strict_health_checks", strictStr == "true")
 	showStr, _ := settings["SHOW_ELB_HEALTHCHECKS"].(string)
-	_ = d.Set("show_elb_healthchecks", showStr)
+	_ = d.Set("show_elb_healthchecks", showStr == "true")
 	sslProto, _ := settings["SSL_PROTOCOLS_OVERRIDE"].(string)
 	_ = d.Set("ssl_protocols_override", sslProto)
 	sslCiphers, _ := settings["SSL_CIPHERS_OVERRIDE"].(string)
 	_ = d.Set("ssl_ciphers_override", sslCiphers)
 	disableStr, _ := settings["DISABLE_WEAK_CIPHER_SUITES"].(string)
-	_ = d.Set("disable_weak_cipher_suites", disableStr)
+	_ = d.Set("disable_weak_cipher_suites", disableStr == "true")
 }
 
 func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -727,7 +723,7 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		})
 	}
 
-	// Bool-like string settings: "true" → "true", "false" or "" → "" to clear
+	// Bool settings: ok+true → "true", ok+false or not set → "" to clear
 	for attr, apiKey := range map[string]string{
 		"force_ssl":                  "FORCE_SSL",
 		"strict_health_checks":       "STRICT_HEALTH_CHECKS",
@@ -736,7 +732,8 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	} {
 		if d.HasChange(attr) {
 			needsDeploy = true
-			if d.Get(attr).(string) == "true" {
+			v, ok := d.GetOkExists(attr) //nolint:staticcheck
+			if ok && v.(bool) {
 				settingsMap[apiKey] = "true"
 			} else {
 				settingsMap[apiKey] = ""
@@ -744,22 +741,23 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
-	// Int settings: non-zero → stringified value, changed to zero → "" to clear
+	// Int settings: ok+non-zero → stringified value, not set → "" to clear
 	for attr, apiKey := range map[string]string{
 		"idle_timeout":                "IDLE_TIMEOUT",
 		"release_healthcheck_timeout": "RELEASE_HEALTHCHECK_TIMEOUT",
 	} {
 		if d.HasChange(attr) {
 			needsDeploy = true
-			if v := d.Get(attr).(int); v != 0 {
-				settingsMap[apiKey] = strconv.Itoa(v)
+			v, ok := d.GetOkExists(attr) //nolint:staticcheck
+			if ok && v.(int) != 0 {
+				settingsMap[apiKey] = strconv.Itoa(v.(int))
 			} else {
 				settingsMap[apiKey] = ""
 			}
 		}
 	}
 
-	// String settings: non-empty → value, changed to empty → "" to clear
+	// String settings: ok+non-empty → value, not set → "" to clear
 	for attr, apiKey := range map[string]string{
 		"maintenance_page_url":   "MAINTENANCE_PAGE_URL",
 		"ssl_protocols_override": "SSL_PROTOCOLS_OVERRIDE",
@@ -767,7 +765,8 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	} {
 		if d.HasChange(attr) {
 			needsDeploy = true
-			settingsMap[apiKey] = d.Get(attr).(string)
+			v, _ := d.GetOkExists(attr) //nolint:staticcheck
+			settingsMap[apiKey] = v.(string)
 		}
 	}
 
@@ -836,4 +835,17 @@ var validLbAlgorithms = []string{
 	"round_robin",
 	"least_outstanding_requests",
 	"weighted_random",
+}
+
+// validSslProtocols lists the exact strings accepted by the platform for
+// ssl_protocols_override. Values containing "PFS" are ALB-only.
+var validSslProtocols = []string{
+	"TLSv1 TLSv1.1 TLSv1.2",
+	"TLSv1 TLSv1.1 TLSv1.2 PFS",
+	"TLSv1.1 TLSv1.2",
+	"TLSv1.1 TLSv1.2 PFS",
+	"TLSv1.2",
+	"TLSv1.2 PFS",
+	"TLSv1.2 PFS TLSv1.3",
+	"TLSv1.3",
 }
