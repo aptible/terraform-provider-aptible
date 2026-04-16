@@ -141,7 +141,7 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 				{
 					Config: testAccAptibleAppUpdateConfig(rHandle),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "httd:alpine"),
+						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "httpd:alpine"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "nothing"),
 						resource.TestCheckNoResourceAttr("aptible_app.test", "config.OOPS"),
 						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
@@ -708,7 +708,7 @@ func testAccAptibleAppUpdateConfig(handle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		docker_image = "httd:alpine"
+		docker_image = "httpd:alpine"
 		config = {
 			"WHATEVER" = "nothing"
 		}
