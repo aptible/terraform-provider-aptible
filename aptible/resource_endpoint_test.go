@@ -521,9 +521,7 @@ func testAccAptibleEndpointCustomDomain(appHandle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:31"
-		}
+		aptible_docker_image = "quay.io/aptible/nginx-mirror:31"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -558,9 +556,7 @@ func testAccAptibleEndpointAppContainerPort(appHandle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/caddy-mirror:1"
-		}
+		aptible_docker_image = "quay.io/aptible/caddy-mirror:1"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -595,9 +591,7 @@ func testAccAptibleEndpointAppContainerNoPort(appHandle string, index string) st
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:%s"
-		}
+		aptible_docker_image = "quay.io/aptible/nginx-mirror:%s"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -631,9 +625,7 @@ func testAccAptibleEndpointAppContainerPorts(appHandle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/caddy-mirror:2"
-		}
+		aptible_docker_image = "quay.io/aptible/caddy-mirror:2"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -668,9 +660,7 @@ func testAccAptibleEndpointAppWithSettings(appHandle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:34"
-		}
+		aptible_docker_image = "quay.io/aptible/nginx-mirror:34"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -705,9 +695,7 @@ func testAccAptibleEndpointAppUpdateSettings(appHandle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:34"
-		}
+		aptible_docker_image = "quay.io/aptible/nginx-mirror:34"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -765,9 +753,7 @@ func testAccAptibleEndpointUpdateIPWhitelist(appHandle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:22"
-		}
+		aptible_docker_image = "quay.io/aptible/nginx-mirror:22"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -804,9 +790,7 @@ func testAccAptibleEndpointSetShared(appHandle string, shared bool) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:32"
-		}
+		aptible_docker_image" = "quay.io/aptible/nginx-mirror:32"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -840,8 +824,7 @@ func testAccAptibleEndpointLbAlgorithm(appHandle string, lbAlgorithm string) str
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:33"
+		aptible_docker_image = "quay.io/aptible/nginx-mirror:33"
 		}
 		service {
 			process_type = "cmd"
@@ -877,9 +860,7 @@ func testAccAptibleEndpointBadPort(appHandle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:23"
-		}
+		aptible_docker_image = "quay.io/aptible/nginx-mirror:23"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
