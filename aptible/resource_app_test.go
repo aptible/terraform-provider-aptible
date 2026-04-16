@@ -709,8 +709,6 @@ func testAccAptibleAppUpdateConfig(handle string) string {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
 		docker_image = "httd:alpine"
-		private_registry_username = "updateduser"
-		private_registry_password = "updatedpassword"
 		config = {
 			"WHATEVER" = "nothing"
 		}
