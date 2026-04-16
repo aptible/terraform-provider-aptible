@@ -147,10 +147,8 @@ func TestAccResourceEndpoint_settings(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "settings.IDLE_TIMEOUT", "31"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "settings.FORCE_SSL", "true"),
-					// Not yet needed or supported in Sweetness
-					// resource.TestCheckResourceAttr("aptible_endpoint.test", "sensitive_settings.HYPOTHETICAL", "noneya"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "idle_timeout", "31"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "force_ssl", "true"),
 				),
 			},
 			{
@@ -183,10 +181,8 @@ func TestAccResourceEndpoint_settingsUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "settings.IDLE_TIMEOUT", "31"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "settings.FORCE_SSL", "true"),
-					// Not yet needed or supported in Sweetness
-					// resource.TestCheckResourceAttr("aptible_endpoint.test", "sensitive_settings.HYPOTHETICAL", "noneya"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "idle_timeout", "31"),
+					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "force_ssl"),
 				),
 			},
 			{
@@ -198,10 +194,8 @@ func TestAccResourceEndpoint_settingsUpdate(t *testing.T) {
 				Config: testAccAptibleEndpointAppUpdateSettings(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "settings.IDLE_TIMEOUT", "63"),
-					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "settings.FORCE_SSL"),
-					// Not yet needed or supported in Sweetness
-					// resource.TestCheckResourceAttr("aptible_endpoint.test", "sensitive_settings.HYPOTHETICAL", "rotated"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "idle_timeout", "63"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "force_ssl", ""),
 				),
 			},
 		},
@@ -692,14 +686,8 @@ func testAccAptibleEndpointAppWithSettings(appHandle string) string {
 		endpoint_type = "https"
 		default_domain = true
 		platform = "alb"
-		settings = {
-			"IDLE_TIMEOUT" = "31",
-			"FORCE_SSL" = "true"
-		}
-		// Not yet needed or supported in Sweetness
-		// sensitive_settings = {
-		// 	"HYPOTHETICAL" = "noneya"
-		// }
+		idle_timeout = 31
+		force_ssl    = "true"
 	}
 `, appHandle, testOrganizationId, testStackId, appHandle)
 	log.Println("HCL generated: ", output)
@@ -735,14 +723,8 @@ func testAccAptibleEndpointAppUpdateSettings(appHandle string) string {
 		endpoint_type = "https"
 		default_domain = true
 		platform = "alb"
-		settings = {
-			"IDLE_TIMEOUT" = "63"
-			// FORCE_SSL has been removed
-		}
-		// Not yet needed or supported in Sweetness
-		// sensitive_settings = {
-		// 	"HYPOTHETICAL" = "rotated"
-		// }
+		idle_timeout = 63
+		// force_ssl omitted
 	}
 `, appHandle, testOrganizationId, testStackId, appHandle)
 	log.Println("HCL generated: ", output)

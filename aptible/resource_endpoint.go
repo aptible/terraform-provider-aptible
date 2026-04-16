@@ -135,24 +135,87 @@ func resourceEndpoint() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(validLbAlgorithms, false),
 			},
-			"settings": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+			"force_ssl": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{"true", "false", ""}, false),
 			},
-			// Not yet needed or supported in Sweetness
-			// "sensitive_settings": {
-			// 	Type:     schema.TypeMap,
-			// 	Optional: true,
-			// 	// Sensitive: true,
-			// 	Elem: &schema.Schema{
-			// 		Type: schema.TypeString,
-			// 	},
-			// },
+			"maintenance_page_url": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+			},
+			"idle_timeout": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validateZeroOrIntBetween(30, 2400),
+			},
+			"release_healthcheck_timeout": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validateZeroOrIntBetween(1, 900),
+			},
+			"strict_health_checks": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{"true", "false", ""}, false),
+			},
+			"show_elb_healthchecks": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{"true", "false", ""}, false),
+			},
+			"ssl_protocols_override": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"ssl_ciphers_override": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"disable_weak_cipher_suites": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{"true", "false", ""}, false),
+			},
 		},
 	}
+}
+
+// endpointCategory returns a canonical category string from the user-facing
+// endpoint_type and platform values, used to drive settings validation.
+// Returns "" when type/platform are not yet determined (plan not yet complete).
+func endpointCategory(endpointType, platform string) string {
+	switch endpointType {
+	case "https":
+		switch platform {
+		case "alb":
+			return "alb"
+		case "elb":
+			return "elb"
+		}
+	case "tls":
+		return "tls"
+	case "grpc":
+		return "grpc"
+	case "tcp":
+		return "tcp"
+	}
+	return ""
+}
+
+// endpointSettingCategories maps each setting attribute to the endpoint
+// categories that support it.
+var endpointSettingCategories = map[string][]string{
+	"force_ssl":                   {"alb", "elb"},
+	"maintenance_page_url":        {"alb", "elb"},
+	"idle_timeout":                {"alb", "elb", "tls", "grpc", "tcp"},
+	"release_healthcheck_timeout": {"alb", "elb"},
+	"strict_health_checks":        {"alb", "elb"},
+	"show_elb_healthchecks":       {"alb", "elb"},
+	"ssl_protocols_override":      {"alb", "elb", "tls", "grpc"},
+	"ssl_ciphers_override":        {"elb", "tls", "grpc"},
+	"disable_weak_cipher_suites":  {"elb", "tls", "grpc"},
 }
 
 func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
@@ -184,7 +247,109 @@ func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ in
 		err = multierror.Append(err, fmt.Errorf("do not specify a load balancing algorithm with %s endpoint", platform))
 	}
 
+	// Validate setting attributes against endpoint category
+	if category := endpointCategory(endpointType, platform); category != "" {
+		for attr, validCategories := range endpointSettingCategories {
+			if !isEndpointSettingSet(d.ResourceDiff, attr) {
+				continue
+			}
+			valid := false
+			for _, c := range validCategories {
+				if c == category {
+					valid = true
+					break
+				}
+			}
+			if !valid {
+				err = multierror.Append(err, fmt.Errorf("%s is not supported for %s endpoints", attr, category))
+			}
+		}
+	}
+
 	return err
+}
+
+// isEndpointSettingSet returns true when a setting attribute has a non-zero
+// value — i.e. the user actually specified it.
+func isEndpointSettingSet(d *schema.ResourceDiff, attr string) bool {
+	v := d.Get(attr)
+	switch val := v.(type) {
+	case int:
+		return val != 0
+	case string:
+		return val != ""
+	}
+	return false
+}
+
+// validateZeroOrIntBetween returns a ValidateFunc that allows 0 (meaning
+// "unset") as well as any integer in [min, max].
+func validateZeroOrIntBetween(min, max int) schema.SchemaValidateFunc {
+	return func(val interface{}, key string) (warns []string, errs []error) {
+		if val.(int) == 0 {
+			return
+		}
+		return validation.IntBetween(min, max)(val, key)
+	}
+}
+
+// buildEndpointSettingsMap constructs the settings map for Create from the
+// individual typed attributes.  Only non-zero values are included.
+func buildEndpointSettingsMap(d *schema.ResourceData) map[string]string {
+	m := map[string]string{}
+	if v := d.Get("force_ssl").(string); v == "true" {
+		m["FORCE_SSL"] = "true"
+	}
+	if v := d.Get("maintenance_page_url").(string); v != "" {
+		m["MAINTENANCE_PAGE_URL"] = v
+	}
+	if v := d.Get("idle_timeout").(int); v != 0 {
+		m["IDLE_TIMEOUT"] = strconv.Itoa(v)
+	}
+	if v := d.Get("release_healthcheck_timeout").(int); v != 0 {
+		m["RELEASE_HEALTHCHECK_TIMEOUT"] = strconv.Itoa(v)
+	}
+	if v := d.Get("strict_health_checks").(string); v == "true" {
+		m["STRICT_HEALTH_CHECKS"] = "true"
+	}
+	if v := d.Get("show_elb_healthchecks").(string); v == "true" {
+		m["SHOW_ELB_HEALTHCHECKS"] = "true"
+	}
+	if v := d.Get("ssl_protocols_override").(string); v != "" {
+		m["SSL_PROTOCOLS_OVERRIDE"] = v
+	}
+	if v := d.Get("ssl_ciphers_override").(string); v != "" {
+		m["SSL_CIPHERS_OVERRIDE"] = v
+	}
+	if v := d.Get("disable_weak_cipher_suites").(string); v == "true" {
+		m["DISABLE_WEAK_CIPHER_SUITES"] = "true"
+	}
+	return m
+}
+
+// applyEndpointSettingsToState reads individual settings from the API response
+// map and sets each typed attribute in Terraform state.
+func applyEndpointSettingsToState(d *schema.ResourceData, settings map[string]interface{}) {
+	forceSslStr, _ := settings["FORCE_SSL"].(string)
+	_ = d.Set("force_ssl", forceSslStr)
+	maintenancePageURL, _ := settings["MAINTENANCE_PAGE_URL"].(string)
+	_ = d.Set("maintenance_page_url", maintenancePageURL)
+	idleTimeoutStr, _ := settings["IDLE_TIMEOUT"].(string)
+	idleTimeout, _ := strconv.Atoi(idleTimeoutStr)
+	_ = d.Set("idle_timeout", idleTimeout)
+	rhtStr, _ := settings["RELEASE_HEALTHCHECK_TIMEOUT"].(string)
+	rht, _ := strconv.Atoi(rhtStr)
+	_ = d.Set("release_healthcheck_timeout", rht)
+	strictStr, _ := settings["STRICT_HEALTH_CHECKS"].(string)
+	_ = d.Set("strict_health_checks", strictStr)
+	showStr, _ := settings["SHOW_ELB_HEALTHCHECKS"].(string)
+	_ = d.Set("show_elb_healthchecks", showStr)
+	sslProto, _ := settings["SSL_PROTOCOLS_OVERRIDE"].(string)
+	_ = d.Set("ssl_protocols_override", sslProto)
+	sslCiphers, _ := settings["SSL_CIPHERS_OVERRIDE"].(string)
+	_ = d.Set("ssl_ciphers_override", sslCiphers)
+	disableStr, _ := settings["DISABLE_WEAK_CIPHER_SUITES"].(string)
+	_ = d.Set("disable_weak_cipher_suites", disableStr)
 }
 
 func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -330,26 +495,9 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 
 	payload := aptibleapi.NewCreateOperationRequest("provision")
 
-	if settingsRaw, ok := d.GetOk("settings"); ok {
-		settingsMap := map[string]string{}
-		for k, v := range settingsRaw.(map[string]any) {
-			settingsMap[k] = v.(string)
-		}
-		if len(settingsMap) > 0 {
-			payload.SetSettings(settingsMap)
-		}
+	if settingsMap := buildEndpointSettingsMap(d); len(settingsMap) > 0 {
+		payload.SetSettings(settingsMap)
 	}
-
-	// Not yet needed or supported in Sweetness
-	// if sensitiveSettingsRaw, ok := d.GetOk("sensitive_settings"); ok {
-	// 	sensitiveSettingsMap := map[string]string{}
-	// 	for k, v := range sensitiveSettingsRaw.(map[string]any) {
-	// 		sensitiveSettingsMap[k] = v.(string)
-	// 	}
-	// 	if len(sensitiveSettingsMap) > 0 {
-	// 		payload.SetSensitiveSettings(sensitiveSettingsMap)
-	// 	}
-	// }
 
 	operation, _, err := client.OperationsAPI.
 		CreateOperationForVhost(ctx, endpoint.Id).
@@ -500,9 +648,7 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 		if currentSettingID != 0 {
 			currentSetting, _, err := client.SettingsAPI.GetSetting(ctx, currentSettingID).Execute()
 			if err == nil {
-				_ = d.Set("settings", currentSetting.GetSettings())
-				// Not yet needed or supported in Sweetness
-				// _ = d.Set("sensitive_settings", currentSetting.GetSensitiveSettings())
+				applyEndpointSettingsToState(d, currentSetting.GetSettings())
 			}
 		}
 	}
@@ -522,7 +668,6 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 
 	needsDeploy := false
 	settingsMap := map[string]string{}
-	sensitiveSettingsMap := map[string]string{}
 	attrs := aptibleapi.NewUpdateVhostRequest()
 
 	if d.HasChange("ip_filtering") {
@@ -582,52 +727,54 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		})
 	}
 
-	if d.HasChange("settings") {
-		needsDeploy = true
-
-		// We must pass blank strings to remove settings
-		o, s := d.GetChange("settings")
-		old := o.(map[string]interface{})
-		settings := s.(map[string]interface{})
-
-		for key := range old {
-			if _, present := settings[key]; !present {
-				settings[key] = ""
+	// Bool-like string settings: "true" → "true", "false" or "" → "" to clear
+	for attr, apiKey := range map[string]string{
+		"force_ssl":                  "FORCE_SSL",
+		"strict_health_checks":       "STRICT_HEALTH_CHECKS",
+		"show_elb_healthchecks":      "SHOW_ELB_HEALTHCHECKS",
+		"disable_weak_cipher_suites": "DISABLE_WEAK_CIPHER_SUITES",
+	} {
+		if d.HasChange(attr) {
+			needsDeploy = true
+			if d.Get(attr).(string) == "true" {
+				settingsMap[apiKey] = "true"
+			} else {
+				settingsMap[apiKey] = ""
 			}
-		}
-
-		for k, v := range settings {
-			settingsMap[k] = v.(string)
 		}
 	}
 
-	// Not yet needed or supported in Sweetness
-	// if d.HasChange("sensitive_settings") {
-	// 	needsDeploy = true
+	// Int settings: non-zero → stringified value, changed to zero → "" to clear
+	for attr, apiKey := range map[string]string{
+		"idle_timeout":                "IDLE_TIMEOUT",
+		"release_healthcheck_timeout": "RELEASE_HEALTHCHECK_TIMEOUT",
+	} {
+		if d.HasChange(attr) {
+			needsDeploy = true
+			if v := d.Get(attr).(int); v != 0 {
+				settingsMap[apiKey] = strconv.Itoa(v)
+			} else {
+				settingsMap[apiKey] = ""
+			}
+		}
+	}
 
-	// 	// We must pass blank strings to remove settings
-	// 	o, s := d.GetChange("sensitive_settings")
-	// 	old := o.(map[string]interface{})
-	// 	sensitiveSettings := s.(map[string]interface{})
-
-	// 	for key := range old {
-	// 		if _, present := sensitiveSettings[key]; !present {
-	// 			sensitiveSettings[key] = ""
-	// 		}
-	// 	}
-
-	// 	for k, v := range sensitiveSettings {
-	// 		sensitiveSettingsMap[k] = v.(string)
-	// 	}
-	// }
+	// String settings: non-empty → value, changed to empty → "" to clear
+	for attr, apiKey := range map[string]string{
+		"maintenance_page_url":   "MAINTENANCE_PAGE_URL",
+		"ssl_protocols_override": "SSL_PROTOCOLS_OVERRIDE",
+		"ssl_ciphers_override":   "SSL_CIPHERS_OVERRIDE",
+	} {
+		if d.HasChange(attr) {
+			needsDeploy = true
+			settingsMap[apiKey] = d.Get(attr).(string)
+		}
+	}
 
 	if needsDeploy {
 		payload := aptibleapi.NewCreateOperationRequest("provision")
 		if len(settingsMap) > 0 {
 			payload.SetSettings(settingsMap)
-		}
-		if len(sensitiveSettingsMap) > 0 {
-			payload.SetSensitiveSettings(sensitiveSettingsMap)
 		}
 		operation, _, err := client.OperationsAPI.
 			CreateOperationForVhost(ctx, endpointID).
