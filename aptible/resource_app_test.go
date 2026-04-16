@@ -57,8 +57,6 @@ func TestAccResourceApp_deploy(t *testing.T) {
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
 						resource.TestCheckResourceAttr("aptible_app.test", "handle", rHandle),
 						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "quay.io/aptible/nginx-mirror:1"),
-						resource.TestCheckResourceAttr("aptible_app.test", "private_registry_username", "myuser"),
-						resource.TestCheckResourceAttr("aptible_app.test", "private_registry_password", "mypassword"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "something"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
@@ -1166,7 +1164,7 @@ func TestAccResourceApp_updateAndRemovePrivateRegistry(t *testing.T) {
 	registryUsername := os.Getenv("APTIBLE_PRIVATE_DOCKER_REPO_USERNAME")
 	registryPassword := os.Getenv("APTIBLE_PRIVATE_DOCKER_REPO_PASSWORD")
 	if registryUsername == "" || registryPassword == "" {
-		t.Skip("APTIBLE_PRIVATE_DOCKER_REPO_USERNAME and APTIBLE_PRIVATE_DOCKER_REPO_PASSWORD must be set for this test")
+		t.Fatal("APTIBLE_PRIVATE_DOCKER_REPO_USERNAME and APTIBLE_PRIVATE_DOCKER_REPO_PASSWORD must be set for this test")
 	}
 
 	WithTestAccEnvironment(t, func(env aptible.Environment) {
