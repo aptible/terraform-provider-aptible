@@ -127,6 +127,9 @@ resource "aptible_endpoint" "example_settings" {
 
 ### Endpoint Settings
 
+!> These attribute were formally set as app configuration variables. You must
+remove those configuration variables, or your state will not converge.
+
 The following optional attributes configure endpoint-level behaviour. Omitting
 an attribute leaves the platform default in place; removing a previously-set
 attribute clears it back to the platform default on the next `apply`. Not all
