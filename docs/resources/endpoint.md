@@ -131,29 +131,34 @@ The following optional attributes configure endpoint-level behaviour. Omitting
 an attribute leaves the platform default in place; removing a previously-set
 attribute clears it back to the platform default on the next `apply`. Not all
 settings are supported on every endpoint type — invalid combinations are caught
-at plan time.
+at plan time. Refer to the
+[endpoint type documentation](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/overview#types-of-app-endpoints)
+for further information about each of these settings.
 
-- `force_ssl` - (Optional, HTTPS endpoints only) When `true`, HTTP requests are
-  redirected to HTTPS.
-- `maintenance_page_url` - (Optional, HTTPS endpoints only) URL of a page to
-  display when the endpoint returns a 503. Must be an `https://` URL.
-- `idle_timeout` - (Optional) Connection idle timeout in seconds. Valid range:
-  30–2400.
-- `release_healthcheck_timeout` - (Optional, HTTPS endpoints only) Timeout in
-  seconds for the release health check. Valid range: 1–900.
-- `strict_health_checks` - (Optional, HTTPS endpoints only) When `true`, the
-  load balancer uses strict health check settings.
-- `show_elb_healthchecks` - (Optional, HTTPS endpoints only) When `true`,
-  health check requests from the load balancer are visible in application logs.
-- `ssl_protocols_override` - (Optional, HTTPS/TLS/gRPC endpoints only) Override
-  the set of accepted TLS protocol versions. Valid values: `TLSv1 TLSv1.1 TLSv1.2`,
+- `force_ssl` - (Optional, HTTPS endpoints only) Redirect all HTTP requests to
+  HTTPS, and enable the Strict-Transport-Security header (HSTS).
+- `maintenance_page_url` - (Optional, HTTPS endpoints only) The URL of a
+  maintenance page to cache and serve when requests time out, or your app is
+  unhealthy. Must be an `https://` URL.
+- `idle_timeout` - (Optional) Timeout (seconds) to enforce idle timeouts while
+  sending and receiving responses. Valid range: 30–2400.
+- `release_healthcheck_timeout` - (Optional, HTTPS endpoints only) Timeout
+  (seconds) to wait for your app to respond to a release health check. Valid
+  range: 1–900.
+- `strict_health_checks` - (Optional, HTTPS endpoints only) Require containers
+  to respond to health checks with a 200 OK HTTP response.
+- `show_elb_healthchecks` - (Optional, HTTPS endpoints only) Show all runtime
+  health check requests in the endpoint's logs.
+- `ssl_protocols_override` - (Optional, HTTPS/TLS/gRPC endpoints only) Specify
+  a list of allowed SSL protocols. Valid values: `TLSv1 TLSv1.1 TLSv1.2`,
   `TLSv1 TLSv1.1 TLSv1.2 PFS`, `TLSv1.1 TLSv1.2`, `TLSv1.1 TLSv1.2 PFS`,
   `TLSv1.2`, `TLSv1.2 PFS`, `TLSv1.2 PFS TLSv1.3`, `TLSv1.3`. Values
   containing `PFS` are only valid on ALB endpoints.
-- `ssl_ciphers_override` - (Optional, ELB/TLS/gRPC endpoints only) Override the
-  cipher suite used for TLS negotiation.
+- `ssl_ciphers_override` - (Optional, ELB/TLS/gRPC endpoints only) Customize
+  the SSL ciphers used by your Endpoint. The value must be a string in the
+  format accepted by Nginx's `ssl_ciphers` directive.
 - `disable_weak_cipher_suites` - (Optional, ELB/TLS/gRPC endpoints only) When
-  `true`, weak cipher suites are disabled.
+  `true`, blocks the SSLv3 protocol and RC4 ciphers.
 
 ## Attribute Reference
 

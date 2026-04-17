@@ -185,14 +185,17 @@ managed using the `terraform_aptible_endpoint` resource.
 
 ```hcl
 resource "aptible_endpoint" "EXAMPLE" {
-    env_id = ENVIRONMENT_ID
-    process_type = "SERVICE_NAME"
-    resource_id = aptible_app.APP.app_id
+    env_id         = ENVIRONMENT_ID
+    process_type   = "SERVICE_NAME"
+    resource_id    = aptible_app.APP.app_id
+    resource_type  = "app"
     default_domain = true
-    endpoint_type = "https"
-    internal = false
-    platform = "alb"
+    endpoint_type  = "https"
+    internal       = false
+    platform       = "alb"
     container_port = 5000
+    force_ssl      = true
+    idle_timeout   = 120
 }
 ```
 
