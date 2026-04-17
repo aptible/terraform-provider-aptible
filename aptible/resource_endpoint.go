@@ -181,24 +181,26 @@ func resourceEndpoint() *schema.Resource {
 
 // endpointCategory returns a canonical category string from the user-facing
 // endpoint_type and platform values, used to drive settings validation.
-// Returns "" when type/platform are not yet determined (plan not yet complete).
-func endpointCategory(endpointType, platform string) string {
+func endpointCategory(endpointType, platform string) (string, error) {
 	switch endpointType {
 	case "https":
 		switch platform {
 		case "alb":
-			return "alb"
+			return "alb", nil
 		case "elb":
-			return "elb"
+			return "elb", nil
+		default:
+			return "", fmt.Errorf("unexpected platform %q for https endpoint", platform)
 		}
 	case "tls":
-		return "tls"
+		return "tls", nil
 	case "grpc":
-		return "grpc"
+		return "grpc", nil
 	case "tcp":
-		return "tcp"
+		return "tcp", nil
+	default:
+		return "", fmt.Errorf("unexpected endpoint_type %q", endpointType)
 	}
-	return ""
 }
 
 // endpointSettingCategories maps each setting attribute to the endpoint
@@ -244,29 +246,32 @@ func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ in
 		err = multierror.Append(err, fmt.Errorf("do not specify a load balancing algorithm with %s endpoint", platform))
 	}
 
+	category, categoryErr := endpointCategory(endpointType, platform)
+	if categoryErr != nil {
+		return multierror.Append(err, categoryErr)
+	}
+
 	// PFS cipher suites are only valid on ALB endpoints
 	if sslProto := d.Get("ssl_protocols_override").(string); strings.Contains(sslProto, "PFS") {
-		if category := endpointCategory(endpointType, platform); category != "" && category != "alb" {
+		if category != "alb" {
 			err = multierror.Append(err, fmt.Errorf("ssl_protocols_override: PFS cipher suites are only supported on ALB endpoints"))
 		}
 	}
 
 	// Validate setting attributes against endpoint category
-	if category := endpointCategory(endpointType, platform); category != "" {
-		for attr, validCategories := range endpointSettingCategories {
-			if !isEndpointSettingSet(d.ResourceDiff, attr) {
-				continue
+	for attr, validCategories := range endpointSettingCategories {
+		if !isEndpointSettingSet(d.ResourceDiff, attr) {
+			continue
+		}
+		valid := false
+		for _, c := range validCategories {
+			if c == category {
+				valid = true
+				break
 			}
-			valid := false
-			for _, c := range validCategories {
-				if c == category {
-					valid = true
-					break
-				}
-			}
-			if !valid {
-				err = multierror.Append(err, fmt.Errorf("%s is not supported for %s endpoints", attr, category))
-			}
+		}
+		if !valid {
+			err = multierror.Append(err, fmt.Errorf("%s is not supported for %s endpoints", attr, category))
 		}
 	}
 
