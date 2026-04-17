@@ -57,7 +57,10 @@ resource "aws_route53_record" "dns01" {
 
 ## Endpoint Settings Example
 
-Use the `settings` map to configure endpoint-level options for an Application Endpoint. All values must be strings. Supported keys vary by platform and endpoint type, refer to the [Endpoint Documentation](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/overview) for the type of Endpoint you are managing.
+Use the individual settings attributes to configure endpoint-level options for
+an Application Endpoint. Supported settings vary by platform and endpoint type;
+refer to the [Endpoint Documentation](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/overview)
+for the type of Endpoint you are managing.
 
 ```hcl
 resource "aptible_endpoint" "example_settings" {
@@ -68,11 +71,10 @@ resource "aptible_endpoint" "example_settings" {
   endpoint_type  = "https"
   default_domain = true
   platform       = "alb"
-  settings = {
-    "IDLE_TIMEOUT"         = "120"
-    "FORCE_SSL"            = "true"
-    "MAINTENANCE_PAGE_URL" = "https://httpstatuses.maor.io/503"
-  }
+
+  idle_timeout          = 120
+  force_ssl             = true
+  maintenance_page_url  = "https://example.com/maintenance"
 }
 ```
 
@@ -122,7 +124,36 @@ resource "aptible_endpoint" "example_settings" {
   domain or an exact (non-wildcard) custom domain.
 - `load_balancing_algorithm_type` - (Optional, ALB endpoints only) Determines which algorithm to use for
   [request routing](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/https-endpoints/overview#traffic). Valid options are `round_robin`, `least_outstanding_requests`, and `weighted_random`. The default is `round_robin`.
-- `settings` - (Optional) Map of string key/value pairs for endpoint-level configuration. Only valid for Application Endpoints. Values must be strings.
+
+### Endpoint Settings
+
+The following optional attributes configure endpoint-level behaviour. Omitting
+an attribute leaves the platform default in place; removing a previously-set
+attribute clears it back to the platform default on the next `apply`. Not all
+settings are supported on every endpoint type — invalid combinations are caught
+at plan time.
+
+- `force_ssl` - (Optional, HTTPS endpoints only) When `true`, HTTP requests are
+  redirected to HTTPS.
+- `maintenance_page_url` - (Optional, HTTPS endpoints only) URL of a page to
+  display when the endpoint returns a 503. Must be an `https://` URL.
+- `idle_timeout` - (Optional) Connection idle timeout in seconds. Valid range:
+  30–2400.
+- `release_healthcheck_timeout` - (Optional, HTTPS endpoints only) Timeout in
+  seconds for the release health check. Valid range: 1–900.
+- `strict_health_checks` - (Optional, HTTPS endpoints only) When `true`, the
+  load balancer uses strict health check settings.
+- `show_elb_healthchecks` - (Optional, HTTPS endpoints only) When `true`,
+  health check requests from the load balancer are visible in application logs.
+- `ssl_protocols_override` - (Optional, HTTPS/TLS/gRPC endpoints only) Override
+  the set of accepted TLS protocol versions. Valid values: `TLSv1 TLSv1.1 TLSv1.2`,
+  `TLSv1 TLSv1.1 TLSv1.2 PFS`, `TLSv1.1 TLSv1.2`, `TLSv1.1 TLSv1.2 PFS`,
+  `TLSv1.2`, `TLSv1.2 PFS`, `TLSv1.2 PFS TLSv1.3`, `TLSv1.3`. Values
+  containing `PFS` are only valid on ALB endpoints.
+- `ssl_ciphers_override` - (Optional, ELB/TLS/gRPC endpoints only) Override the
+  cipher suite used for TLS negotiation.
+- `disable_weak_cipher_suites` - (Optional, ELB/TLS/gRPC endpoints only) When
+  `true`, weak cipher suites are disabled.
 
 ## Attribute Reference
 

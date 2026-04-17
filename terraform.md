@@ -65,12 +65,14 @@ Below are the attributes defined in the app config with the accepted values.
   > `handle = "test"`
 
 - **config**: environment variables for your app (e.g., `DATABASE_URL`).
-- **settings**: App settings. To deploy a Docker image, set `APTIBLE_DOCKER_IMAGE` here.
-- **sensitive_settings**: App settings treated as sensitive by Terraform (e.g., private registry credentials).
+- **docker_image**: The Docker image to deploy (e.g., `"nginx"`).
+- **private_registry_username** / **private_registry_password**: Credentials for
+  a private Docker registry. `private_registry_password` is treated as sensitive
+  by Terraform.
 
 For example, if you wanted to deploy using the `nginx` image, then the config should contain:
 
-> `settings = {"APTIBLE_DOCKER_IMAGE" = "nginx"}`
+> `docker_image = "nginx"`
 
 The `app_id` and `git_repo` attributes will be generated upon running
 `terraform apply`.
