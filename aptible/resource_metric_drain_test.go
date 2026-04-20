@@ -123,6 +123,11 @@ func TestAccResourceMetricDrain_influxdb_database(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleMetricDrainInfluxDBDatabase(env.ID, rHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_metric_drain.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -189,6 +194,11 @@ func TestAccResourceMetricDrain_influxdb(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "password", "test_password"),
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "database", "test_db"),
 				),
+			},
+			{
+				Config:             testAccAptibleMetricDrainInfluxDB(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			}, {
 				ResourceName:      "aptible_metric_drain.test",
 				ImportState:       true,
@@ -257,6 +267,11 @@ func TestAccResourceMetricDrain_influxdb2(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "bucket", "aBucket"),
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "organization", "ImportantOrg"),
 				),
+			},
+			{
+				Config:             testAccAptibleMetricDrainInfluxDB2(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			}, {
 				ResourceName:      "aptible_metric_drain.test",
 				ImportState:       true,
@@ -320,6 +335,11 @@ func TestAccResourceMetricDrain_datadog(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "drain_type", "datadog"),
 					resource.TestCheckResourceAttr("aptible_metric_drain.test", "api_key", "test_api_key"),
 				),
+			},
+			{
+				Config:             testAccAptibleMetricDrainDatadog(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			}, {
 				ResourceName:      "aptible_metric_drain.test",
 				ImportState:       true,

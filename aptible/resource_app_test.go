@@ -33,6 +33,11 @@ func TestAccResourceApp_basic(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleAppBasic(rHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_app.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -68,6 +73,11 @@ func TestAccResourceApp_deploy(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleAppDeploy(rHandle, "1"),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_app.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -96,6 +106,11 @@ func TestAccResourceApp_multiple_services(t *testing.T) {
 						resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
 						resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
 					),
+				},
+				{
+					Config:             testAccAptibleAppDeployMultipleServices(rHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 				{
 					ResourceName:      "aptible_app.test",
@@ -134,6 +149,11 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleAppDeploy(rHandle, "2"),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_app.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -149,6 +169,11 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 							"simple_health_check": "true",
 						}),
 					),
+				},
+				{
+					Config:             testAccAptibleAppUpdateConfig(rHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 			},
 		})
@@ -177,6 +202,11 @@ func TestAccResourceApp_scaleDown(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleAppDeploy(rHandle, "3"),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_app.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -186,6 +216,11 @@ func TestAccResourceApp_scaleDown(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.container_count", "0"),
 					),
+				},
+				{
+					Config:             testAccAptibleAppScaleDown(rHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 			},
 		})
@@ -217,6 +252,11 @@ func TestAccResourceApp_autoscalingDisabledThenEnabled(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleAppDeploy(rHandle, "4"),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_app.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -227,6 +267,11 @@ func TestAccResourceApp_autoscalingDisabledThenEnabled(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.min_containers", "2"),
 					),
+				},
+				{
+					Config:             testAccAptibleAppautoscalingPolicy(rHandle, "5"),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 				{
 					ResourceName:      "aptible_app.test",
@@ -253,6 +298,11 @@ func TestAccResourceApp_autoscalingPolicy(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "horizontal"),
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.min_containers", "2"),
 					),
+				},
+				{
+					Config:             testAccAptibleAppautoscalingPolicy(rHandle, "6"),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 				{
 					ResourceName:      "aptible_app.test",
@@ -282,6 +332,11 @@ func TestAccResourceApp_updateautoscalingPolicy(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleAppautoscalingPolicy(rHandle, "7"),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_app.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -293,6 +348,11 @@ func TestAccResourceApp_updateautoscalingPolicy(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.autoscaling_type", "vertical"),
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.0.mem_scale_down_threshold", "0.6"),
 					),
+				},
+				{
+					Config:             testAccAptibleAppUpdateautoscalingPolicy(rHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 			},
 		})
@@ -320,6 +380,11 @@ func TestAccResourceApp_removeautoscalingPolicy(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleAppautoscalingPolicy(rHandle, "8"),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_app.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -330,6 +395,11 @@ func TestAccResourceApp_removeautoscalingPolicy(t *testing.T) {
 						// Ensure the autoscaling_policy block is no longer present
 						resource.TestCheckResourceAttr("aptible_app.test", "service.0.autoscaling_policy.#", "0"),
 					),
+				},
+				{
+					Config:             testAccAptibleAppWithoutautoscalingPolicy(rHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 			},
 		})
@@ -452,6 +522,11 @@ func TestAccResourceApp_stopTimeout(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleAppDeployStopTimeout(rHandle, "16"),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_app.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -539,6 +614,11 @@ func TestAccResourceApp_updateRestartFreeScaling(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleAppDeployWithRestartFreeScaling(rHandle, false),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					Config: testAccAptibleAppDeployWithRestartFreeScaling(rHandle, true),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
@@ -561,6 +641,11 @@ func TestAccResourceApp_updateRestartFreeScaling(t *testing.T) {
 							"max_cpu_threshold":    "0.8",
 						}),
 					),
+				},
+				{
+					Config:             testAccAptibleAppDeployWithRestartFreeScaling(rHandle, true),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 			},
 		})
@@ -1184,12 +1269,22 @@ func TestAccResourceApp_updateAndRemovePrivateRegistry(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleAppPrivateRegistry(rHandle, registryUsername, registryPassword),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					Config: testAccAptibleAppPublicImageNoRegistry(rHandle),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "quay.io/aptible/nginx-mirror:17"),
 						resource.TestCheckResourceAttr("aptible_app.test", "private_registry_username", ""),
 						resource.TestCheckResourceAttr("aptible_app.test", "private_registry_password", ""),
 					),
+				},
+				{
+					Config:             testAccAptibleAppPublicImageNoRegistry(rHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 			},
 		})

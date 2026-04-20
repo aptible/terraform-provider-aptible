@@ -117,6 +117,10 @@ func TestAccResourceEnvironment_basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.keep_final"),
 				),
 			}, {
+				Config:             testAccAptibleEnvironment(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			}, {
 				ResourceName:            "aptible_environment.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
@@ -147,6 +151,10 @@ func TestAccResourceEnvironment_no_org(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.keep_final"),
 				),
 			}, {
+				Config:             testAccAptibleEnvironmentWithoutOrg(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			}, {
 				ResourceName:            "aptible_environment.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
@@ -176,6 +184,10 @@ func TestAccResourceEnvironment_backup_policy(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.make_copy", "true"),
 					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.keep_final", "false"),
 				),
+			}, {
+				Config:             testAccAptibleEnvironmentWithBackupPolicy(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			}, {
 				ResourceName:            "aptible_environment.test",
 				ImportState:             true,
@@ -208,6 +220,10 @@ func TestAccResourceEnvironment_update(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aptible_environment.test", "backup_retention_policy.0.keep_final"),
 				),
 			}, {
+				Config:             testAccAptibleEnvironment(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			}, {
 				ResourceName:      "aptible_environment.test",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -223,6 +239,10 @@ func TestAccResourceEnvironment_update(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.make_copy", "true"),
 					resource.TestCheckResourceAttr("aptible_environment.test", "backup_retention_policy.0.keep_final", "false"),
 				),
+			}, {
+				Config:             testAccAptibleEnvironmentWithBackupPolicy(rUpdatedHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})

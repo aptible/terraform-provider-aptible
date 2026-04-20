@@ -43,6 +43,11 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleDatabaseBasic(env.ID, dbHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_database.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -81,6 +86,11 @@ func TestAccResourceDatabase_withoutBackups(t *testing.T) {
 						resource.TestMatchResourceAttr("aptible_database.test", "default_connection_url", regexp.MustCompile(`postgresql://.*@db-.*`)),
 						resource.TestCheckResourceAttrPair("aptible_database.test", "connection_urls.0", "aptible_database.test", "default_connection_url"),
 					),
+				},
+				{
+					Config:             testAccAptibleDatabaseWithoutBackups(env.ID, dbHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 				{
 					ResourceName:      "aptible_database.test",
@@ -122,6 +132,11 @@ func TestAccResourceDatabase_redis(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleDatabaseRedis(env.ID, dbHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_database.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -157,6 +172,11 @@ func TestAccResourceDatabase_version(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleDatabaseVersion(env.ID, dbHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_database.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -190,6 +210,11 @@ func TestAccResourceDatabase_update(t *testing.T) {
 						resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "default_connection_url"),
 					),
+				},
+				{
+					Config:             testAccAptibleDatabaseBasic(env.ID, dbHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 				{
 					ResourceName:      "aptible_database.test",
@@ -265,6 +290,11 @@ func TestAccResourceDatabase_scale(t *testing.T) {
 						resource.TestMatchResourceAttr("aptible_database.test", "default_connection_url", regexp.MustCompile(`postgresql://.*@db-.*`)),
 						resource.TestCheckResourceAttrPair("aptible_database.test", "connection_urls.0", "aptible_database.test", "default_connection_url"),
 					),
+				},
+				{
+					Config:             testAccAptibleDatabaseScale(env.ID, dbHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 				{
 					ResourceName:      "aptible_database.test",

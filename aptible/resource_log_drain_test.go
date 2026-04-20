@@ -34,6 +34,11 @@ func TestAccResourceLogDrain_elasticsearch(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_databases", "true"),
 						resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_proxies", "false"),
 					),
+				},
+				{
+					Config:             testAccAptibleLogDrainElastic(env.ID, rHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				}, {
 					ResourceName:      "aptible_log_drain.test",
 					ImportState:       true,
@@ -65,6 +70,11 @@ func TestAccResourceLogDrain_syslog(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_ephemeral_sessions", "true"),
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_proxies", "false"),
 				),
+			},
+			{
+				Config:             testAccAptibleLogDrainSyslog(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			}, {
 				ResourceName:      "aptible_log_drain.test",
 				ImportState:       true,
@@ -94,6 +104,11 @@ func TestAccResourceLogDrain_https(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_ephemeral_sessions", "false"),
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_proxies", "true"),
 				),
+			},
+			{
+				Config:             testAccAptibleLogDrainHttps(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			}, {
 				ResourceName:      "aptible_log_drain.test",
 				ImportState:       true,
@@ -126,6 +141,11 @@ func TestAccResourceLogDrain_datadog(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_ephemeral_sessions", "true"),
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_proxies", "false"),
 				),
+			},
+			{
+				Config:             testAccAptibleLogDrainDatadog(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			}, {
 				ResourceName:      "aptible_log_drain.test",
 				ImportState:       true,
@@ -155,6 +175,11 @@ func TestAccResourceLogDrain_sumologic(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_ephemeral_sessions", "true"),
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_proxies", "false"),
 				),
+			},
+			{
+				Config:             testAccAptibleLogDrainSumologic(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			}, {
 				ResourceName:      "aptible_log_drain.test",
 				ImportState:       true,
@@ -185,6 +210,11 @@ func TestAccResourceLogDrain_logdna(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_ephemeral_sessions", "true"),
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_proxies", "false"),
 				),
+			},
+			{
+				Config:             testAccAptibleLogDrainLogdna(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			}, {
 				ResourceName:      "aptible_log_drain.test",
 				ImportState:       true,
@@ -215,6 +245,11 @@ func TestAccResourceLogDrain_papertrail(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_ephemeral_sessions", "true"),
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_proxies", "false"),
 				),
+			},
+			{
+				Config:             testAccAptibleLogDrainPapertrail(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			}, {
 				ResourceName:      "aptible_log_drain.test",
 				ImportState:       true,
@@ -245,6 +280,11 @@ func TestAccResourceLogDrain_solarwinds(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_ephemeral_sessions", "true"),
 					resource.TestCheckResourceAttr("aptible_log_drain.test", "drain_proxies", "false"),
 				),
+			},
+			{
+				Config:             testAccAptibleLogDrainSolarwinds(rHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			}, {
 				ResourceName:      "aptible_log_drain.test",
 				ImportState:       true,

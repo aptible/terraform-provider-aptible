@@ -43,6 +43,11 @@ func TestAccResourceEndpoint_customDomain(t *testing.T) {
 				),
 			},
 			{
+				Config:             testAccAptibleEndpointCustomDomain(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
 				ResourceName:      "aptible_endpoint.test",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -78,6 +83,11 @@ func TestAccResourceEndpoint_appContainerNoPort(t *testing.T) {
 					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_record"),
 					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_value"),
 				),
+			},
+			{
+				Config:             testAccAptibleEndpointAppContainerNoPort(appHandle, "20"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 			{
 				ResourceName:      "aptible_endpoint.test",
@@ -118,6 +128,11 @@ func TestAccResourceEndpoint_appContainerPort(t *testing.T) {
 				),
 			},
 			{
+				Config:             testAccAptibleEndpointAppContainerPort(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
 				ResourceName:      "aptible_endpoint.test",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -152,6 +167,11 @@ func TestAccResourceEndpoint_settings(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "force_ssl", "true"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "ssl_protocols_override", "TLSv1.2 PFS"),
 				),
+			},
+			{
+				Config:             testAccAptibleEndpointAppWithSettings(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 			{
 				ResourceName:      "aptible_endpoint.test",
@@ -189,24 +209,38 @@ func TestAccResourceEndpoint_settingsUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "ssl_protocols_override", "TLSv1.2 PFS"),
 				),
 			},
+			// Verify convergence: a second plan after the apply should show no changes.
+			{
+				Config:             testAccAptibleEndpointAppWithSettings(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			{
 				ResourceName:      "aptible_endpoint.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+			// Verify convergence: a second plan after the import should show no changes.
+			{
+				Config:             testAccAptibleEndpointAppWithSettings(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 			{
 				Config: testAccAptibleEndpointAppUpdateSettings(appHandle),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "idle_timeout", "63"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "show_elb_healthchecks", "true"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "force_ssl", "true"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "ssl_protocols_override", "TLSv1.2 PFS"),
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "release_healthcheck_timeout", "0"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "idle_timeout", "63"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "show_elb_healthchecks", "true"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "release_healthcheck_timeout", "0"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "force_ssl", "false"),
-					resource.TestCheckResourceAttr("aptible_endpoint.test", "ssl_protocols_override", ""),
 				),
+			},
+			// Verify convergence: a second plan after the update should show no changes.
+			{
+				Config:             testAccAptibleEndpointAppUpdateSettings(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
@@ -243,6 +277,11 @@ func TestAccResourceEndpoint_appContainerPorts(t *testing.T) {
 				),
 			},
 			{
+				Config:             testAccAptibleEndpointAppContainerPorts(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
 				ResourceName:      "aptible_endpoint.test",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -275,6 +314,11 @@ func TestAccResourceEndpoint_db(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "elb"),
 						resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
 					),
+				},
+				{
+					Config:             testAccAptibleEndpointDatabase(env.ID, dbHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 				{
 					ResourceName:      "aptible_endpoint.test",
@@ -311,6 +355,11 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 				),
 			},
 			{
+				Config:             testAccAptibleEndpointAppContainerNoPort(appHandle, "21"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
 				ResourceName:      "aptible_endpoint.test",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -320,6 +369,11 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "ip_filtering.0", "1.1.1.1/32"),
 				),
+			},
+			{
+				Config:             testAccAptibleEndpointUpdateIPWhitelist(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
@@ -370,6 +424,11 @@ func TestAccResourceEndpoint_sharedUpgrade(t *testing.T) {
 				),
 			},
 			{
+				Config:             testAccAptibleEndpointSetShared(appHandle, false),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
 				ResourceName:      "aptible_endpoint.test",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -379,6 +438,11 @@ func TestAccResourceEndpoint_sharedUpgrade(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "shared", "true"),
 				),
+			},
+			{
+				Config:             testAccAptibleEndpointSetShared(appHandle, true),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
@@ -396,6 +460,11 @@ func TestAccResourceEndpoint_lbAlgorithm(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "load_balancing_algorithm_type", "least_outstanding_requests"),
 				),
+			},
+			{
+				Config:             testAccAptibleEndpointLbAlgorithm(appHandle, "least_outstanding_requests"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 			{
 				ResourceName:      "aptible_endpoint.test",
@@ -767,15 +836,16 @@ func testAccAptibleEndpointAppUpdateSettings(appHandle string) string {
 		endpoint_type = "https"
 		default_domain = true
 		platform = "alb"
-		// updated:
+		// updated — only this changes; force_ssl and ssl_protocols_override are
+		// intentionally left unchanged to exercise convergence: if the provider
+		// only sends changed settings to the API, those two will be dropped from
+		// current_setting and drift back to zero on the next Read.
 		idle_timeout = 63
-		// added:
-		show_elb_healthchecks = true
+		// unchanged:
+		force_ssl              = true
+		ssl_protocols_override = "TLSv1.2 PFS"
 		// omitted to unset:
-	    // release_healthcheck_timeout
-		// force_ssl
-		// ssl_protocols_override
-
+		// release_healthcheck_timeout
 	}
 `, appHandle, testOrganizationId, testStackId, appHandle)
 	log.Println("HCL generated: ", output)
