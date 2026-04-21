@@ -648,9 +648,14 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 		currentSettingID := ExtractIdFromLink(currentSettingLink.GetHref())
 		if currentSettingID != 0 {
 			currentSetting, _, err := client.SettingsAPI.GetSetting(ctx, currentSettingID).Execute()
-			if err == nil {
-				applyEndpointSettingsToState(d, currentSetting.GetSettings())
+			if err != nil {
+				return append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  fmt.Sprintf("Failed to fetch settings %d for endpoint %d", currentSettingID, endpointID),
+					Detail:   err.Error(),
+				})
 			}
+			applyEndpointSettingsToState(d, currentSetting.GetSettings())
 		}
 	}
 

@@ -159,9 +159,9 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 					ImportStateVerify: true,
 				},
 				{
-					Config: testAccAptibleAppUpdateConfig(rHandle),
+					Config: testAccAptibleAppUpdateConfigAndImage(rHandle),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "httpd:alpine"),
+						resource.TestCheckResourceAttr("aptible_app.test", "docker_image", "quay.io/aptible/nginx-mirror:35"),
 						resource.TestCheckResourceAttr("aptible_app.test", "config.WHATEVER", "nothing"),
 						resource.TestCheckNoResourceAttr("aptible_app.test", "config.OOPS"),
 						resource.TestCheckTypeSetElemNestedAttrs("aptible_app.test", "service.*", map[string]string{
@@ -171,7 +171,7 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 					),
 				},
 				{
-					Config:             testAccAptibleAppUpdateConfig(rHandle),
+					Config:             testAccAptibleAppUpdateConfigAndImage(rHandle),
 					PlanOnly:           true,
 					ExpectNonEmptyPlan: false,
 				},
@@ -782,7 +782,7 @@ func testAccAptibleAppDeployMultipleServices(handle string) string {
 	`, handle, testOrganizationId, testStackId, handle)
 }
 
-func testAccAptibleAppUpdateConfig(handle string) string {
+func testAccAptibleAppUpdateConfigAndImage(handle string) string {
 	return fmt.Sprintf(`
 	resource "aptible_environment" "test" {
 		handle = "%s"
@@ -793,7 +793,7 @@ func testAccAptibleAppUpdateConfig(handle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		docker_image = "httpd:alpine"
+		docker_image = "quay.io/aptible/nginx-mirror:35"
 		config = {
 			"WHATEVER" = "nothing"
 		}

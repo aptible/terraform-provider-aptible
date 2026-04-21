@@ -505,16 +505,18 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 	currSettingId := ExtractIdFromLink(app.Links.CurrentSetting.GetHref())
 	if currSettingId != 0 {
 		currSetting, _, err := client.SettingsAPI.GetSetting(ctx, currSettingId).Execute()
-		if err == nil {
-			dockerImage, _ := currSetting.Settings["APTIBLE_DOCKER_IMAGE"].(string)
-			_ = d.Set("docker_image", dockerImage)
-
-			privRegUser, _ := currSetting.SensitiveSettings["APTIBLE_PRIVATE_REGISTRY_USERNAME"].(string)
-			_ = d.Set("private_registry_username", privRegUser)
-
-			privRegPass, _ := currSetting.SensitiveSettings["APTIBLE_PRIVATE_REGISTRY_PASSWORD"].(string)
-			_ = d.Set("private_registry_password", privRegPass)
+		if err != nil {
+			log.Println(err)
+			return diag.FromErr(err)
 		}
+		dockerImage, _ := currSetting.Settings["APTIBLE_DOCKER_IMAGE"].(string)
+		_ = d.Set("docker_image", dockerImage)
+
+		privRegUser, _ := currSetting.SensitiveSettings["APTIBLE_PRIVATE_REGISTRY_USERNAME"].(string)
+		_ = d.Set("private_registry_username", privRegUser)
+
+		privRegPass, _ := currSetting.SensitiveSettings["APTIBLE_PRIVATE_REGISTRY_PASSWORD"].(string)
+		_ = d.Set("private_registry_password", privRegPass)
 	}
 
 	var services = make([]map[string]interface{}, len(app.Embedded.Services))
@@ -1076,16 +1078,15 @@ func toStringMap(m map[string]interface{}) map[string]string {
 }
 
 func normalizeStringMapOnChange(oldRaw, newRaw map[string]interface{}) map[string]string {
-	// Ensure keys removed from config/settings are explicitly cleared.
-	for key := range oldRaw {
-		if _, present := newRaw[key]; !present {
-			newRaw[key] = ""
-		}
-	}
-
 	out := make(map[string]string, len(newRaw))
 	for k, v := range newRaw {
 		out[k] = v.(string)
+	}
+	// Ensure keys removed from config/settings are explicitly cleared.
+	for key := range oldRaw {
+		if _, present := out[key]; !present {
+			out[key] = ""
+		}
 	}
 	return out
 }
