@@ -104,6 +104,10 @@ func resourceEndpoint() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(validPlatforms, false),
 				Default:      "alb",
+				DiffSuppressFunc: func(_ string, _, _ string, d *schema.ResourceData) bool {
+					// Database endpoint platform is backend-managed.
+					return d.Get("resource_type").(string) == "database"
+				},
 			},
 			"endpoint_id": {
 				Type:     schema.TypeInt,
@@ -145,6 +149,7 @@ func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ in
 	containerPorts, _ := aptible.MakeInt64Slice(interfaceContainerPortsSlice)
 	containerPort, _ := (d.Get("container_port").(int))
 	endpointType := d.Get("endpoint_type").(string)
+	resourceType := d.Get("resource_type").(string)
 	platform := d.Get("platform").(string)
 	lbAlgorithmType := d.Get("load_balancing_algorithm_type").(string)
 	var err error
@@ -161,6 +166,10 @@ func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ in
 	// container ports can only be used with tls/tcp
 	if len(containerPorts) != 0 && (endpointType == "https" || endpointType == "grpc") {
 		err = multierror.Append(err, fmt.Errorf("do not specify container ports with %s endpoint (see terraform docs)", endpointType))
+	}
+
+	if resourceType == "app" && platform == "nlb" {
+		err = multierror.Append(err, fmt.Errorf("platform 'nlb' is not supported for app endpoints"))
 	}
 
 	// load balancing algorithm can only be used with ALBs
@@ -279,7 +288,9 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	attrs := aptibleapi.NewCreateVhostRequest(endpointType)
 	attrs.SetInternal(d.Get("internal").(bool))
 	attrs.SetIpWhitelist(ipWhitelist)
-	attrs.SetPlatform(d.Get("platform").(string))
+	if resourceType != "database" {
+		attrs.SetPlatform(d.Get("platform").(string))
+	}
 	attrs.SetDefault(defaultDomain)
 	attrs.SetAcme(managed)
 	attrs.SetShared(shared)
@@ -580,6 +591,7 @@ var validEndpointTypes = []string{
 var validPlatforms = []string{
 	"alb",
 	"elb",
+	"nlb",
 }
 
 var validResourceTypes = []string{

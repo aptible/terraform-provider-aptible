@@ -186,7 +186,7 @@ func TestAccResourceEndpoint_db(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "database"),
 						resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "tcp"),
 						resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "false"),
-						resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "elb"),
+						resource.TestMatchResourceAttr("aptible_endpoint.test", "platform", regexp.MustCompile(`^(elb|nlb)$`)),
 						resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
 					),
 				},
@@ -381,6 +381,10 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 			{
 				Config:      testAccAptibleEndpointInvalidLbAlgorithmWithElb(),
 				ExpectError: regexp.MustCompile(`(?i)do not specify a load balancing algorithm with elb endpoint`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidAppNlbPlatform(),
+				ExpectError: regexp.MustCompile(`(?i)platform 'nlb' is not supported for app endpoints`),
 			},
 		},
 	})
@@ -597,7 +601,6 @@ func testAccAptibleEndpointDatabase(envId int64, dbHandle string) string {
 		resource_type = "database"
 		endpoint_type = "tcp"
 		internal = false
-		platform = "elb"
 	}
 `, envId, dbHandle, envId)
 	log.Println("HCL generated: ", output)
@@ -973,6 +976,20 @@ func testAccAptibleEndpointInvalidLbAlgorithmWithElb() string {
 		default_domain = true
 		platform = "elb"
 		load_balancing_algorithm_type = "round_robin"
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidAppNlbPlatform() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "tcp"
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		platform = "nlb"
 	}`
 	log.Println("HCL generated: ", output)
 	return output

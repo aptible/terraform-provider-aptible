@@ -43,5 +43,5 @@ resource "aptible_endpoint" "https" {
   endpoint_type  = "https" // other options: tcp, tls
   internal       = true    // or false for external
   container_port = 80      // port #
-  platform       = "alb"   // or "elb"
+  platform       = "alb"   // app endpoints support "alb"; omit for databases
 }
