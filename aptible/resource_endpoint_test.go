@@ -191,6 +191,13 @@ func TestAccResourceEndpoint_db(t *testing.T) {
 					),
 				},
 				{
+					// Re-plan with the same config to confirm DiffSuppress hides any
+					// platform drift the backend may report for database endpoints.
+					Config:             testAccAptibleEndpointDatabase(env.ID, dbHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_endpoint.test",
 					ImportState:       true,
 					ImportStateVerify: true,
