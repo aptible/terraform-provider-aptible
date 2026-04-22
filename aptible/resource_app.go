@@ -376,9 +376,12 @@ func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 	settingsMap := map[string]string{}
 	sensitiveSettingsMap := map[string]string{}
 
-	if v := toStringMap(d.Get("config").(map[string]interface{})); v != nil {
+	if raw := d.Get("config").(map[string]interface{}); len(raw) > 0 {
 		needsConfigure = true
-		envMap = v
+		envMap = make(map[string]string, len(raw))
+		for k, v := range raw {
+			envMap[k] = v.(string)
+		}
 	}
 
 	if v := d.Get("docker_image").(string); v != "" {
@@ -609,7 +612,16 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 	if d.HasChange("config") {
 		needsConfigure = true
 		o, c := d.GetChange("config")
-		envMap = normalizeStringMapOnChange(o.(map[string]interface{}), c.(map[string]interface{}))
+		oldRaw, newRaw := o.(map[string]interface{}), c.(map[string]interface{})
+		envMap = make(map[string]string, len(newRaw))
+		for k, v := range newRaw {
+			envMap[k] = v.(string)
+		}
+		for key := range oldRaw {
+			if _, present := envMap[key]; !present {
+				envMap[key] = ""
+			}
+		}
 	}
 
 	if d.HasChange("docker_image") {
@@ -1065,28 +1077,3 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 	return nil
 }
 
-func toStringMap(m map[string]interface{}) map[string]string {
-	if len(m) == 0 {
-		return nil
-	}
-
-	out := make(map[string]string, len(m))
-	for k, v := range m {
-		out[k] = v.(string)
-	}
-	return out
-}
-
-func normalizeStringMapOnChange(oldRaw, newRaw map[string]interface{}) map[string]string {
-	out := make(map[string]string, len(newRaw))
-	for k, v := range newRaw {
-		out[k] = v.(string)
-	}
-	// Ensure keys removed from config/settings are explicitly cleared.
-	for key := range oldRaw {
-		if _, present := out[key]; !present {
-			out[key] = ""
-		}
-	}
-	return out
-}
