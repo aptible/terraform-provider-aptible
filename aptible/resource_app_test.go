@@ -1147,7 +1147,7 @@ func TestAccResourceApp_usernameWithoutPassword(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config:      testAccAptibleAppUsernameWithoutPassword(rHandle),
-					ExpectError: regexp.MustCompile(`private_registry_password is required when private_registry_username is set`),
+					ExpectError: regexp.MustCompile(`private_registry_username and private_registry_password must both be set or both be empty`),
 				},
 			},
 		})
@@ -1165,7 +1165,7 @@ func TestAccResourceApp_passwordWithoutUsername(t *testing.T) {
 			Steps: []resource.TestStep{
 				{
 					Config:      testAccAptibleAppPasswordWithoutUsername(rHandle),
-					ExpectError: regexp.MustCompile(`private_registry_username is required when private_registry_password is set`),
+					ExpectError: regexp.MustCompile(`private_registry_username and private_registry_password must both be set or both be empty`),
 				},
 			},
 		})
