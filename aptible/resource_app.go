@@ -328,16 +328,13 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 	return nil
 }
 
-func validatePrivateRegistrySettings(ctx context.Context, d *schema.ResourceDiff, _ interface{}) error {
+func validatePrivateRegistrySettings(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
 	username := d.Get("private_registry_username").(string)
 	password := d.Get("private_registry_password").(string)
 	dockerImage := d.Get("docker_image").(string)
 
-	if username != "" && password == "" {
-		return fmt.Errorf("private_registry_password is required when private_registry_username is set")
-	}
-	if password != "" && username == "" {
-		return fmt.Errorf("private_registry_username is required when private_registry_password is set")
+	if (username == "") != (password == "") {
+		return fmt.Errorf("private_registry_username and private_registry_password must both be set or both be empty")
 	}
 	if (username != "" || password != "") && dockerImage == "" {
 		return fmt.Errorf("docker_image is required when private_registry_username or private_registry_password is set")
