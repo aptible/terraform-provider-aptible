@@ -52,7 +52,8 @@ func resourceDatabase() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateContainerProfile,
-				Default:      "m5",
+				StateFunc:    normalizeContainerProfile,
+				Default:      "m",
 			},
 			"disk_size": {
 				Type:         schema.TypeInt,
@@ -243,7 +244,7 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	profile := service.GetInstanceClass()
 
 	_ = d.Set("container_size", containerSize)
-	_ = d.Set("container_profile", profile)
+	_ = d.Set("container_profile", normalizeContainerProfile(profile))
 	_ = d.Set("iops", database.Embedded.Disk.GetProvisionedIops())
 	_ = d.Set("disk_size", database.Embedded.Disk.GetSize())
 	_ = d.Set("default_connection_url", database.GetConnectionUrl())
