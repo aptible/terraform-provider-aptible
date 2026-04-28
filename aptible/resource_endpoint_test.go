@@ -311,11 +311,13 @@ func TestAccResourceEndpoint_db(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "database"),
 						resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "tcp"),
 						resource.TestCheckResourceAttr("aptible_endpoint.test", "internal", "false"),
-						resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "elb"),
+						resource.TestMatchResourceAttr("aptible_endpoint.test", "platform", regexp.MustCompile(`^(elb|nlb)$`)),
 						resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
 					),
 				},
 				{
+					// Re-plan with the same config to confirm DiffSuppress hides any
+					// platform drift the backend may report for database endpoints.
 					Config:             testAccAptibleEndpointDatabase(env.ID, dbHandle),
 					PlanOnly:           true,
 					ExpectNonEmptyPlan: false,
@@ -580,6 +582,10 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 			{
 				Config:      testAccAptibleEndpointPfsSslProtocolOnElb(),
 				ExpectError: regexp.MustCompile(`(?i)pfs cipher suites are only supported on alb endpoints`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidAppNlbPlatform(),
+				ExpectError: regexp.MustCompile(`(?i)platform 'nlb' is not supported for app endpoints`),
 			},
 		},
 	})
@@ -868,7 +874,6 @@ func testAccAptibleEndpointDatabase(envId int64, dbHandle string) string {
 		resource_type = "database"
 		endpoint_type = "tcp"
 		internal = false
-		platform = "elb"
 	}
 `, envId, dbHandle, envId)
 	log.Println("HCL generated: ", output)
@@ -1381,6 +1386,20 @@ func testAccAptibleEndpointPfsSslProtocolOnElb() string {
 		default_domain = true
 		platform = "elb"
 		ssl_protocols_override = "TLSv1.2 PFS"
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidAppNlbPlatform() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "tcp"
+		resource_id = 1
+		resource_type = "app"
+		process_type = "cmd"
+		platform = "nlb"
 	}`
 	log.Println("HCL generated: ", output)
 	return output

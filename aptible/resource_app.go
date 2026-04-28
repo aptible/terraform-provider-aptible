@@ -102,8 +102,9 @@ func resourceService() *schema.Resource {
 			"container_profile": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      "m5",
+				Default:      "m",
 				ValidateFunc: validateContainerProfile,
+				StateFunc:    normalizeContainerProfile,
 			},
 			"force_zero_downtime": {
 				Type:     schema.TypeBool,
@@ -526,7 +527,7 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 		if s.ContainerMemoryLimitMb.IsSet() {
 			service["container_memory_limit"] = *s.ContainerMemoryLimitMb.Get()
 		}
-		service["container_profile"] = s.InstanceClass
+		service["container_profile"] = normalizeContainerProfile(s.InstanceClass)
 		service["process_type"] = s.ProcessType
 		log.Printf("ZDD flags: %t, %t", s.ForceZeroDowntime, s.NaiveHealthCheck)
 		service["force_zero_downtime"] = s.ForceZeroDowntime

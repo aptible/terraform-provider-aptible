@@ -710,7 +710,7 @@ func testAccAptibleAppDeploy(handle string, index string) string {
 		}
     service {
 			process_type = "cmd"
-			container_profile = "m5"
+			container_profile = "m"
 			container_memory_limit = 512
 			container_count = 1
 			force_zero_downtime = true
@@ -739,7 +739,7 @@ func testAccAptibleAppDeployStopTimeout(handle string, index string) string {
 		}
     service {
 			process_type = "cmd"
-			container_profile = "m5"
+			container_profile = "m"
 			container_memory_limit = 512
 			container_count = 1
 			force_zero_downtime = true
@@ -768,13 +768,13 @@ func testAccAptibleAppDeployMultipleServices(handle string) string {
 		}
 		service {
 			process_type = "main"
-			container_profile = "m5"
+			container_profile = "m"
 			container_memory_limit = 512
 			container_count = 1
 		}
 		service {
 			process_type = "cron"
-			container_profile = "r5"
+			container_profile = "r"
 			container_memory_limit = 512
 			container_count = 1
 		}
@@ -849,7 +849,7 @@ func testAccAptibleAppautoscalingPolicy(handle string, index string) string {
 		}
 		service {
 			process_type           = "cmd"
-			container_profile      = "m5"
+			container_profile      = "m"
 			container_count        = 1
 			autoscaling_policy {
 				autoscaling_type  = "horizontal"
@@ -880,7 +880,7 @@ func testAccAptibleAppWithoutautoscalingPolicy(handle string) string {
 		}
 		service {
 			process_type           = "cmd"
-			container_profile      = "m5"
+			container_profile      = "m"
 			container_count        = 1
 		}
 	}
@@ -904,7 +904,7 @@ func testAccAptibleAppUpdateautoscalingPolicy(handle string) string {
 		}
 		service {
 			process_type           = "cmd"
-			container_profile      = "m5"
+			container_profile      = "m"
 			container_memory_limit = 512
 			container_count        = 1
 			autoscaling_policy {
@@ -960,7 +960,7 @@ func testAccAptibleAppDeployAutoscalingOldAndNewPolicyAttribute(handle string) s
 		}
 		service {
 			process_type           = "cmd"
-			container_profile      = "m5"
+			container_profile      = "m"
 			container_memory_limit = 512
 			container_count        = 1
 			autoscaling_policy {
@@ -1079,7 +1079,7 @@ func testAccAptibleAppDeployWithRestartFreeScaling(handle string, restartFreeSca
 		docker_image = "quay.io/aptible/nginx-mirror:16"
 		service {
 			process_type = "cmd"
-			container_profile = "m5"
+			container_profile = "m"
 			container_memory_limit = 512
 			container_count = 1
 			restart_free_scaling = %t

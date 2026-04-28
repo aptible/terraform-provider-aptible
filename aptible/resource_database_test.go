@@ -33,7 +33,7 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(int(env.ID))),
 						resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
 						resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
-						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "m5"),
+						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "m"),
 						resource.TestCheckResourceAttr("aptible_database.test", "iops", "3000"),
 						resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
@@ -76,7 +76,7 @@ func TestAccResourceDatabase_withoutBackups(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(int(env.ID))),
 						resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
 						resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
-						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "m5"),
+						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "m"),
 						resource.TestCheckResourceAttr("aptible_database.test", "iops", "3000"),
 						resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
 						// TEMPORARILY DISABLED - PITR must be disabled before backups can be disabled
@@ -119,7 +119,7 @@ func TestAccResourceDatabase_redis(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_database.test", "database_type", "redis"),
 						resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
 						resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
-						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "m5"),
+						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "m"),
 						resource.TestCheckResourceAttr("aptible_database.test", "iops", "3000"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "database_image_id"),
@@ -163,7 +163,7 @@ func TestAccResourceDatabase_version(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
 						resource.TestCheckResourceAttr("aptible_database.test", "version", "9.4"),
 						resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
-						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "m5"),
+						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "m"),
 						resource.TestCheckResourceAttr("aptible_database.test", "iops", "3000"),
 						resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
@@ -203,7 +203,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
 						resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
 						resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "10"),
-						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "m5"),
+						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "m"),
 						resource.TestCheckResourceAttr("aptible_database.test", "iops", "3000"),
 						resource.TestCheckResourceAttr("aptible_database.test", "enable_backups", "true"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
@@ -226,7 +226,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 				// 	Config: testAccAptibleDatabaseUpdate(env.ID, dbHandle),
 				// 	Check: resource.ComposeTestCheckFunc(
 				// 		resource.TestCheckResourceAttr("aptible_database.test", "container_size", "512"),
-				// 		resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "r5"),
+				// 		resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "r"),
 				// 		resource.TestCheckResourceAttr("aptible_database.test", "iops", "4000"),
 				// 		resource.TestCheckResourceAttr("aptible_database.test", "enable_backups", "false"),
 				// 		resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "20"),
@@ -282,7 +282,7 @@ func TestAccResourceDatabase_scale(t *testing.T) {
 						resource.TestCheckResourceAttr("aptible_database.test", "env_id", strconv.Itoa(int(env.ID))),
 						resource.TestCheckResourceAttr("aptible_database.test", "database_type", "postgresql"),
 						resource.TestCheckResourceAttr("aptible_database.test", "container_size", "1024"),
-						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "r5"),
+						resource.TestCheckResourceAttr("aptible_database.test", "container_profile", "r"),
 						resource.TestCheckResourceAttr("aptible_database.test", "iops", "4000"),
 						resource.TestCheckResourceAttr("aptible_database.test", "disk_size", "12"),
 						resource.TestCheckResourceAttrSet("aptible_database.test", "database_id"),
@@ -361,7 +361,7 @@ func testAccAptibleDatabaseRedis(envId int64, dbHandle string) string {
 		env_id = %d
 		handle = "%v"
 		database_type = "redis"
-		container_profile = "m5"
+		container_profile = "m"
 	}
 `, envId, dbHandle)
 }
@@ -385,7 +385,7 @@ func testAccAptibleDatabaseUpdate(envId int64, dbHandle string) string {
 		handle = "%v"
 		container_size = %d
 		disk_size = %d
-		container_profile = "r5"
+		container_profile = "r"
 		iops = 4000
 		enable_backups = false
 	}
@@ -427,7 +427,7 @@ func testAccAptibleDatabaseScale(envId int64, dbHandle string) string {
 	resource "aptible_database" "test" {
 		env_id = %d
 		handle = "%v"
-		container_profile = "r5"
+		container_profile = "r"
 		iops = 4000
 		disk_size = 12
 	}

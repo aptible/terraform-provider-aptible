@@ -3,6 +3,7 @@ package aptible
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -72,11 +73,18 @@ var validContainerSizes = []int{
 var validateContainerSize = validation.IntInSlice(validContainerSizes)
 
 var validContainerProfiles = []string{
-	"m4",
-	"m5",
-	"r5",
-	"c5",
+	"m",
+	"c",
+	"r",
 }
-var validateContainerProfile = errorsToWarnings(validation.StringInSlice(validContainerProfiles, false))
+var validateContainerProfile = validation.StringInSlice(validContainerProfiles, false)
+
+// normalizeContainerProfile strips trailing generation digits from an instance
+// class name (e.g. "m5" → "m", "c6" → "c"). The backend may still return
+// old-style values; normalizing them prevents spurious state diffs.
+// Satisfies schema.SchemaStateFunc so it can be used directly as StateFunc.
+func normalizeContainerProfile(v interface{}) string {
+	return strings.TrimRight(v.(string), "0123456789")
+}
 
 var validateDiskSize = validation.IntBetween(1, 16000)

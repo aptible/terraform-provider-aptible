@@ -85,11 +85,11 @@ The `service` block supports:
   service.
 - `container_memory_limit` - (Default: 1024) The memory limit (in MB) of the
   service's containers.
-- `container_profile` - (Default: `m5`) Changes the CPU:RAM ratio of the
+- `container_profile` - (Default: `m`) Changes the CPU:RAM ratio of the
   service's containers.
-  - `m4` - General Purpose (1 CPU : 4 GB RAM)
-  - `c5` - CPU Optimized (1 CPU : 2 GB RAM)
-  - `r5` - Memory Optimized (1 CPU : 8 GB RAM)
+  - `m` - General Purpose (1 CPU : 4 GB RAM)
+  - `c` - CPU Optimized (1 CPU : 2 GB RAM)
+  - `r` - Memory Optimized (1 CPU : 8 GB RAM)
 - `force_zero_downtime` - (Default: false) For services without endpoints, force
   a zero-downtime release and leverage docker healthchecks for the containers. Please
   note that docker healthchecks are required unless `simple_health_check` is enabled.

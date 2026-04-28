@@ -110,10 +110,12 @@ resource "aptible_endpoint" "example_settings" {
 - `internal` - (Default: false) If Endpoint should be available
   [internally or externally](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/overview#endpoint-placement)
   . Changing this will force the resource to be recreated.
-- `platform` - (Default: `alb`) What type of
+- `platform` - (App only, Default: `alb`) What type of
   [load balancer](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/https-endpoints/alb-elb)
-  the Endpoint should use. Valid options are `alb` or `elb`. `resource_type` of
-  `database` should use `elb`.
+  the Endpoint should use. Valid options for app endpoints are `alb` or `elb`.
+  `nlb` is not supported for app endpoints in this provider release.
+- Database endpoints do not require `platform`. Aptible manages the database
+  endpoint platform, so any configured value is ignored.
 - `ip_filtering` - (Optional) The list of IPv4 CIDRs that the Endpoint will
   allow traffic from. If not provided, the Endpoint will not filter traffic. See
   the [IP Filtering](https://www.aptible.com/docs/core-concepts/apps/connecting-to-apps/app-endpoints/ip-filtering)
