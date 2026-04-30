@@ -139,8 +139,86 @@ func resourceEndpoint() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(validLbAlgorithms, false),
 			},
+			"force_ssl": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"maintenance_page_url": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+			},
+			"idle_timeout": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(30, 2400),
+			},
+			"release_healthcheck_timeout": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(1, 900),
+			},
+			"strict_health_checks": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"show_elb_healthchecks": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"ssl_protocols_override": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice(validSslProtocols, false),
+			},
+			"ssl_ciphers_override": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"disable_weak_cipher_suites": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 		},
 	}
+}
+
+// endpointCategory returns a canonical category string from the user-facing
+// endpoint_type and platform values, used to drive settings validation.
+func endpointCategory(endpointType, platform string) (string, error) {
+	switch endpointType {
+	case "https":
+		switch platform {
+		case "alb":
+			return "alb", nil
+		case "elb":
+			return "elb", nil
+		default:
+			return "", fmt.Errorf("unexpected platform %q for https endpoint", platform)
+		}
+	case "tls":
+		return "tls", nil
+	case "grpc":
+		return "grpc", nil
+	case "tcp":
+		return "tcp", nil
+	default:
+		return "", fmt.Errorf("unexpected endpoint_type %q", endpointType)
+	}
+}
+
+// endpointSettingCategories maps each setting attribute to the endpoint
+// categories that support it.
+var endpointSettingCategories = map[string][]string{
+	"force_ssl":                   {"alb", "elb"},
+	"maintenance_page_url":        {"alb", "elb"},
+	"idle_timeout":                {"alb", "elb", "tls", "grpc", "tcp"},
+	"release_healthcheck_timeout": {"alb", "elb"},
+	"strict_health_checks":        {"alb", "elb"},
+	"show_elb_healthchecks":       {"alb", "elb"},
+	"ssl_protocols_override":      {"alb", "elb", "tls", "grpc"},
+	"ssl_ciphers_override":        {"elb", "tls", "grpc"},
+	"disable_weak_cipher_suites":  {"elb", "tls", "grpc"},
 }
 
 func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
@@ -177,7 +255,111 @@ func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ in
 		err = multierror.Append(err, fmt.Errorf("do not specify a load balancing algorithm with %s endpoint", platform))
 	}
 
+	category, categoryErr := endpointCategory(endpointType, platform)
+	if categoryErr != nil {
+		return multierror.Append(err, categoryErr)
+	}
+
+	// PFS cipher suites are only valid on ALB endpoints
+	if sslProto := d.Get("ssl_protocols_override").(string); strings.Contains(sslProto, "PFS") {
+		if category != "alb" {
+			err = multierror.Append(err, fmt.Errorf("ssl_protocols_override: PFS cipher suites are only supported on ALB endpoints"))
+		}
+	}
+
+	// Validate setting attributes against endpoint category
+	for attr, validCategories := range endpointSettingCategories {
+		if !isEndpointSettingSet(d.ResourceDiff, attr) {
+			continue
+		}
+		valid := false
+		for _, c := range validCategories {
+			if c == category {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			err = multierror.Append(err, fmt.Errorf("%s is not supported for %s endpoints", attr, category))
+		}
+	}
+
 	return err
+}
+
+// isEndpointSettingSet returns true when a setting attribute has a non-zero
+// value — i.e. the user actually specified it.
+func isEndpointSettingSet(d *schema.ResourceDiff, attr string) bool {
+	v := d.Get(attr)
+	switch val := v.(type) {
+	case bool:
+		return val
+	case int:
+		return val != 0
+	case string:
+		return val != ""
+	}
+	return false
+}
+
+// buildEndpointSettingsMap constructs the settings map for Create from the
+// individual typed attributes. Uses GetOkExists so that only attributes
+// explicitly set in config are included — unset attributes are omitted.
+func buildEndpointSettingsMap(d *schema.ResourceData) map[string]string {
+	m := map[string]string{}
+	if v, ok := d.GetOkExists("force_ssl"); ok && v.(bool) { //nolint:staticcheck
+		m["FORCE_SSL"] = "true"
+	}
+	if v, ok := d.GetOkExists("maintenance_page_url"); ok && v.(string) != "" { //nolint:staticcheck
+		m["MAINTENANCE_PAGE_URL"] = v.(string)
+	}
+	if v, ok := d.GetOkExists("idle_timeout"); ok { //nolint:staticcheck
+		m["IDLE_TIMEOUT"] = strconv.Itoa(v.(int))
+	}
+	if v, ok := d.GetOkExists("release_healthcheck_timeout"); ok { //nolint:staticcheck
+		m["RELEASE_HEALTHCHECK_TIMEOUT"] = strconv.Itoa(v.(int))
+	}
+	if v, ok := d.GetOkExists("strict_health_checks"); ok && v.(bool) { //nolint:staticcheck
+		m["STRICT_HEALTH_CHECKS"] = "true"
+	}
+	if v, ok := d.GetOkExists("show_elb_healthchecks"); ok && v.(bool) { //nolint:staticcheck
+		m["SHOW_ELB_HEALTHCHECKS"] = "true"
+	}
+	if v, ok := d.GetOkExists("ssl_protocols_override"); ok && v.(string) != "" { //nolint:staticcheck
+		m["SSL_PROTOCOLS_OVERRIDE"] = v.(string)
+	}
+	if v, ok := d.GetOkExists("ssl_ciphers_override"); ok && v.(string) != "" { //nolint:staticcheck
+		m["SSL_CIPHERS_OVERRIDE"] = v.(string)
+	}
+	if v, ok := d.GetOkExists("disable_weak_cipher_suites"); ok && v.(bool) { //nolint:staticcheck
+		m["DISABLE_WEAK_CIPHER_SUITES"] = "true"
+	}
+	return m
+}
+
+// applyEndpointSettingsToState reads individual settings from the API response
+// map and sets each typed attribute in Terraform state.
+func applyEndpointSettingsToState(d *schema.ResourceData, settings map[string]interface{}) {
+	forceSslStr, _ := settings["FORCE_SSL"].(string)
+	_ = d.Set("force_ssl", forceSslStr == "true")
+	maintenancePageURL, _ := settings["MAINTENANCE_PAGE_URL"].(string)
+	_ = d.Set("maintenance_page_url", maintenancePageURL)
+	idleTimeoutStr, _ := settings["IDLE_TIMEOUT"].(string)
+	idleTimeout, _ := strconv.Atoi(idleTimeoutStr)
+	_ = d.Set("idle_timeout", idleTimeout)
+	rhtStr, _ := settings["RELEASE_HEALTHCHECK_TIMEOUT"].(string)
+	rht, _ := strconv.Atoi(rhtStr)
+	_ = d.Set("release_healthcheck_timeout", rht)
+	strictStr, _ := settings["STRICT_HEALTH_CHECKS"].(string)
+	_ = d.Set("strict_health_checks", strictStr == "true")
+	showStr, _ := settings["SHOW_ELB_HEALTHCHECKS"].(string)
+	_ = d.Set("show_elb_healthchecks", showStr == "true")
+	sslProto, _ := settings["SSL_PROTOCOLS_OVERRIDE"].(string)
+	_ = d.Set("ssl_protocols_override", sslProto)
+	sslCiphers, _ := settings["SSL_CIPHERS_OVERRIDE"].(string)
+	_ = d.Set("ssl_ciphers_override", sslCiphers)
+	disableStr, _ := settings["DISABLE_WEAK_CIPHER_SUITES"].(string)
+	_ = d.Set("disable_weak_cipher_suites", disableStr == "true")
 }
 
 func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -324,6 +506,11 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	payload := aptibleapi.NewCreateOperationRequest("provision")
+
+	if settingsMap := buildEndpointSettingsMap(d); len(settingsMap) > 0 {
+		payload.SetSettings(settingsMap)
+	}
+
 	operation, _, err := client.OperationsAPI.
 		CreateOperationForVhost(ctx, endpoint.Id).
 		CreateOperationRequest(*payload).
@@ -467,6 +654,22 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 		break
 	}
 
+	currentSettingLink, hasCurrentSetting := endpoint.Links.GetCurrentSettingOk()
+	if hasCurrentSetting {
+		currentSettingID := ExtractIdFromLink(currentSettingLink.GetHref())
+		if currentSettingID != 0 {
+			currentSetting, _, err := client.SettingsAPI.GetSetting(ctx, currentSettingID).Execute()
+			if err != nil {
+				return append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  fmt.Sprintf("Failed to fetch settings %d for endpoint %d", currentSettingID, endpointID),
+					Detail:   err.Error(),
+				})
+			}
+			applyEndpointSettingsToState(d, currentSetting.GetSettings())
+		}
+	}
+
 	return nil
 }
 
@@ -481,6 +684,7 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	endpointID := int32(d.Get("endpoint_id").(int))
 
 	needsDeploy := false
+	settingsMap := map[string]string{}
 	attrs := aptibleapi.NewUpdateVhostRequest()
 
 	if d.HasChange("ip_filtering") {
@@ -540,8 +744,58 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		})
 	}
 
+	// Bool settings: ok+true → "true", ok+false or not set → "" to clear
+	for attr, apiKey := range map[string]string{
+		"force_ssl":                  "FORCE_SSL",
+		"strict_health_checks":       "STRICT_HEALTH_CHECKS",
+		"show_elb_healthchecks":      "SHOW_ELB_HEALTHCHECKS",
+		"disable_weak_cipher_suites": "DISABLE_WEAK_CIPHER_SUITES",
+	} {
+		if d.HasChange(attr) {
+			needsDeploy = true
+			v, ok := d.GetOkExists(attr) //nolint:staticcheck
+			if ok && v.(bool) {
+				settingsMap[apiKey] = "true"
+			} else {
+				settingsMap[apiKey] = ""
+			}
+		}
+	}
+
+	// Int settings: ok+non-zero → stringified value, not set → "" to clear
+	for attr, apiKey := range map[string]string{
+		"idle_timeout":                "IDLE_TIMEOUT",
+		"release_healthcheck_timeout": "RELEASE_HEALTHCHECK_TIMEOUT",
+	} {
+		if d.HasChange(attr) {
+			needsDeploy = true
+			v, ok := d.GetOkExists(attr) //nolint:staticcheck
+			if ok && v.(int) != 0 {
+				settingsMap[apiKey] = strconv.Itoa(v.(int))
+			} else {
+				settingsMap[apiKey] = ""
+			}
+		}
+	}
+
+	// String settings: ok+non-empty → value, not set → "" to clear
+	for attr, apiKey := range map[string]string{
+		"maintenance_page_url":   "MAINTENANCE_PAGE_URL",
+		"ssl_protocols_override": "SSL_PROTOCOLS_OVERRIDE",
+		"ssl_ciphers_override":   "SSL_CIPHERS_OVERRIDE",
+	} {
+		if d.HasChange(attr) {
+			needsDeploy = true
+			v, _ := d.GetOkExists(attr) //nolint:staticcheck
+			settingsMap[apiKey] = v.(string)
+		}
+	}
+
 	if needsDeploy {
 		payload := aptibleapi.NewCreateOperationRequest("provision")
+		if len(settingsMap) > 0 {
+			payload.SetSettings(settingsMap)
+		}
 		operation, _, err := client.OperationsAPI.
 			CreateOperationForVhost(ctx, endpointID).
 			CreateOperationRequest(*payload).
@@ -603,4 +857,17 @@ var validLbAlgorithms = []string{
 	"round_robin",
 	"least_outstanding_requests",
 	"weighted_random",
+}
+
+// validSslProtocols lists the exact strings accepted by the platform for
+// ssl_protocols_override. Values containing "PFS" are ALB-only.
+var validSslProtocols = []string{
+	"TLSv1 TLSv1.1 TLSv1.2",
+	"TLSv1 TLSv1.1 TLSv1.2 PFS",
+	"TLSv1.1 TLSv1.2",
+	"TLSv1.1 TLSv1.2 PFS",
+	"TLSv1.2",
+	"TLSv1.2 PFS",
+	"TLSv1.2 PFS TLSv1.3",
+	"TLSv1.3",
 }

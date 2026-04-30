@@ -43,6 +43,11 @@ func TestAccResourceEndpoint_customDomain(t *testing.T) {
 				),
 			},
 			{
+				Config:             testAccAptibleEndpointCustomDomain(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
 				ResourceName:      "aptible_endpoint.test",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -78,6 +83,11 @@ func TestAccResourceEndpoint_appContainerNoPort(t *testing.T) {
 					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_record"),
 					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_value"),
 				),
+			},
+			{
+				Config:             testAccAptibleEndpointAppContainerNoPort(appHandle, "20"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 			{
 				ResourceName:      "aptible_endpoint.test",
@@ -118,9 +128,119 @@ func TestAccResourceEndpoint_appContainerPort(t *testing.T) {
 				),
 			},
 			{
+				Config:             testAccAptibleEndpointAppContainerPort(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
 				ResourceName:      "aptible_endpoint.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccResourceEndpoint_settings(t *testing.T) {
+	appHandle := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleEndpointAppWithSettings(appHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_endpoint.test", "env_id"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "app"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
+					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "idle_timeout", "31"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "release_healthcheck_timeout", "61"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "force_ssl", "true"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "ssl_protocols_override", "TLSv1.2 PFS"),
+				),
+			},
+			{
+				Config:             testAccAptibleEndpointAppWithSettings(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				ResourceName:      "aptible_endpoint.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccResourceEndpoint_settingsUpdate(t *testing.T) {
+	appHandle := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAptibleEndpointAppWithSettings(appHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("aptible_app.test", "handle", appHandle),
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_app.test", "env_id"),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "app_id"),
+					resource.TestCheckResourceAttrSet("aptible_app.test", "git_repo"),
+
+					resource.TestCheckResourceAttrPair("aptible_environment.test", "env_id", "aptible_endpoint.test", "env_id"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "resource_type", "app"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "endpoint_type", "https"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "platform", "alb"),
+					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "idle_timeout", "31"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "release_healthcheck_timeout", "61"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "force_ssl", "true"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "ssl_protocols_override", "TLSv1.2 PFS"),
+				),
+			},
+			// Verify convergence: a second plan after the apply should show no changes.
+			{
+				Config:             testAccAptibleEndpointAppWithSettings(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				ResourceName:      "aptible_endpoint.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Verify convergence: a second plan after the import should show no changes.
+			{
+				Config:             testAccAptibleEndpointAppWithSettings(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				Config: testAccAptibleEndpointAppUpdateSettings(appHandle),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("aptible_endpoint.test", "endpoint_id"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "idle_timeout", "63"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "force_ssl", "true"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "ssl_protocols_override", "TLSv1.2 PFS"),
+					resource.TestCheckResourceAttr("aptible_endpoint.test", "release_healthcheck_timeout", "0"),
+				),
+			},
+			// Verify convergence: a second plan after the update should show no changes.
+			{
+				Config:             testAccAptibleEndpointAppUpdateSettings(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
@@ -155,6 +275,11 @@ func TestAccResourceEndpoint_appContainerPorts(t *testing.T) {
 					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_record"),
 					resource.TestCheckNoResourceAttr("aptible_endpoint.test", "dns_validation_value"),
 				),
+			},
+			{
+				Config:             testAccAptibleEndpointAppContainerPorts(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 			{
 				ResourceName:      "aptible_endpoint.test",
@@ -232,6 +357,11 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 				),
 			},
 			{
+				Config:             testAccAptibleEndpointAppContainerNoPort(appHandle, "21"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
 				ResourceName:      "aptible_endpoint.test",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -241,6 +371,11 @@ func TestAccResourceEndpoint_updateIPWhitelist(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "ip_filtering.0", "1.1.1.1/32"),
 				),
+			},
+			{
+				Config:             testAccAptibleEndpointUpdateIPWhitelist(appHandle),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
@@ -291,6 +426,11 @@ func TestAccResourceEndpoint_sharedUpgrade(t *testing.T) {
 				),
 			},
 			{
+				Config:             testAccAptibleEndpointSetShared(appHandle, false),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
 				ResourceName:      "aptible_endpoint.test",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -300,6 +440,11 @@ func TestAccResourceEndpoint_sharedUpgrade(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "shared", "true"),
 				),
+			},
+			{
+				Config:             testAccAptibleEndpointSetShared(appHandle, true),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
@@ -317,6 +462,11 @@ func TestAccResourceEndpoint_lbAlgorithm(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("aptible_endpoint.test", "load_balancing_algorithm_type", "least_outstanding_requests"),
 				),
+			},
+			{
+				Config:             testAccAptibleEndpointLbAlgorithm(appHandle, "least_outstanding_requests"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 			{
 				ResourceName:      "aptible_endpoint.test",
@@ -389,6 +539,50 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 				Config:      testAccAptibleEndpointInvalidLbAlgorithmWithElb(),
 				ExpectError: regexp.MustCompile(`(?i)do not specify a load balancing algorithm with elb endpoint`),
 			},
+			// Setting range violations
+			{
+				Config:      testAccAptibleEndpointInvalidIdleTimeoutTooLow(),
+				ExpectError: regexp.MustCompile(`(?i)expected idle_timeout to be in the range \(30 \- 2400\)`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidIdleTimeoutTooHigh(),
+				ExpectError: regexp.MustCompile(`(?i)expected idle_timeout to be in the range \(30 \- 2400\)`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidReleaseHealthcheckTimeout(),
+				ExpectError: regexp.MustCompile(`(?i)expected release_healthcheck_timeout to be in the range \(1 \- 900\)`),
+			},
+			// Setting format violations
+			{
+				Config:      testAccAptibleEndpointInvalidMaintenancePageURL(),
+				ExpectError: regexp.MustCompile(`(?i)expected .* to have a host`),
+			},
+			{
+				Config:      testAccAptibleEndpointInvalidSslProtocol(),
+				ExpectError: regexp.MustCompile(`(?i)expected ssl_protocols_override to be one of`),
+			},
+			// Setting category violations
+			{
+				Config:      testAccAptibleEndpointForceSslOnTcp(),
+				ExpectError: regexp.MustCompile(`(?i)force_ssl is not supported for tcp endpoints`),
+			},
+			{
+				Config:      testAccAptibleEndpointMaintenancePageURLOnTls(),
+				ExpectError: regexp.MustCompile(`(?i)maintenance_page_url is not supported for tls endpoints`),
+			},
+			{
+				Config:      testAccAptibleEndpointSslCiphersOnAlb(),
+				ExpectError: regexp.MustCompile(`(?i)ssl_ciphers_override is not supported for alb endpoints`),
+			},
+			{
+				Config:      testAccAptibleEndpointDisableWeakCiphersOnAlb(),
+				ExpectError: regexp.MustCompile(`(?i)disable_weak_cipher_suites is not supported for alb endpoints`),
+			},
+			// PFS-only-on-ALB violation
+			{
+				Config:      testAccAptibleEndpointPfsSslProtocolOnElb(),
+				ExpectError: regexp.MustCompile(`(?i)pfs cipher suites are only supported on alb endpoints`),
+			},
 			{
 				Config:      testAccAptibleEndpointInvalidAppNlbPlatform(),
 				ExpectError: regexp.MustCompile(`(?i)platform 'nlb' is not supported for app endpoints`),
@@ -456,9 +650,7 @@ func testAccAptibleEndpointCustomDomain(appHandle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:31"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:31"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -493,9 +685,7 @@ func testAccAptibleEndpointAppContainerPort(appHandle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/caddy-mirror:1"
-		}
+		docker_image = "quay.io/aptible/caddy-mirror:1"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -530,9 +720,7 @@ func testAccAptibleEndpointAppContainerNoPort(appHandle string, index string) st
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:%s"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:%s"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -566,9 +754,7 @@ func testAccAptibleEndpointAppContainerPorts(appHandle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/caddy-mirror:2"
-		}
+		docker_image = "quay.io/aptible/caddy-mirror:2"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -586,6 +772,86 @@ func testAccAptibleEndpointAppContainerPorts(appHandle string) string {
 		default_domain = true
 		internal = true
 		platform = "elb"
+	}
+`, appHandle, testOrganizationId, testStackId, appHandle)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointAppWithSettings(appHandle string) string {
+	output := fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		docker_image = "quay.io/aptible/nginx-mirror:34"
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+		}
+	}
+
+	resource "aptible_endpoint" "test" {
+		env_id = aptible_environment.test.env_id
+		resource_id = aptible_app.test.app_id
+		resource_type = "app"
+		process_type = "cmd"
+		endpoint_type = "https"
+		default_domain = true
+		platform = "alb"
+		idle_timeout = 31
+		release_healthcheck_timeout = 61
+		force_ssl    = true
+		ssl_protocols_override = "TLSv1.2 PFS"
+	}
+`, appHandle, testOrganizationId, testStackId, appHandle)
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointAppUpdateSettings(appHandle string) string {
+	output := fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle = "%s"
+		org_id = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id = aptible_environment.test.env_id
+		handle = "%v"
+		docker_image = "quay.io/aptible/nginx-mirror:34"
+		service {
+			process_type = "cmd"
+			container_memory_limit = 512
+			container_count = 1
+		}
+	}
+
+	resource "aptible_endpoint" "test" {
+		env_id = aptible_environment.test.env_id
+		resource_id = aptible_app.test.app_id
+		resource_type = "app"
+		process_type = "cmd"
+		endpoint_type = "https"
+		default_domain = true
+		platform = "alb"
+		// updated — only this changes; force_ssl and ssl_protocols_override are
+		// intentionally left unchanged to exercise convergence: if the provider
+		// only sends changed settings to the API, those two will be dropped from
+		// current_setting and drift back to zero on the next Read.
+		idle_timeout = 63
+		// unchanged:
+		force_ssl              = true
+		ssl_protocols_override = "TLSv1.2 PFS"
+		// omitted to unset:
+		// release_healthcheck_timeout
 	}
 `, appHandle, testOrganizationId, testStackId, appHandle)
 	log.Println("HCL generated: ", output)
@@ -625,9 +891,7 @@ func testAccAptibleEndpointUpdateIPWhitelist(appHandle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:22"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:22"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -664,9 +928,7 @@ func testAccAptibleEndpointSetShared(appHandle string, shared bool) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:32"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:32"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -700,9 +962,7 @@ func testAccAptibleEndpointLbAlgorithm(appHandle string, lbAlgorithm string) str
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:31"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:33"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -737,9 +997,7 @@ func testAccAptibleEndpointBadPort(appHandle string) string {
 	resource "aptible_app" "test" {
 		env_id = aptible_environment.test.env_id
 		handle = "%v"
-		config = {
-			"APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/nginx-mirror:23"
-		}
+		docker_image = "quay.io/aptible/nginx-mirror:23"
 		service {
 			process_type = "cmd"
 			container_memory_limit = 512
@@ -983,6 +1241,151 @@ func testAccAptibleEndpointInvalidLbAlgorithmWithElb() string {
 		default_domain = true
 		platform = "elb"
 		load_balancing_algorithm_type = "round_robin"
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidIdleTimeoutTooLow() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		idle_timeout = 10
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidIdleTimeoutTooHigh() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		idle_timeout = 9999
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidReleaseHealthcheckTimeout() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		release_healthcheck_timeout = 9999
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidMaintenancePageURL() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		maintenance_page_url = "not-a-url"
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointInvalidSslProtocol() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		ssl_protocols_override = "TLSv9.9"
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointForceSslOnTcp() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "tcp"
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "elb"
+		force_ssl = true
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointMaintenancePageURLOnTls() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "tls"
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "elb"
+		maintenance_page_url = "https://example.com/maintenance"
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointSslCiphersOnAlb() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "https"
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		ssl_ciphers_override = "ECDHE-RSA-AES128-GCM-SHA256"
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointDisableWeakCiphersOnAlb() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "https"
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "alb"
+		disable_weak_cipher_suites = true
+	}`
+	log.Println("HCL generated: ", output)
+	return output
+}
+
+func testAccAptibleEndpointPfsSslProtocolOnElb() string {
+	output := `
+	resource "aptible_endpoint" "test" {
+		env_id = -1
+		endpoint_type = "https"
+		resource_id = 1
+		resource_type = "app"
+		default_domain = true
+		platform = "elb"
+		ssl_protocols_override = "TLSv1.2 PFS"
 	}`
 	log.Println("HCL generated: ", output)
 	return output

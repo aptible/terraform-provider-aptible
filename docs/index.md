@@ -76,7 +76,7 @@ data "aptible_app" "APP" {
 !> Currently the only supported deployment method via Terraform is of
 Docker images hosted in a Docker image registry.
 
-Apps configurations can be managed via the nested `config` element.
+Application environment variables can be managed via the nested `config` element.
 
 ```hcl
 resource "aptible_app" "APP" {
@@ -88,23 +88,25 @@ resource "aptible_app" "APP" {
 }
 ```
 
-If you specify a Docker image as the `APTIBLE_DOCKER_IMAGE`
-configuration value, that Docker image will be deployed to the App.
-Authentication for Docker images located in
-private repositories can be provided using the
-`APTIBLE_PRIVATE_REGISTRY_USERNAME` and
-`APTIBLE_PRIVATE_REGISTRY_PASSWORD` configuration values.
+To deploy a Docker image, set `docker_image`. For images in private registries,
+also provide `private_registry_username` and `private_registry_password`
+(both are required together).
 
 ```hcl
 resource "aptible_app" "APP" {
     env_id = ENVIRONMENT_ID
     handle = "APP_HANDLE"
-    config = {
-        "KEY" = "value"
-        "APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/deploy-demo-app"
-        "APTIBLE_PRIVATE_REGISTRY_USERNAME" = "registry_username"
-        "APTIBLE_PRIVATE_REGISTRY_PASSWORD" = "registry_password"
-    }
+    docker_image = "quay.io/aptible/deploy-demo-app"
+}
+```
+
+```hcl
+resource "aptible_app" "APP" {
+    env_id = ENVIRONMENT_ID
+    handle = "APP_HANDLE"
+    docker_image              = "quay.io/example/private-image"
+    private_registry_username = "registry_username"
+    private_registry_password = "registry_password"
 }
 ```
 
@@ -183,14 +185,17 @@ managed using the `terraform_aptible_endpoint` resource.
 
 ```hcl
 resource "aptible_endpoint" "EXAMPLE" {
-    env_id = ENVIRONMENT_ID
-    process_type = "SERVICE_NAME"
-    resource_id = aptible_app.APP.app_id
+    env_id         = ENVIRONMENT_ID
+    process_type   = "SERVICE_NAME"
+    resource_id    = aptible_app.APP.app_id
+    resource_type  = "app"
     default_domain = true
-    endpoint_type = "https"
-    internal = false
-    platform = "alb"
+    endpoint_type  = "https"
+    internal       = false
+    platform       = "alb"
     container_port = 5000
+    force_ssl      = true
+    idle_timeout   = 120
 }
 ```
 

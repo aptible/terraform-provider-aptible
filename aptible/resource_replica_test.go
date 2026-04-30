@@ -45,6 +45,11 @@ func TestAccResourceReplica_basic(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleReplicaBasic(env.ID, dbHandle, replicaHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_database.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -88,6 +93,11 @@ func TestAccResourceReplica_withoutBackups(t *testing.T) {
 					),
 				},
 				{
+					Config:             testAccAptibleReplicaWithoutBackups(env.ID, dbHandle, replicaHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
+				},
+				{
 					ResourceName:      "aptible_database.test",
 					ImportState:       true,
 					ImportStateVerify: true,
@@ -129,6 +139,11 @@ func TestAccResourceReplica_update(t *testing.T) {
 						resource.TestCheckResourceAttrSet("aptible_replica.test", "replica_id"),
 						resource.TestCheckResourceAttrSet("aptible_replica.test", "default_connection_url"),
 					),
+				},
+				{
+					Config:             testAccAptibleReplicaBasic(env.ID, dbHandle, replicaHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 				{
 					ResourceName:      "aptible_database.test",
@@ -246,6 +261,11 @@ func TestAccResourceReplica_scale(t *testing.T) {
 						resource.TestCheckResourceAttrSet("aptible_replica.test", "replica_id"),
 						resource.TestCheckResourceAttrSet("aptible_replica.test", "default_connection_url"),
 					),
+				},
+				{
+					Config:             testAccAptibleReplicaScale(env.ID, dbHandle, replicaHandle),
+					PlanOnly:           true,
+					ExpectNonEmptyPlan: false,
 				},
 				{
 					ResourceName:      "aptible_database.test",

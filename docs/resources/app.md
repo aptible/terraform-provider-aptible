@@ -14,10 +14,20 @@ resource "aptible_app" "example_app" {
     handle = "example_app"
     config = {
         "KEY" = "value"
-        "APTIBLE_DOCKER_IMAGE" = "quay.io/aptible/deploy-demo-app"
-        "APTIBLE_PRIVATE_REGISTRY_USERNAME" = "registry_username"
-        "APTIBLE_PRIVATE_REGISTRY_PASSWORD" = "registry_password"
     }
+    docker_image = "quay.io/aptible/deploy-demo-app"
+}
+```
+
+Deploying from a private registry
+
+```hcl
+resource "aptible_app" "example_app" {
+    env_id = 123
+    handle = "example_app"
+    docker_image              = "quay.io/example/private-image"
+    private_registry_username = "registry_username"
+    private_registry_password = "registry_password"
 }
 ```
 
@@ -56,8 +66,13 @@ resource "aptible_app" "APP" {
   you should use for `env_id`.
 - `handle` - The handle for the App. This must be all lower case, and
   only contain letters, numbers, `-`, `_`, or `.`
-- `config` - (Optional) The configuration for the App. This should be a
-  map of `KEY = VALUE`.
+- `config` - (Optional) A map of environment variables for the App. Values are
+  available to your running containers.
+- `docker_image` - (Optional) The Docker image to deploy (e.g. `quay.io/aptible/deploy-demo-app`).
+- `private_registry_username` - (Optional, Sensitive) Username for authenticating with a private
+  Docker registry. Requires `docker_image` and `private_registry_password`.
+- `private_registry_password` - (Optional, Sensitive) Password for authenticating with a private
+  Docker registry. Requires `docker_image` and `private_registry_username`.
 - `service` - (Optional) A block to manage scaling for services. See the main
   provider docs for additional details.
 

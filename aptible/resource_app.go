@@ -56,8 +56,27 @@ func resourceApp() *schema.Resource {
 				Optional: true,
 				Elem:     resourceService(),
 			},
+			"docker_image": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"private_registry_username": {
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
+			},
+			"private_registry_password": {
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
+			},
 		},
-		CustomizeDiff: validateServiceSizingPolicy,
+		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+			if err := validateServiceSizingPolicy(ctx, d, meta); err != nil {
+				return err
+			}
+			return validatePrivateRegistrySettings(ctx, d, meta)
+		},
 	}
 }
 
@@ -310,25 +329,114 @@ func validateServiceSizingPolicy(ctx context.Context, d *schema.ResourceDiff, _ 
 	return nil
 }
 
+func validatePrivateRegistrySettings(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	username := d.Get("private_registry_username").(string)
+	password := d.Get("private_registry_password").(string)
+	dockerImage := d.Get("docker_image").(string)
+
+	if (username == "") != (password == "") {
+		return fmt.Errorf("private_registry_username and private_registry_password must both be set or both be empty")
+	}
+	if (username != "" || password != "") && dockerImage == "" {
+		return fmt.Errorf("docker_image is required when private_registry_username or private_registry_password is set")
+	}
+	return nil
+}
+
 func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).LegacyClient
-	envID := int64(d.Get("env_id").(int))
+	m := meta.(*providerMetadata)
+	client := m.Client
+	legacy := m.LegacyClient
+	envID := int32(d.Get("env_id").(int))
+	ctx = m.APIContext(ctx)
+	diags := diag.Diagnostics{}
+
 	handle := d.Get("handle").(string)
 
-	app, err := client.CreateApp(handle, envID)
-	if err != nil {
-		log.Println("There was an error when completing the request to create the app.\n[ERROR] -", err)
-		return generateDiagnosticsFromClientError(err)
-	}
-	d.SetId(strconv.Itoa(int(app.ID)))
-	_ = d.Set("app_id", app.ID)
+	create := aptibleapi.NewCreateAppRequest(handle)
+	app, _, err := client.AppsAPI.CreateApp(ctx, envID).CreateAppRequest(*create).Execute()
 
-	config := d.Get("config").(map[string]interface{})
-	if len(config) != 0 {
-		err := client.DeployApp(config, app.ID)
+	if err != nil {
+		return append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Failed to create App",
+			Detail:   err.Error(),
+		})
+	}
+
+	d.SetId(strconv.Itoa(int(app.Id)))
+	_ = d.Set("app_id", app.Id)
+
+	needsDeploy := false
+	needsConfigure := false
+
+	envMap := map[string]string{}
+	settingsMap := map[string]string{}
+	sensitiveSettingsMap := map[string]string{}
+
+	if raw := d.Get("config").(map[string]interface{}); len(raw) > 0 {
+		needsConfigure = true
+		envMap = make(map[string]string, len(raw))
+		for k, v := range raw {
+			envMap[k] = v.(string)
+		}
+	}
+
+	if v := d.Get("docker_image").(string); v != "" {
+		needsDeploy = true
+		settingsMap["APTIBLE_DOCKER_IMAGE"] = v
+	}
+
+	if v := d.Get("private_registry_username").(string); v != "" {
+		needsDeploy = true
+		sensitiveSettingsMap["APTIBLE_PRIVATE_REGISTRY_USERNAME"] = v
+	}
+
+	if v := d.Get("private_registry_password").(string); v != "" {
+		needsDeploy = true
+		sensitiveSettingsMap["APTIBLE_PRIVATE_REGISTRY_PASSWORD"] = v
+	}
+
+	operationType := "none"
+	if needsDeploy {
+		operationType = "deploy"
+	} else if needsConfigure {
+		operationType = "configure"
+	}
+
+	if operationType != "none" {
+		payload := aptibleapi.NewCreateOperationRequest(operationType)
+
+		if needsConfigure {
+			payload.SetEnv(envMap)
+		}
+		if len(settingsMap) > 0 {
+			payload.SetSettings(settingsMap)
+		}
+		if len(sensitiveSettingsMap) > 0 {
+			payload.SetSensitiveSettings(sensitiveSettingsMap)
+		}
+
+		operation, _, err := client.OperationsAPI.
+			CreateOperationForApp(ctx, app.Id).
+			CreateOperationRequest(*payload).
+			Execute()
 		if err != nil {
-			log.Println("There was an error when completing the request to configure the app.\n[ERROR] -", err)
-			return generateDiagnosticsFromClientError(err)
+			return append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to create app deploy operation",
+				Detail:   err.Error(),
+			})
+		}
+
+		_, err = legacy.WaitForOperation(int64(operation.Id))
+		if err != nil {
+			// Do not return here so that the read method can hydrate the state
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("App provision operation failed %d", operation.Id),
+				Detail:   err.Error(),
+			})
 		}
 	}
 
@@ -352,7 +460,7 @@ func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 		return diag.FromErr(err)
 	}
 
-	return resourceAppRead(ctx, d, meta)
+	return append(diags, resourceAppRead(ctx, d, meta)...)
 }
 
 func resourceAppImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
@@ -393,6 +501,23 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 		if err == nil {
 			_ = d.Set("config", currConf.Env)
 		}
+	}
+
+	currSettingId := ExtractIdFromLink(app.Links.CurrentSetting.GetHref())
+	if currSettingId != 0 {
+		currSetting, _, err := client.SettingsAPI.GetSetting(ctx, currSettingId).Execute()
+		if err != nil {
+			log.Println(err)
+			return diag.FromErr(err)
+		}
+		dockerImage, _ := currSetting.Settings["APTIBLE_DOCKER_IMAGE"].(string)
+		_ = d.Set("docker_image", dockerImage)
+
+		privRegUser, _ := currSetting.SensitiveSettings["APTIBLE_PRIVATE_REGISTRY_USERNAME"].(string)
+		_ = d.Set("private_registry_username", privRegUser)
+
+		privRegPass, _ := currSetting.SensitiveSettings["APTIBLE_PRIVATE_REGISTRY_PASSWORD"].(string)
+		_ = d.Set("private_registry_password", privRegPass)
 	}
 
 	var services = make([]map[string]interface{}, len(app.Embedded.Services))
@@ -453,14 +578,26 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).LegacyClient
-	appID := int64(d.Get("app_id").(int))
+func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	m := meta.(*providerMetadata)
+	legacy := meta.(*providerMetadata).LegacyClient
+	client := m.Client
+	ctx = m.APIContext(ctx)
+	appID := int32(d.Get("app_id").(int))
 
 	var diags diag.Diagnostics
 
+	needsDeploy := false
+	needsConfigure := false
+
+	envMap := map[string]string{}
+	settingsMap := map[string]string{}
+	sensitiveSettingsMap := map[string]string{}
+
+	operationType := "none"
+
 	// Check if any updates for Service settings. If so, change before deploying
-	err := updateServices(c, d, meta)
+	err := updateServices(ctx, d, meta)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -471,31 +608,73 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 	}
 
 	if d.HasChange("config") {
+		needsConfigure = true
 		o, c := d.GetChange("config")
-		old := o.(map[string]interface{})
-		config := c.(map[string]interface{})
-		// Set any old keys that are not present to an empty string.
-		// The API will then clear them during normalization otherwise
-		// the old values will be merged with the new
-		for key := range old {
-			if _, present := config[key]; !present {
-				config[key] = ""
-			}
+		oldRaw, newRaw := o.(map[string]interface{}), c.(map[string]interface{})
+		envMap = make(map[string]string, len(newRaw))
+		for k, v := range newRaw {
+			envMap[k] = v.(string)
 		}
-
-		err := client.DeployApp(config, appID)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "There was an error when trying to deploy the app.",
-				Detail:   generateErrorFromClientError(err).Error(),
-			})
-			log.Println("There was an error when completing the request.\n[ERROR] -", err)
-			return diags
+		for key := range oldRaw {
+			if _, present := envMap[key]; !present {
+				envMap[key] = ""
+			}
 		}
 	}
 
-	err = scaleServices(c, d, meta)
+	if d.HasChange("docker_image") {
+		needsDeploy = true
+		settingsMap["APTIBLE_DOCKER_IMAGE"] = d.Get("docker_image").(string)
+	}
+
+	if d.HasChanges("private_registry_username", "private_registry_password") {
+		needsDeploy = true
+		sensitiveSettingsMap["APTIBLE_PRIVATE_REGISTRY_USERNAME"] = d.Get("private_registry_username").(string)
+		sensitiveSettingsMap["APTIBLE_PRIVATE_REGISTRY_PASSWORD"] = d.Get("private_registry_password").(string)
+	}
+
+	if needsDeploy {
+		operationType = "deploy"
+	} else if needsConfigure {
+		operationType = "configure"
+	}
+
+	if operationType != "none" {
+		payload := aptibleapi.NewCreateOperationRequest(operationType)
+
+		if d.HasChange("config") {
+			payload.SetEnv(envMap)
+		}
+		if d.HasChange("docker_image") {
+			payload.SetSettings(settingsMap)
+		}
+		if d.HasChanges("private_registry_username", "private_registry_password") {
+			payload.SetSensitiveSettings(sensitiveSettingsMap)
+		}
+
+		operation, _, err := client.OperationsAPI.
+			CreateOperationForApp(ctx, appID).
+			CreateOperationRequest(*payload).
+			Execute()
+		if err != nil {
+			return append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Failed to create operation",
+				Detail:   err.Error(),
+			})
+		}
+		_, err = legacy.WaitForOperation(int64(operation.Id))
+		if err != nil {
+			// Do not return here so that the read method can hydrate the state
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("Failed to update App %d", appID),
+				Detail:   err.Error(),
+			})
+		}
+	}
+
+	err = scaleServices(ctx, d, meta)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -506,7 +685,7 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 	}
 
 	// Now that services are settled, go ahead and update scaling policy
-	err = updateServiceSizingPolicy(c, d, meta)
+	err = updateServiceSizingPolicy(ctx, d, meta)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -522,7 +701,7 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 			Handle: handle,
 		}
 		log.Printf("[INFO] Updating handle to %s\n", handle)
-		if err := client.UpdateApp(appID, updates); err != nil {
+		if err := legacy.UpdateApp(int64(appID), updates); err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "There was an error when trying to update the handle.",
@@ -537,7 +716,7 @@ func resourceAppUpdate(c context.Context, d *schema.ResourceData, meta interface
 		log.Printf("[WARN] In order for the new app name (%s) to appear in log drain and metric drain destinations, you must restart the app.\n", handle)
 	}
 
-	diags = append(diags, resourceAppRead(c, d, meta)...)
+	diags = append(diags, resourceAppRead(ctx, d, meta)...)
 	return diags
 }
 

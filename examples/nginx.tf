@@ -24,11 +24,9 @@ data "aptible_environment" "example" {
 #######################################################
 
 resource "aptible_app" "nginx" {
-  env_id = data.aptible_environment.demo.env_id
-  handle = "nginx"
-  config = {
-    "APTIBLE_DOCKER_IMAGE" = "nginx"
-  }
+  env_id       = data.aptible_environment.example.env_id
+  handle       = "nginx"
+  docker_image = "nginx"
 }
 
 #######################################################
