@@ -22,10 +22,10 @@ github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo
 github.com/apparentlymart/go-textseg/v12 v12.0.0/go.mod h1:S/4uRK2UtaQttw1GenVJEynmyUenKwP++x/+DdGV/Ec=
 github.com/apparentlymart/go-textseg/v15 v15.0.0 h1:uYvfpb3DyLSCGWnctWKGj857c6ew1u1fNQOlOtuGxQY=
 github.com/apparentlymart/go-textseg/v15 v15.0.0/go.mod h1:K8XmNZdhEBkdlyDdvbmmsvpAG721bKi0joRfFdHIWJ4=
-github.com/aptible/aptible-api-go v0.14.0 h1:ZK2naIkNs5OPiDj/8lB8G+zIzE5HKrbDEC1gK6kT3NI=
-github.com/aptible/aptible-api-go v0.14.0/go.mod h1:JIQ26rTFdhNrST98Ji1TI9OMd0/YqqxIkmiZld2YN7s=
-github.com/aptible/go-deploy v0.5.4 h1:fUXkJ5kzJhl2alknsV7OndpHirLIXHd8l8Zp6bhIlL0=
-github.com/aptible/go-deploy v0.5.4/go.mod h1:h0Zt8I+pV3aqvPo+rA1hIeQjT/13RzFPYuTmg4+SyPQ=
+github.com/aptible/aptible-api-go v0.14.1-0.20260612213414-cc8b73e0a468 h1:yh/9hm6LX59PoHpbvfvbeN6hcm6cWe34umFuiV74CIg=
+github.com/aptible/aptible-api-go v0.14.1-0.20260612213414-cc8b73e0a468/go.mod h1:JIQ26rTFdhNrST98Ji1TI9OMd0/YqqxIkmiZld2YN7s=
+github.com/aptible/go-deploy v0.5.5-0.20260612220054-0fcf50ad343e h1:hso2IKjXPGjXODhQVrGadvtOOgkkZR44vY3pnjF98HU=
+github.com/aptible/go-deploy v0.5.5-0.20260612220054-0fcf50ad343e/go.mod h1:JMGF0pWqhyqxLi+3Xj9J0nTrmB0opXRAe3TtSy3hLME=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
 github.com/armon/go-radix v1.0.0 h1:F4z6KzEeeQIMeLFa97iZU6vupzoecKdU5TX24SNppXI=
 github.com/armon/go-radix v1.0.0/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
@@ -294,8 +294,6 @@ github.com/mitchellh/cli v1.1.5/go.mod h1:v8+iFts2sPIKUV1ltktPXMCC8fumSKFItNcD2c
 github.com/mitchellh/copystructure v1.0.0/go.mod h1:SNtv71yrdKgLRyLFxmLdkAbkKEFWgYaq1OVrnRcwhnw=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
-github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
-github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/go-testing-interface v1.14.1 h1:jrgshOhYAUVNMAJiKbEu7EqAwgJJ2JqpQmpLJOu07cU=
 github.com/mitchellh/go-testing-interface v1.14.1/go.mod h1:gfgS7OtZj6MA4U1UrDRp04twqAjfvlZyCfX3sDjEym8=
 github.com/mitchellh/go-wordwrap v1.0.1 h1:TLuKupo69TCn6TQSyGxwI1EblZZEsQ0vMlAFQflz0v0=
