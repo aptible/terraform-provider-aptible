@@ -3,8 +3,8 @@ module github.com/aptible/terraform-provider-aptible
 go 1.25.9
 
 require (
-	github.com/aptible/aptible-api-go v0.14.0
-	github.com/aptible/go-deploy v0.5.4
+	github.com/aptible/aptible-api-go v0.15.0
+	github.com/aptible/go-deploy v0.5.5
 	github.com/bflad/tfproviderdocs v0.12.1
 	github.com/bflad/tfproviderlint v0.31.0
 	github.com/go-openapi/strfmt v0.25.0
@@ -83,7 +83,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/cli v1.1.5 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
-	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
