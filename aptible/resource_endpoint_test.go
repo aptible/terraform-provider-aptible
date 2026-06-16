@@ -477,6 +477,22 @@ func TestAccResourceEndpoint_lbAlgorithm(t *testing.T) {
 	})
 }
 
+func TestAccResourceEndpoint_createTimeout(t *testing.T) {
+	appHandle := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAptibleEndpointAppWithCreateTimeout(appHandle, "1s"),
+				ExpectError: regexp.MustCompile(`timed out waiting for operation`),
+			},
+		},
+	})
+}
+
 func TestAccResourceEndpoint_expectError(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -637,6 +653,41 @@ func testAccCheckEndpointDestroy(s *terraform.State) error {
 		}
 	}
 	return nil
+}
+
+func testAccAptibleEndpointAppWithCreateTimeout(appHandle string, timeout string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle   = "%s"
+		org_id   = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id       = aptible_environment.test.env_id
+		handle       = "%s"
+		docker_image = "quay.io/aptible/nginx-mirror:1"
+		service {
+			process_type           = "cmd"
+			container_memory_limit = 512
+			container_count        = 1
+		}
+	}
+
+	resource "aptible_endpoint" "test" {
+		env_id        = aptible_environment.test.env_id
+		resource_id   = aptible_app.test.app_id
+		resource_type = "app"
+		process_type  = "cmd"
+		endpoint_type = "https"
+		default_domain = true
+		internal      = true
+		platform      = "alb"
+		timeouts {
+			create = "%s"
+		}
+	}
+`, appHandle, testOrganizationId, testStackId, appHandle, timeout)
 }
 
 func testAccAptibleEndpointCustomDomain(appHandle string) string {

@@ -237,6 +237,24 @@ func TestAccResourceDatabase_update(t *testing.T) {
 	})
 }
 
+func TestAccResourceDatabase_createTimeout(t *testing.T) {
+	dbHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckDatabaseDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config:      testAccAptibleDatabaseWithCreateTimeout(env.ID, dbHandle, "1s"),
+					ExpectError: regexp.MustCompile(`timed out waiting for operation`),
+				},
+			},
+		})
+	})
+}
+
 func TestAccResourceDatabase_expectError(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
@@ -334,6 +352,18 @@ func testAccCheckDatabaseDestroy(s *terraform.State) error {
 		}
 	}
 	return nil
+}
+
+func testAccAptibleDatabaseWithCreateTimeout(envId int64, dbHandle string, timeout string) string {
+	return fmt.Sprintf(`
+	resource "aptible_database" "test" {
+		env_id = %d
+		handle = "%s"
+		timeouts {
+			create = "%s"
+		}
+	}
+`, envId, dbHandle, timeout)
 }
 
 func testAccAptibleDatabaseBasic(envId int64, dbHandle string) string {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/go-openapi/strfmt"
@@ -22,6 +23,10 @@ func resourceMetricDrain() *schema.Resource {
 		CustomizeDiff: resourceMetricDrainValidate,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceMetricDrainImport,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(20 * time.Minute),
+			Delete: schema.DefaultTimeout(20 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{

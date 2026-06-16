@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
 	"github.com/aptible/go-deploy/aptible"
@@ -26,6 +27,11 @@ func resourceEndpoint() *schema.Resource {
 		CustomizeDiff: resourceEndpointValidate,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceEndpointImport,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(20 * time.Minute),
+			Update: schema.DefaultTimeout(20 * time.Minute),
+			Delete: schema.DefaultTimeout(20 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -526,7 +532,9 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	_ = d.Set("endpoint_id", endpoint.Id)
 	d.SetId(strconv.Itoa(int(endpoint.Id)))
 
-	_, err = legacy.WaitForOperation(int64(operation.Id))
+	createCtx, createCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutCreate))
+	defer createCancel()
+	_, err = waitForOperationWithContext(createCtx, legacy, int64(operation.Id))
 	if err != nil {
 		// Do not return here so that the read method can hydrate the state
 		diags = append(diags, diag.Diagnostic{
@@ -554,17 +562,17 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 	endpointID := int32(d.Get("endpoint_id").(int))
 
 	endpoint, resp, err := client.VhostsAPI.GetVhost(ctx, endpointID).Execute()
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		log.Printf("Endpoint with ID: %d was deleted outside of Terraform. Removing it from Terraform state.", endpointID)
-		return nil
-	}
 	if err != nil {
 		return append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  fmt.Sprintf("Failed to fetch endpoint with ID %d", endpointID),
 			Detail:   err.Error(),
 		})
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		d.SetId("")
+		log.Printf("Endpoint with ID: %d was deleted outside of Terraform. Removing it from Terraform state.", endpointID)
+		return nil
 	}
 
 	serviceID := ExtractIdFromLink(endpoint.Links.Service.GetHref())
@@ -808,7 +816,9 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 			})
 		}
 
-		_, err = legacy.WaitForOperation(int64(operation.Id))
+		updateCtx, updateCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
+		defer updateCancel()
+		_, err = waitForOperationWithContext(updateCtx, legacy, int64(operation.Id))
 		if err != nil {
 			// Do not return here so that the read method can hydrate the state
 			diags = append(diags, diag.Diagnostic{
