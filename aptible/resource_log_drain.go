@@ -1,21 +1,28 @@
 package aptible
 
 import (
+	"context"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/aptible/go-deploy/aptible"
 	"github.com/go-openapi/strfmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceLogDrain() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceLogDrainCreate,
-		Read:   resourceLogDrainRead,
-		Delete: resourceLogDrainDelete,
+		CreateContext: resourceLogDrainCreateContext,
+		ReadContext:   resourceLogDrainReadContext,
+		DeleteContext: resourceLogDrainDeleteContext,
 		Importer: &schema.ResourceImporter{
 			State: resourceLogDrainImport,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(20 * time.Minute),
+			Delete: schema.DefaultTimeout(20 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -126,7 +133,7 @@ func resourceLogDrain() *schema.Resource {
 	}
 }
 
-func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceLogDrainCreateContext(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*providerMetadata).LegacyClient
 	handle := d.Get("handle").(string)
 	accountID := int64(d.Get("env_id").(int))
@@ -164,15 +171,15 @@ func resourceLogDrainCreate(d *schema.ResourceData, meta interface{}) error {
 	logDrain, err := client.CreateLogDrain(handle, accountID, data)
 	if err != nil {
 		log.Println("There was an error when completing the request to create the log drain.\n[ERROR] -", err)
-		return generateErrorFromClientError(err)
+		return diag.FromErr(generateErrorFromClientError(err))
 	}
 	d.SetId(strconv.Itoa(int(logDrain.ID)))
 	_ = d.Set("log_drain_id", logDrain.ID)
 
-	return resourceLogDrainRead(d, meta)
+	return resourceLogDrainReadContext(context.Background(), d, meta)
 }
 
-func resourceLogDrainRead(d *schema.ResourceData, meta interface{}) error {
+func resourceLogDrainReadContext(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*providerMetadata).LegacyClient
 	logDrainID := int64(d.Get("log_drain_id").(int))
 
@@ -181,7 +188,7 @@ func resourceLogDrainRead(d *schema.ResourceData, meta interface{}) error {
 	logDrain, err := client.GetLogDrain(logDrainID)
 	if err != nil {
 		log.Println(err)
-		return generateErrorFromClientError(err)
+		return diag.FromErr(generateErrorFromClientError(err))
 	}
 	if logDrain.Deleted {
 		d.SetId("")
@@ -216,9 +223,8 @@ func resourceLogDrainRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceLogDrainDelete(d *schema.ResourceData, meta interface{}) error {
-	readErr := resourceLogDrainRead(d, meta)
-	if readErr == nil {
+func resourceLogDrainDeleteContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	if diags := resourceLogDrainReadContext(ctx, d, meta); !diags.HasError() {
 		logDrainID := int64(d.Get("log_drain_id").(int))
 		client := meta.(*providerMetadata).LegacyClient
 		deleted, err := client.DeleteLogDrain(logDrainID)
@@ -228,7 +234,7 @@ func resourceLogDrainDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 		if err != nil {
 			log.Println("There was an error when completing the request to destroy the log drain.\n[ERROR] -", err)
-			return generateErrorFromClientError(err)
+			return diag.FromErr(generateErrorFromClientError(err))
 		}
 	}
 	d.SetId("")
@@ -238,6 +244,6 @@ func resourceLogDrainDelete(d *schema.ResourceData, meta interface{}) error {
 func resourceLogDrainImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	logDrainID, _ := strconv.Atoi(d.Id())
 	_ = d.Set("log_drain_id", logDrainID)
-	err := resourceLogDrainRead(d, meta)
+	err := diagnosticsToError(resourceLogDrainReadContext(context.Background(), d, meta))
 	return []*schema.ResourceData{d}, err
 }

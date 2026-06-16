@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
 	"github.com/aptible/go-deploy/aptible"
@@ -18,12 +19,17 @@ import (
 
 func resourceApp() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceAppCreate, // POST
-		ReadContext:   resourceAppRead,   // GET
-		UpdateContext: resourceAppUpdate, // PUT
-		Delete:        resourceAppDelete, // DELETE
+		CreateContext: resourceAppCreate,        // POST
+		ReadContext:   resourceAppRead,          // GET
+		UpdateContext: resourceAppUpdate,        // PUT
+		DeleteContext: resourceAppDeleteContext, // DELETE
 		Importer: &schema.ResourceImporter{
 			State: resourceAppImport,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(20 * time.Minute),
+			Update: schema.DefaultTimeout(20 * time.Minute),
+			Delete: schema.DefaultTimeout(20 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -429,7 +435,9 @@ func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 			})
 		}
 
-		_, err = legacy.WaitForOperation(int64(operation.Id))
+		createCtx, createCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutCreate))
+		defer createCancel()
+		_, err = waitForOperationWithContext(createCtx, legacy, int64(operation.Id))
 		if err != nil {
 			// Do not return here so that the read method can hydrate the state
 			diags = append(diags, diag.Diagnostic{
@@ -481,14 +489,14 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 	log.Println("Getting App with ID: " + strconv.Itoa(int(appID)))
 
 	app, resp, err := client.AppsAPI.GetApp(ctx, appID).Execute()
+	if err != nil {
+		log.Println(err)
+		return diag.FromErr(err)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		log.Println("App with ID: " + strconv.Itoa(int(appID)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
 		return nil
-	}
-	if err != nil {
-		log.Println(err)
-		return diag.FromErr(err)
 	}
 
 	_ = d.Set("app_id", int(app.Id))
@@ -663,7 +671,9 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 				Detail:   err.Error(),
 			})
 		}
-		_, err = legacy.WaitForOperation(int64(operation.Id))
+		updateCtx, updateCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
+		defer updateCancel()
+		_, err = waitForOperationWithContext(updateCtx, legacy, int64(operation.Id))
 		if err != nil {
 			// Do not return here so that the read method can hydrate the state
 			diags = append(diags, diag.Diagnostic{
@@ -720,10 +730,10 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 	return diags
 }
 
-func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
-	readDiags := resourceAppRead(context.Background(), d, meta)
+func resourceAppDeleteContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	readDiags := resourceAppRead(ctx, d, meta)
 	if readDiags.HasError() {
-		return diagnosticsToError(readDiags)
+		return readDiags
 	}
 
 	appID := int64(d.Get("app_id").(int))
@@ -735,7 +745,7 @@ func resourceAppDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	if err != nil {
 		log.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
-		return generateErrorFromClientError(err)
+		return diag.FromErr(generateErrorFromClientError(err))
 	}
 
 	d.SetId("")
@@ -913,7 +923,9 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 				return err
 			}
 
-			_, err = legacy.WaitForOperation(int64(resp.Id))
+			scaleCtx, scaleCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
+			defer scaleCancel()
+			_, err = waitForOperationWithContext(scaleCtx, legacy, int64(resp.Id))
 			return err
 		})
 	}

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -13,15 +14,18 @@ import (
 )
 
 func resourceReplica() *schema.Resource {
-	// Linter gets upset because of the mixed context and non-context methods
-	// lintignore:S024
 	return &schema.Resource{
-		CreateContext: resourceReplicaCreate, // POST
-		Read:          resourceReplicaRead,   // GET
-		UpdateContext: resourceReplicaUpdate, // PUT
-		Delete:        resourceReplicaDelete, // DELETE
+		CreateContext: resourceReplicaCreate,        // POST
+		ReadContext:   resourceReplicaReadContext,   // GET
+		UpdateContext: resourceReplicaUpdate,        // PUT
+		DeleteContext: resourceReplicaDeleteContext, // DELETE
 		Importer: &schema.ResourceImporter{
 			State: resourceReplicaImport,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(20 * time.Minute),
+			Update: schema.DefaultTimeout(20 * time.Minute),
+			Delete: schema.DefaultTimeout(20 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -127,7 +131,9 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 		})
 	}
 
-	deleted, err := legacy.WaitForOperation(int64(op.Id))
+	createCtx, createCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutCreate))
+	defer createCancel()
+	deleted, err := waitForOperationWithContext(createCtx, legacy, int64(op.Id))
 	if err != nil {
 		return append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -158,17 +164,17 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 			Severity: diag.Error,
 			Summary:  "Replica provision operation not found",
 		})
-		return append(diags, diag.FromErr(resourceReplicaRead(d, meta))...)
+		return append(diags, resourceReplicaReadContext(ctx, d, meta)...)
 	}
 	operationID := (*operation).ID
-	deleted, err = legacy.WaitForOperation(operationID)
+	deleted, err = waitForOperationWithContext(createCtx, legacy, operationID)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Failed to provision replica",
 			Detail:   err.Error(),
 		})
-		return append(diags, diag.FromErr(resourceReplicaRead(d, meta))...)
+		return append(diags, resourceReplicaReadContext(ctx, d, meta)...)
 	}
 	if deleted {
 		diags = append(diags, diag.Diagnostic{
@@ -176,7 +182,7 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 			Summary:  "Failed to provision replica",
 			Detail:   fmt.Sprintf("the replica with handle: %s was unexpectedly deleted", handle),
 		})
-		return append(diags, diag.FromErr(resourceReplicaRead(d, meta))...)
+		return append(diags, resourceReplicaReadContext(ctx, d, meta)...)
 	}
 
 	// Enable backups defaults to `true` in the backend so we only need to do
@@ -206,50 +212,49 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 
-	return append(diags, diag.FromErr(resourceReplicaRead(d, meta))...)
+	return append(diags, resourceReplicaReadContext(ctx, d, meta)...)
 }
 
 func resourceReplicaImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	replicaID, _ := strconv.Atoi(d.Id())
 	_ = d.Set("replica_id", replicaID)
-	err := resourceReplicaRead(d, meta)
+	err := diagnosticsToError(resourceReplicaReadContext(context.Background(), d, meta))
 	return []*schema.ResourceData{d}, err
 }
 
 // syncs Terraform state with changes made via the API outside of Terraform
-func resourceReplicaRead(d *schema.ResourceData, meta interface{}) error {
+func resourceReplicaReadContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	databaseID := int32(d.Get("replica_id").(int))
 
 	client := meta.(*providerMetadata).Client
-	ctx := context.Background()
 	ctx = meta.(*providerMetadata).APIContext(ctx)
 
 	database, resp, err := client.DatabasesAPI.GetDatabase(ctx, databaseID).Execute()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		log.Println("Database with ID: " + strconv.Itoa(int(databaseID)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
 		return nil
 	}
-	if err != nil {
-		return err
-	}
 
 	imageID := ExtractIdFromLink(database.Links.DatabaseImage.GetHref())
 	if imageID == 0 {
-		return fmt.Errorf("Could not find database image ID")
+		return diag.FromErr(fmt.Errorf("Could not find database image ID"))
 	}
 	serviceID := ExtractIdFromLink(database.Links.Service.GetHref())
 	if serviceID == 0 {
-		return fmt.Errorf("Could not find database service ID")
+		return diag.FromErr(fmt.Errorf("Could not find database service ID"))
 	}
 	accountID := ExtractIdFromLink(database.Links.Account.GetHref())
 	if accountID == 0 {
-		return fmt.Errorf("Could not find database account ID")
+		return diag.FromErr(fmt.Errorf("Could not find database account ID"))
 	}
 
 	service, _, err := client.ServicesAPI.GetServiceWithOperationStatus(ctx, serviceID).Execute()
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	containerSize := service.GetContainerMemoryLimitMb()
@@ -355,7 +360,9 @@ func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta int
 			return diags
 		}
 
-		del, err := legacy.WaitForOperation(int64(op.Id))
+		updateCtx, updateCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
+		defer updateCancel()
+		del, err := waitForOperationWithContext(updateCtx, legacy, int64(op.Id))
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -382,24 +389,16 @@ func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		log.Printf("[WARN] In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.\n", handle)
 	}
 
-	if err := resourceReplicaRead(d, meta); err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "There was an error when trying to retrieve the updated state of the database.",
-			Detail:   err.Error(),
-		})
-	}
-
-	return diags
+	return append(diags, resourceReplicaReadContext(ctx, d, meta)...)
 }
 
-func resourceReplicaDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceReplicaDeleteContext(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*providerMetadata).LegacyClient
 	replicaID := int64(d.Get("replica_id").(int))
 	err := client.DeleteReplica(replicaID)
 	if err != nil {
 		log.Println(err)
-		return generateErrorFromClientError(err)
+		return diag.FromErr(generateErrorFromClientError(err))
 	}
 
 	d.SetId("")

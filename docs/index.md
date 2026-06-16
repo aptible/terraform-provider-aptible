@@ -232,3 +232,21 @@ resource "aptible_replica" "REPLICA_HANDLE" {
 ## Argument Reference
 
 There are currently no arguments to provide directly to the provider
+
+
+## Timeouts
+
+Operations on most resources will time out after 20 minutes by default. You can override these values with a `timeouts` block:
+
+```hcl
+resource "aptible_app" "example_app" {
+  env_id = 123
+  handle = "example_app"
+
+  timeouts {
+    create = "30m"
+    update = "30m"
+    delete = "10m"
+  }
+}
+```

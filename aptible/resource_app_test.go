@@ -1136,6 +1136,24 @@ func testAccAptibleAppMultipleServicesWithPartialAutoscaling(handle string) stri
 	`, handle, testOrganizationId, testStackId, handle)
 }
 
+func TestAccResourceApp_createTimeout(t *testing.T) {
+	rHandle := acctest.RandString(10)
+
+	WithTestAccEnvironment(t, func(env aptible.Environment) {
+		resource.ParallelTest(t, resource.TestCase{
+			PreCheck:     func() { testAccPreCheck(t) },
+			Providers:    testAccProviders,
+			CheckDestroy: testAccCheckAppDestroy,
+			Steps: []resource.TestStep{
+				{
+					Config:      testAccAptibleAppDeployWithCreateTimeout(rHandle, "1s"),
+					ExpectError: regexp.MustCompile(`timed out waiting for operation`),
+				},
+			},
+		})
+	})
+}
+
 func TestAccResourceApp_usernameWithoutPassword(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
@@ -1188,6 +1206,25 @@ func TestAccResourceApp_registryCredsWithoutDockerImage(t *testing.T) {
 			},
 		})
 	})
+}
+
+func testAccAptibleAppDeployWithCreateTimeout(handle string, timeout string) string {
+	return fmt.Sprintf(`
+	resource "aptible_environment" "test" {
+		handle   = "%s"
+		org_id   = "%s"
+		stack_id = "%v"
+	}
+
+	resource "aptible_app" "test" {
+		env_id       = aptible_environment.test.env_id
+		handle       = "%s"
+		docker_image = "quay.io/aptible/nginx-mirror:1"
+		timeouts {
+			create = "%s"
+		}
+	}
+`, handle, testOrganizationId, testStackId, handle, timeout)
 }
 
 func testAccAptibleAppUsernameWithoutPassword(handle string) string {

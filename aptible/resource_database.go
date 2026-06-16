@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -14,15 +15,18 @@ import (
 )
 
 func resourceDatabase() *schema.Resource {
-	// Linter gets upset because of the mixed context and non-context methods
-	// lintignore:S024
 	return &schema.Resource{
-		CreateContext: resourceDatabaseCreate, // POST
-		Read:          resourceDatabaseRead,   // GET
-		UpdateContext: resourceDatabaseUpdate, // PUT
-		Delete:        resourceDatabaseDelete, // DELETE
+		CreateContext: resourceDatabaseCreate,        // POST
+		ReadContext:   resourceDatabaseReadContext,   // GET
+		UpdateContext: resourceDatabaseUpdate,        // PUT
+		DeleteContext: resourceDatabaseDeleteContext, // DELETE
 		Importer: &schema.ResourceImporter{
 			State: resourceDatabaseImport,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(20 * time.Minute),
+			Update: schema.DefaultTimeout(20 * time.Minute),
+			Delete: schema.DefaultTimeout(20 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -180,7 +184,9 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 			Detail:   err.Error(),
 		})
 	} else {
-		_, err = legacy.WaitForOperation(int64(op.Id))
+		createCtx, createCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutCreate))
+		defer createCancel()
+		_, err = waitForOperationWithContext(createCtx, legacy, int64(op.Id))
 		if err != nil {
 			// Do not return so that the read method can hydrate the state
 			diags = append(diags, diag.Diagnostic{
@@ -191,24 +197,24 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
-	return append(diags, diag.FromErr(resourceDatabaseRead(d, meta))...)
+	return append(diags, resourceDatabaseReadContext(ctx, d, meta)...)
 }
 
 // syncs Terraform state with changes made via the API outside of Terraform
-func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
+func resourceDatabaseReadContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
 	client := m.Client
-	ctx := m.APIContext(context.Background())
+	ctx = m.APIContext(ctx)
 	databaseID := int32(d.Get("database_id").(int))
 
 	database, resp, err := client.DatabasesAPI.GetDatabase(ctx, databaseID).Execute()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		log.Println("Database with ID: " + strconv.Itoa(int(databaseID)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
 		return nil
-	}
-	if err != nil {
-		return err
 	}
 
 	urls := []string{}
@@ -219,25 +225,25 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 
 	imageID := ExtractIdFromLink(database.Links.DatabaseImage.GetHref())
 	if imageID == 0 {
-		return fmt.Errorf("Could not find database image ID")
+		return diag.FromErr(fmt.Errorf("Could not find database image ID"))
 	}
 	serviceID := ExtractIdFromLink(database.Links.Service.GetHref())
 	if serviceID == 0 {
-		return fmt.Errorf("Could not find database service ID")
+		return diag.FromErr(fmt.Errorf("Could not find database service ID"))
 	}
 	accountID := ExtractIdFromLink(database.Links.Account.GetHref())
 	if accountID == 0 {
-		return fmt.Errorf("Could not find database account ID")
+		return diag.FromErr(fmt.Errorf("Could not find database account ID"))
 	}
 
 	image, _, err := client.ImagesAPI.GetDatabaseImage(ctx, imageID).Execute()
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	service, _, err := client.ServicesAPI.GetServiceWithOperationStatus(ctx, serviceID).Execute()
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	containerSize := service.GetContainerMemoryLimitMb()
@@ -262,7 +268,7 @@ func resourceDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 func resourceDatabaseImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	databaseID, _ := strconv.Atoi(d.Id())
 	_ = d.Set("database_id", databaseID)
-	err := resourceDatabaseRead(d, meta)
+	err := diagnosticsToError(resourceDatabaseReadContext(context.Background(), d, meta))
 	return []*schema.ResourceData{d}, err
 }
 
@@ -349,7 +355,9 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 			return diags
 		}
 
-		del, err := legacy.WaitForOperation(int64(op.Id))
+		updateCtx, updateCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
+		defer updateCancel()
+		del, err := waitForOperationWithContext(updateCtx, legacy, int64(op.Id))
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -376,25 +384,17 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		log.Printf("[WARN] In order for the new database name (%s) to appear in log drain and metric drain destinations, you must restart the database.\n", handle)
 	}
 
-	if err := resourceDatabaseRead(d, meta); err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "There was an error when trying to retrieve the updated state of the database.",
-			Detail:   err.Error(),
-		})
-	}
-
-	return diags
+	return append(diags, resourceDatabaseReadContext(ctx, d, meta)...)
 }
 
-func resourceDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceDatabaseDeleteContext(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*providerMetadata).LegacyClient
 	databaseID := int64(d.Get("database_id").(int))
 
 	err := client.DeleteDatabase(databaseID)
 	if err != nil {
 		log.Println(err)
-		return generateErrorFromClientError(err)
+		return diag.FromErr(generateErrorFromClientError(err))
 	}
 
 	d.SetId("")
