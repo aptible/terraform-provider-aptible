@@ -45,7 +45,7 @@ func TestWaitForOperationWithPoll_deleted(t *testing.T) {
 func TestWaitForOperationWithPoll_timeout(t *testing.T) {
 	// poll blocks until the context is cancelled
 	poll := func(_ int64) (bool, error) {
-		time.Sleep(10 * time.Second)
+		time.Sleep(10 * time.Second) //lintignore:R018
 		return false, nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)

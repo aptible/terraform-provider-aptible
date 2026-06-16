@@ -43,6 +43,6 @@ lint:
 tools:
 	@go mod vendor
 	@go install github.com/bflad/tfproviderlint/cmd/tfproviderlint
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v2.6.2
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v2.11.4
 
 .PHONY: build gen test testacc fmt fmtcheck lint tools local-install
