@@ -27,9 +27,9 @@ func resourceApp() *schema.Resource {
 			State: resourceAppImport,
 		},
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(20 * time.Minute),
-			Update: schema.DefaultTimeout(20 * time.Minute),
-			Delete: schema.DefaultTimeout(20 * time.Minute),
+			Create: schema.DefaultTimeout(90 * time.Minute),
+			Update: schema.DefaultTimeout(90 * time.Minute),
+			Delete: schema.DefaultTimeout(90 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
