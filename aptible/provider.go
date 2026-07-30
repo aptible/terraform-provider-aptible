@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/go-deploy/aptible"
+	"github.com/aptible/aptible-api-go/helpers"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -31,47 +31,28 @@ func Provider() *schema.Provider {
 	}
 }
 
-func providerConfigureWithContext(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	client, err := aptible.SetUpClient()
+func providerConfigureWithContext(_ context.Context, _ *schema.ResourceData) (interface{}, diag.Diagnostics) {
+	token, err := helpers.GetToken()
 	if err != nil {
-		diags = append(diags, diag.Diagnostic{
+		return nil, diag.Diagnostics{{
 			Severity: diag.Error,
 			Summary:  "There was an error when initializing the provider.",
-			Detail:   "There was an error when initializing the provider.",
-		})
-		log.Println("[ERR] Error in attempting to start the provider", err)
-		return nil, diags
-	}
-
-	token, err := aptible.GetToken()
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "There was an error when initializing the provider.",
-			Detail:   "There was an error when initializing the provider.",
-		})
-		log.Println("[ERR] Error in attempting to start the provider", err)
-		return nil, diags
+			Detail:   err.Error(),
+		}}
 	}
 
 	return &providerMetadata{
-		LegacyClient: client,
-		Client:       aptibleapi.NewAPIClient(aptibleapi.NewAPIConfiguration()),
-		Token:        token,
+		Client: aptibleapi.NewAPIClient(aptibleapi.NewAPIConfiguration()),
+		Token:  token,
 	}, nil
 }
 
 type providerMetadata struct {
-	LegacyClient *aptible.Client
-	Client       *aptibleapi.APIClient
-	Token        string
+	Client *aptibleapi.APIClient
+	Token  string
 }
 
-// Configures the provided context to work with aptibleapi.APIClient requests
 func (m *providerMetadata) APIContext(ctx context.Context) context.Context {
-	// Override the default API url with APTIBLE_API_ROOT_URL, if non-empty
 	if url := os.Getenv("APTIBLE_API_ROOT_URL"); url != "" {
 		ctx = context.WithValue(ctx, aptibleapi.ContextServerVariables, map[string]string{"url": url})
 	}

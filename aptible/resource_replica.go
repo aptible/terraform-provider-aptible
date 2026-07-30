@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
+	"github.com/aptible/aptible-api-go/helpers"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -88,7 +89,6 @@ func resourceReplica() *schema.Resource {
 
 func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	legacy := m.LegacyClient
 	client := m.Client
 	ctx = m.APIContext(ctx)
 	diags := diag.Diagnostics{}
@@ -133,7 +133,7 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 
 	createCtx, createCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutCreate))
 	defer createCancel()
-	deleted, err := waitForOperationWithContext(createCtx, legacy, int64(op.Id))
+	deleted, err := helpers.WaitForOperation(createCtx, client, op.Id)
 	if err != nil {
 		return append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -149,14 +149,14 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 		})
 	}
 
-	repl, err := legacy.GetReplicaFromHandle(int64(databaseID), handle)
+	repl, err := helpers.GetReplicaByHandle(ctx, client, int32(databaseID), handle)
 	if err != nil {
-		return generateDiagnosticsFromClientError(err)
+		return diag.FromErr(err)
 	}
 
 	// At this point the replica exists so it should be persisted in the state
-	_ = d.Set("replica_id", repl.ID)
-	d.SetId(strconv.Itoa(int(repl.ID)))
+	_ = d.Set("replica_id", repl.Id)
+	d.SetId(strconv.Itoa(int(repl.Id)))
 
 	operation := repl.Embedded.LastOperation
 	if operation == nil {
@@ -166,8 +166,8 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 		})
 		return append(diags, resourceReplicaReadContext(ctx, d, meta)...)
 	}
-	operationID := (*operation).ID
-	deleted, err = waitForOperationWithContext(createCtx, legacy, operationID)
+	operationID := operation.Id
+	deleted, err = helpers.WaitForOperation(createCtx, client, operationID)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -192,7 +192,7 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 	if !enableBackups {
 		_, err := client.
 			DatabasesAPI.
-			PatchDatabase(ctx, int32(repl.ID)).
+			PatchDatabase(ctx, repl.Id).
 			UpdateDatabaseRequest(
 				aptibleapi.UpdateDatabaseRequest{EnableBackups: &enableBackups},
 			).
@@ -278,7 +278,6 @@ func resourceReplicaReadContext(ctx context.Context, d *schema.ResourceData, met
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*providerMetadata).Client
-	legacy := meta.(*providerMetadata).LegacyClient
 	ctx = meta.(*providerMetadata).APIContext(ctx)
 	databaseID := int32(d.Get("replica_id").(int))
 	containerSize := int32(d.Get("container_size").(int))
@@ -290,7 +289,6 @@ func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	needsOperation := false
 	var diags diag.Diagnostics
 
-	ctx = meta.(*providerMetadata).APIContext(ctx)
 	payload := aptibleapi.NewCreateOperationRequest("restart")
 
 	if d.HasChange("container_size") {
@@ -362,12 +360,12 @@ func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta int
 
 		updateCtx, updateCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
 		defer updateCancel()
-		del, err := waitForOperationWithContext(updateCtx, legacy, int64(op.Id))
+		del, err := helpers.WaitForOperation(updateCtx, client, op.Id)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "There was an error when trying to update the database.",
-				Detail:   generateErrorFromClientError(err).Error(),
+				Detail:   err.Error(),
 			})
 			return diags
 		}
@@ -392,13 +390,15 @@ func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	return append(diags, resourceReplicaReadContext(ctx, d, meta)...)
 }
 
-func resourceReplicaDeleteContext(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).LegacyClient
-	replicaID := int64(d.Get("replica_id").(int))
-	err := client.DeleteReplica(replicaID)
+func resourceReplicaDeleteContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	m := meta.(*providerMetadata)
+	client := m.Client
+	ctx = m.APIContext(ctx)
+	replicaID := int32(d.Get("replica_id").(int))
+	_, err := helpers.DeleteDatabase(ctx, client, replicaID)
 	if err != nil {
 		log.Println(err)
-		return diag.FromErr(generateErrorFromClientError(err))
+		return diag.FromErr(err)
 	}
 
 	d.SetId("")

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
+	"github.com/aptible/aptible-api-go/helpers"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -107,7 +108,6 @@ func resourceDatabase() *schema.Resource {
 
 func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	legacy := m.LegacyClient
 	client := m.Client
 	ctx = m.APIContext(ctx)
 	diags := diag.Diagnostics{}
@@ -135,12 +135,12 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	if version != "" {
-		image, err := legacy.GetDatabaseImageByTypeAndVersion(databaseType, version)
+		image, err := helpers.GetDatabaseImageByTypeAndVersion(ctx, client, databaseType, version)
 		if err != nil {
 			log.Println(err)
-			return generateDiagnosticsFromClientError(err)
+			return diag.FromErr(err)
 		}
-		create.SetDatabaseImageId(int32(image.ID))
+		create.SetDatabaseImageId(image.Id)
 	}
 
 	db, _, err := client.DatabasesAPI.
@@ -186,7 +186,7 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 	} else {
 		createCtx, createCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutCreate))
 		defer createCancel()
-		_, err = waitForOperationWithContext(createCtx, legacy, int64(op.Id))
+		_, err = helpers.WaitForOperation(createCtx, client, op.Id)
 		if err != nil {
 			// Do not return so that the read method can hydrate the state
 			diags = append(diags, diag.Diagnostic{
@@ -220,7 +220,9 @@ func resourceDatabaseReadContext(ctx context.Context, d *schema.ResourceData, me
 	urls := []string{}
 	creds := database.Embedded.GetDatabaseCredentials()
 	for _, cred := range creds {
-		urls = append(urls, cred.ConnectionUrl)
+		if cred.ConnectionUrl != nil {
+			urls = append(urls, *cred.ConnectionUrl)
+		}
 	}
 
 	imageID := ExtractIdFromLink(database.Links.DatabaseImage.GetHref())
@@ -275,7 +277,6 @@ func resourceDatabaseImport(d *schema.ResourceData, meta interface{}) ([]*schema
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*providerMetadata).Client
-	legacy := meta.(*providerMetadata).LegacyClient
 	databaseID := int32(d.Get("database_id").(int))
 	containerSize := int32(d.Get("container_size").(int))
 	profile := d.Get("container_profile").(string)
@@ -357,12 +358,12 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 
 		updateCtx, updateCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
 		defer updateCancel()
-		del, err := waitForOperationWithContext(updateCtx, legacy, int64(op.Id))
+		del, err := helpers.WaitForOperation(updateCtx, client, op.Id)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "There was an error when trying to update the database.",
-				Detail:   generateErrorFromClientError(err).Error(),
+				Detail:   err.Error(),
 			})
 			return diags
 		}
@@ -387,14 +388,16 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	return append(diags, resourceDatabaseReadContext(ctx, d, meta)...)
 }
 
-func resourceDatabaseDeleteContext(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).LegacyClient
-	databaseID := int64(d.Get("database_id").(int))
+func resourceDatabaseDeleteContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	m := meta.(*providerMetadata)
+	client := m.Client
+	ctx = m.APIContext(ctx)
+	databaseID := int32(d.Get("database_id").(int))
 
-	err := client.DeleteDatabase(databaseID)
+	_, err := helpers.DeleteDatabase(ctx, client, databaseID)
 	if err != nil {
 		log.Println(err)
-		return diag.FromErr(generateErrorFromClientError(err))
+		return diag.FromErr(err)
 	}
 
 	d.SetId("")

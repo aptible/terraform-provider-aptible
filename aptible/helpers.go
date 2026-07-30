@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strconv"
 )
 
 // makes a string slice out of a slice of type interface
@@ -51,4 +52,10 @@ func makeInt32Slice(interfaceSlice []interface{}) ([]int32, error) {
 
 func fitsInt32[T ~int | ~int64](val T) bool {
 	return val >= math.MinInt32 && val <= math.MaxInt32
+}
+
+func formatFloat32ToFloat64(val float32) float64 {
+	formatted := fmt.Sprintf("%.6f", val)
+	result, _ := strconv.ParseFloat(formatted, 64)
+	return result
 }

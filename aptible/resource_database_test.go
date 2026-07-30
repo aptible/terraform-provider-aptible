@@ -1,14 +1,15 @@
 package aptible
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"regexp"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -20,7 +21,7 @@ func TestAccResourceDatabase_basic(t *testing.T) {
 	// Can't use an aptible_environment TF resource with databases because, when
 	// the destroy is attempted, the environment will not permit deletion due to
 	// the database's final backup
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -63,7 +64,7 @@ func TestAccResourceDatabase_withoutBackups(t *testing.T) {
 	// Can't use an aptible_environment TF resource with databases because, when
 	// the destroy is attempted, the environment will not permit deletion due to
 	// the database's final backup
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -105,7 +106,7 @@ func TestAccResourceDatabase_withoutBackups(t *testing.T) {
 func TestAccResourceDatabase_redis(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -149,7 +150,7 @@ func TestAccResourceDatabase_redis(t *testing.T) {
 func TestAccResourceDatabase_version(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -189,7 +190,7 @@ func TestAccResourceDatabase_version(t *testing.T) {
 func TestAccResourceDatabase_update(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -240,7 +241,7 @@ func TestAccResourceDatabase_update(t *testing.T) {
 func TestAccResourceDatabase_createTimeout(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -258,7 +259,7 @@ func TestAccResourceDatabase_createTimeout(t *testing.T) {
 func TestAccResourceDatabase_expectError(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -287,7 +288,7 @@ func TestAccResourceDatabase_scale(t *testing.T) {
 	// Can't use an aptible_environment TF resource with databases because, when
 	// the destroy is attempted, the environment will not permit deletion due to
 	// the database's final backup
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -325,7 +326,9 @@ func TestAccResourceDatabase_scale(t *testing.T) {
 }
 
 func testAccCheckDatabaseDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
+	m := testAccProvider.Meta().(*providerMetadata)
+	client := m.Client
+	ctx := m.APIContext(context.Background())
 	// Allow time for deprovision operation to complete.
 	// TODO: Replace this by waiting on the actual operation
 
@@ -341,15 +344,14 @@ func testAccCheckDatabaseDestroy(s *terraform.State) error {
 			return err
 		}
 
-		database, err := client.GetDatabase(int64(databaseId))
-		log.Println("Deleted? ", database.Deleted)
-		if !database.Deleted {
+		_, resp, err := client.DatabasesAPI.GetDatabase(ctx, int32(databaseId)).Execute()
+		if err == nil {
 			return fmt.Errorf("database %v not removed", databaseId)
 		}
-
-		if err != nil {
-			return err
+		if resp != nil && resp.StatusCode != http.StatusNotFound {
+			return fmt.Errorf("unexpected error checking database %v: %v", databaseId, err)
 		}
+		log.Println("Database deleted (404): ", databaseId)
 	}
 	return nil
 }

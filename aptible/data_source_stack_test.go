@@ -1,6 +1,7 @@
 package aptible
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -8,8 +9,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-
-	"github.com/aptible/go-deploy/aptible"
 )
 
 func TestAccStackDataSource_validation(t *testing.T) {
@@ -33,20 +32,16 @@ func TestAccStackDataSource_validation(t *testing.T) {
 
 func TestAccStackDataSource_basic(t *testing.T) {
 	if os.Getenv("TF_ACC") == "1" {
-		// This guard is set because the below code should only evaluate if running in an integration test
-		// setting. Typically this is honored by Terraform, but this occurs outside the context of the resource.Test
-		// which must be done as values set in PreCheck are discarded and/or run in an entirely different context
-		var stacks []aptible.Stack
-		client, err := aptible.SetUpClient()
-		if err != nil {
-			t.Fatalf("Unable to generate and setup client for stacks test - %s", err.Error())
-			return
-		}
-		stacks, err = client.GetStacks()
+		m := testAccProvider.Meta().(*providerMetadata)
+		client := m.Client
+		ctx := m.APIContext(context.Background())
+
+		stacksResp, _, err := client.StacksAPI.ListStacks(ctx).Execute()
 		if err != nil {
 			t.Fatalf("Unable to retrieve stacks for test - %s", err.Error())
 			return
 		}
+		stacks := stacksResp.Embedded.Stacks
 		if len(stacks) == 0 {
 			t.Fatal("Unable to find stacks with a zero length")
 			return
@@ -60,11 +55,11 @@ func TestAccStackDataSource_basic(t *testing.T) {
 			ProviderFactories: testAccProviderFactories,
 			Steps: []resource.TestStep{
 				{
-					Config: testDataAccAptibleStack(stacks[0].Name),
+					Config: testDataAccAptibleStack(stacks[0].GetName()),
 					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("data.aptible_stack.test", "name", stacks[0].Name),
-						resource.TestCheckResourceAttr("data.aptible_stack.test", "stack_id", strconv.Itoa(int(stacks[0].ID))),
-						resource.TestCheckResourceAttr("data.aptible_stack.test", "org_id", stacks[0].OrganizationID),
+						resource.TestCheckResourceAttr("data.aptible_stack.test", "name", stacks[0].GetName()),
+						resource.TestCheckResourceAttr("data.aptible_stack.test", "stack_id", strconv.Itoa(int(stacks[0].GetId()))),
+						resource.TestCheckResourceAttr("data.aptible_stack.test", "org_id", stacks[0].GetAccountId()),
 					),
 				},
 			},
@@ -75,7 +70,7 @@ func TestAccStackDataSource_basic(t *testing.T) {
 func testDataAccAptibleStack(name string) string {
 	return fmt.Sprintf(`
 data "aptible_stack" "test" {
-	name = "%s"
+    name = "%s"
 }`,
 		name)
 }

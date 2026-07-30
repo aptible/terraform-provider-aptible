@@ -1,6 +1,9 @@
 package aptible
 
 import (
+	"context"
+
+	"github.com/aptible/aptible-api-go/helpers"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -25,15 +28,18 @@ func dataSourceStack() *schema.Resource {
 }
 
 func dataSourceStackRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).LegacyClient
-	handle := d.Get("name").(string)
-	stack, err := client.GetStackByName(handle)
+	m := meta.(*providerMetadata)
+	client := m.Client
+	ctx := m.APIContext(context.Background())
+
+	name := d.Get("name").(string)
+	stack, err := helpers.GetStackByName(ctx, client, name)
 	if err != nil {
-		return generateErrorFromClientError(err)
+		return err
 	}
 
-	_ = d.Set("stack_id", stack.ID)
-	_ = d.Set("org_id", stack.OrganizationID)
-	d.SetId(handle)
+	_ = d.Set("stack_id", int(stack.Id))
+	_ = d.Set("org_id", helpers.GetOrgIDFromStackLinks(stack))
+	d.SetId(name)
 	return nil
 }

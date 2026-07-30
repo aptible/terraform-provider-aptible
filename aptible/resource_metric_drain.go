@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/aptible/go-deploy/aptible"
-	"github.com/go-openapi/strfmt"
+	"github.com/aptible/aptible-api-go/aptibleapi"
+	"github.com/aptible/aptible-api-go/helpers"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -149,84 +149,162 @@ func resourceMetricDrainValidate(_ context.Context, diff *schema.ResourceDiff, _
 }
 
 func resourceMetricDrainCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).LegacyClient
+	m := meta.(*providerMetadata)
+	client := m.Client
+	ctx = m.APIContext(ctx)
+
 	handle := d.Get("handle").(string)
-	accountID := int64(d.Get("env_id").(int))
-	data := &aptible.MetricDrainCreateAttrs{
-		DrainType:  d.Get("drain_type").(string),
-		DatabaseID: int64(d.Get("database_id").(int)),
-		URL:        strfmt.URI(d.Get("url").(string)),
-		Username:   d.Get("username").(string),
-		Password:   d.Get("password").(string),
-		Database:   d.Get("database").(string),
-		APIKey:     d.Get("api_key").(string),
-		AuthToken:  d.Get("api_key").(string),
-		Bucket:     d.Get("bucket").(string),
-		Org:        d.Get("organization").(string),
-		SeriesURL:  strfmt.URI(d.Get("series_url").(string)),
+	accountID := int32(d.Get("env_id").(int))
+	drainType := d.Get("drain_type").(string)
+
+	req := aptibleapi.CreateMetricDrainRequest{
+		Handle:    handle,
+		DrainType: drainType,
 	}
 
-	metricDrain, err := client.CreateMetricDrain(handle, accountID, data)
+	if databaseID := int32(d.Get("database_id").(int)); databaseID != 0 {
+		req.DatabaseId = &databaseID
+	}
+
+	// influxdb_database drains don't have a DrainConfiguration
+	if drainType != "influxdb_database" {
+		url := d.Get("url").(string)
+		username := d.Get("username").(string)
+		password := d.Get("password").(string)
+		database := d.Get("database").(string)
+		apiKey := d.Get("api_key").(string)
+		seriesURL := d.Get("series_url").(string)
+		bucket := d.Get("bucket").(string)
+		org := d.Get("organization").(string)
+
+		config := &aptibleapi.CreateMetricDrainRequestDrainConfiguration{}
+		if url != "" {
+			config.Address = &url
+		}
+		if username != "" {
+			config.Username = &username
+		}
+		if password != "" {
+			config.Password = &password
+		}
+		if database != "" {
+			config.Database = &database
+		}
+		if apiKey != "" {
+			config.ApiKey = &apiKey
+			config.AuthToken = &apiKey
+		}
+		if seriesURL != "" {
+			config.SeriesUrl = &seriesURL
+		}
+		if bucket != "" {
+			config.Bucket = &bucket
+		}
+		if org != "" {
+			config.Org = &org
+		}
+		req.DrainConfiguration = config
+	}
+
+	metricDrain, _, err := client.MetricDrainsAPI.CreateMetricDrain(ctx, accountID).
+		CreateMetricDrainRequest(req).Execute()
 	if err != nil {
 		log.Println("There was an error when completing the request to create the metric drain.\n[ERROR] -", err)
-		return generateDiagnosticsFromClientError(err)
+		return diag.FromErr(err)
 	}
-	d.SetId(strconv.Itoa(int(metricDrain.ID)))
-	_ = d.Set("metric_drain_id", metricDrain.ID)
+
+	// Provision the metric drain
+	op, _, err := client.OperationsAPI.CreateOperationForMetricDrain(ctx, metricDrain.Id).
+		CreateOperationRequest(aptibleapi.CreateOperationRequest{Type: "provision"}).Execute()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	_, err = helpers.WaitForOperation(ctx, client, op.Id)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.SetId(strconv.Itoa(int(metricDrain.Id)))
+	_ = d.Set("metric_drain_id", int(metricDrain.Id))
 
 	return resourceMetricDrainRead(ctx, d, meta)
 }
 
-func resourceMetricDrainRead(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).LegacyClient
-	metricDrainID := int64(d.Get("metric_drain_id").(int))
+func resourceMetricDrainRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	m := meta.(*providerMetadata)
+	client := m.Client
+	ctx = m.APIContext(ctx)
 
+	metricDrainID := int32(d.Get("metric_drain_id").(int))
 	log.Println("Getting metric drain with ID: " + strconv.Itoa(int(metricDrainID)))
 
-	metricDrain, err := client.GetMetricDrain(metricDrainID)
+	metricDrain, resp, err := client.MetricDrainsAPI.GetMetricDrain(ctx, metricDrainID).Execute()
 	if err != nil {
+		if resp != nil && resp.StatusCode == 404 {
+			d.SetId("")
+			return nil
+		}
 		log.Println(err)
-		return generateDiagnosticsFromClientError(err)
+		return diag.FromErr(err)
 	}
-	if metricDrain.Deleted {
-		d.SetId("")
-		return nil
-	}
-	_ = d.Set("metric_drain_id", int(metricDrain.ID))
-	_ = d.Set("env_id", metricDrain.AccountID)
+
+	_ = d.Set("metric_drain_id", int(metricDrain.Id))
 	_ = d.Set("handle", metricDrain.Handle)
 	_ = d.Set("drain_type", metricDrain.DrainType)
-	_ = d.Set("database_id", metricDrain.DatabaseID)
-	_ = d.Set("url", metricDrain.URL)
-	_ = d.Set("username", metricDrain.Username)
-	_ = d.Set("password", metricDrain.Password)
-	_ = d.Set("database", metricDrain.Database)
-	if metricDrain.APIKey != "" {
-		_ = d.Set("api_key", metricDrain.APIKey)
+
+	if metricDrain.Links != nil {
+		if metricDrain.Links.Account != nil && metricDrain.Links.Account.Href != nil {
+			_ = d.Set("env_id", int(helpers.ExtractIDFromHref(*metricDrain.Links.Account.Href)))
+		}
+		if metricDrain.Links.Database != nil && metricDrain.Links.Database.Href != nil {
+			_ = d.Set("database_id", int(helpers.ExtractIDFromHref(*metricDrain.Links.Database.Href)))
+		}
 	}
-	_ = d.Set("series_url", metricDrain.SeriesURL)
-	if metricDrain.AuthToken != "" {
-		_ = d.Set("api_key", metricDrain.AuthToken)
+
+	if metricDrain.DrainConfiguration != nil {
+		config := metricDrain.DrainConfiguration
+		_ = d.Set("url", config.GetAddress())
+		_ = d.Set("username", config.GetUsername())
+		_ = d.Set("password", config.GetPassword())
+		_ = d.Set("database", config.GetDatabase())
+		if apiKey := config.GetApiKey(); apiKey != "" {
+			_ = d.Set("api_key", apiKey)
+		}
+		_ = d.Set("series_url", config.GetSeriesUrl())
+
+		if config.AdditionalProperties != nil {
+			if authToken, ok := config.AdditionalProperties["authToken"].(string); ok && authToken != "" {
+				_ = d.Set("api_key", authToken)
+			}
+			if bucket, ok := config.AdditionalProperties["bucket"].(string); ok {
+				_ = d.Set("bucket", bucket)
+			}
+			if org, ok := config.AdditionalProperties["org"].(string); ok {
+				_ = d.Set("organization", org)
+			}
+		}
 	}
-	_ = d.Set("bucket", metricDrain.Bucket)
-	_ = d.Set("organization", metricDrain.Org)
 
 	return nil
 }
 
 func resourceMetricDrainDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	m := meta.(*providerMetadata)
+	client := m.Client
+	ctx = m.APIContext(ctx)
+
 	readDiags := resourceMetricDrainRead(ctx, d, meta)
 	if !readDiags.HasError() {
-		metricDrainID := int64(d.Get("metric_drain_id").(int))
-		client := meta.(*providerMetadata).LegacyClient
-		deleted, err := client.DeleteMetricDrain(metricDrainID)
+		metricDrainID := int32(d.Get("metric_drain_id").(int))
+		deleted, err := helpers.DeleteMetricDrain(ctx, client, metricDrainID)
 		if deleted {
 			d.SetId("")
 			return nil
 		}
 		if err != nil {
 			log.Println("There was an error when completing the request to destroy the metric drain.\n[ERROR] -", err)
-			return generateDiagnosticsFromClientError(err)
+			return diag.FromErr(err)
 		}
 	}
 	d.SetId("")

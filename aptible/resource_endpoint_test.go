@@ -1,14 +1,15 @@
 package aptible
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"regexp"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -293,7 +294,7 @@ func TestAccResourceEndpoint_appContainerPorts(t *testing.T) {
 func TestAccResourceEndpoint_db(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -608,7 +609,9 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 }
 
 func testAccCheckEndpointDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
+	m := testAccProvider.Meta().(*providerMetadata)
+	client := m.Client
+	ctx := m.APIContext(context.Background())
 	// Allow time for deprovision operation to complete.
 	// TODO: Replace this by waiting on the actual operation
 
@@ -625,31 +628,25 @@ func testAccCheckEndpointDestroy(s *terraform.State) error {
 		}
 
 		res_typ := rs.Primary.Attributes["resource_type"]
-		if err != nil {
-			return err
-		}
 
 		if res_typ == "app" {
-			endpoint, err := client.GetApp(int64(res_id))
-			log.Println("Deleted? ", endpoint.Deleted)
-			if !endpoint.Deleted {
+			_, resp, err := client.AppsAPI.GetApp(ctx, int32(res_id)).Execute()
+			if err == nil {
 				return fmt.Errorf("App %v not removed", res_id)
 			}
-
-			if err != nil {
-				return err
+			if resp != nil && resp.StatusCode != http.StatusNotFound {
+				return fmt.Errorf("unexpected error checking app %v: %v", res_id, err)
 			}
-
+			log.Println("App deleted (404): ", res_id)
 		} else {
-			endpoint, err := client.GetDatabase(int64(res_id))
-			log.Println("Deleted? ", endpoint.Deleted)
-			if !endpoint.Deleted {
+			_, resp, err := client.DatabasesAPI.GetDatabase(ctx, int32(res_id)).Execute()
+			if err == nil {
 				return fmt.Errorf("Database %v not removed", res_id)
 			}
-
-			if err != nil {
-				return err
+			if resp != nil && resp.StatusCode != http.StatusNotFound {
+				return fmt.Errorf("unexpected error checking database %v: %v", res_id, err)
 			}
+			log.Println("Database deleted (404): ", res_id)
 		}
 	}
 	return nil

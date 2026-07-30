@@ -1,8 +1,10 @@
 package aptible
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"regexp"
 	"strconv"
 	"testing"
@@ -72,7 +74,9 @@ func TestAccResourceEnvironment_validation(t *testing.T) {
 }
 
 func testAccCheckEnvironmentDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
+	m := testAccProvider.Meta().(*providerMetadata)
+	client := m.Client
+	ctx := m.APIContext(context.Background())
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_environment" {
 			continue
@@ -83,15 +87,14 @@ func testAccCheckEnvironmentDestroy(s *terraform.State) error {
 			return err
 		}
 
-		environment, err := client.GetEnvironment(int64(envID))
-		log.Println("Deleted? ", environment.Deleted)
-		if !environment.Deleted {
+		_, resp, err := client.AccountsAPI.GetAccount(ctx, int32(envID)).Execute()
+		if err == nil {
 			return fmt.Errorf("environment %v not removed", envID)
 		}
-
-		if err != nil {
-			return err
+		if resp != nil && resp.StatusCode != http.StatusNotFound {
+			return fmt.Errorf("unexpected error checking environment %v: %v", envID, err)
 		}
+		log.Println("Environment deleted (404): ", envID)
 	}
 	return nil
 }

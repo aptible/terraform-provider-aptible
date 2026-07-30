@@ -4,10 +4,8 @@ go 1.25.9
 
 require (
 	github.com/aptible/aptible-api-go v0.15.0
-	github.com/aptible/go-deploy v0.5.5
 	github.com/bflad/tfproviderdocs v0.12.1
 	github.com/bflad/tfproviderlint v0.31.0
-	github.com/go-openapi/strfmt v0.25.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.38.1
 	github.com/katbyte/terrafmt v0.5.5
@@ -38,6 +36,7 @@ require (
 	github.com/go-openapi/loads v0.23.2 // indirect
 	github.com/go-openapi/runtime v0.29.2 // indirect
 	github.com/go-openapi/spec v0.22.1 // indirect
+	github.com/go-openapi/strfmt v0.25.0 // indirect
 	github.com/go-openapi/swag v0.25.3 // indirect
 	github.com/go-openapi/swag/cmdutils v0.25.3 // indirect
 	github.com/go-openapi/swag/conv v0.25.3 // indirect
@@ -127,3 +126,5 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace github.com/aptible/aptible-api-go => ../aptible-api-go
