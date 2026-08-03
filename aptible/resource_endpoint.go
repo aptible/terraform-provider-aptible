@@ -368,7 +368,7 @@ func applyEndpointSettingsToState(d *schema.ResourceData, settings map[string]in
 }
 
 func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	diags := diag.Diagnostics{}
 
@@ -553,7 +553,7 @@ func resourceEndpointImport(ctx context.Context, d *schema.ResourceData, meta in
 }
 
 func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta interface{}) (diags diag.Diagnostics) {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	diags = diag.Diagnostics{}
 	endpointID := int32(d.Get("endpoint_id").(int))
@@ -680,7 +680,7 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	diags := diag.Diagnostics{}
 
@@ -828,7 +828,7 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 }
 
 func resourceEndpointDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	endpointID := int32(d.Get("endpoint_id").(int))
 
 	deleteCtx, deleteCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutDelete))

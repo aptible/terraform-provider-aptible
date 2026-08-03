@@ -23,7 +23,7 @@ func dataSourceEnvironment() *schema.Resource {
 }
 
 func dataSourceEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	ctx := context.Background()
 

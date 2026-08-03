@@ -38,5 +38,5 @@ func providerConfigureWithContext(_ context.Context, _ *schema.ResourceData) (in
 		}}
 	}
 
-	return newProviderMetadata(token, helpers.GetAPIRoot()), nil
+	return newClient(token, helpers.GetAPIRoot()), nil
 }

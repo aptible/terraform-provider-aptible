@@ -190,7 +190,7 @@ func TestAccResourceReplica_expectError(t *testing.T) {
 }
 
 func testAccCheckReplicaDestroy(s *terraform.State) error {
-	m := testAccProvider.Meta().(*providerMetadata)
+	m := testAccProvider.Meta().(*client)
 	ctx := context.Background()
 	// Allow time for deprovision operation to complete.
 	// TODO: Replace this by waiting on the actual operation

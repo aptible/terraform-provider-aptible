@@ -30,7 +30,7 @@ func WithTestAccEnvironment(t *testing.T, fn func(env testEnvironment)) {
 		return
 	}
 
-	m := testAccProvider.Meta().(*providerMetadata)
+	m := testAccProvider.Meta().(*client)
 	ctx := context.Background()
 
 	handle := "tf-acc-" + acctest.RandString(10)

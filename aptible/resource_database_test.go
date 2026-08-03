@@ -326,7 +326,7 @@ func TestAccResourceDatabase_scale(t *testing.T) {
 }
 
 func testAccCheckDatabaseDestroy(s *terraform.State) error {
-	m := testAccProvider.Meta().(*providerMetadata)
+	m := testAccProvider.Meta().(*client)
 	ctx := context.Background()
 	// Allow time for deprovision operation to complete.
 	// TODO: Replace this by waiting on the actual operation

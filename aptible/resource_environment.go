@@ -91,7 +91,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta
 		return diags
 	}
 
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 
 	handle := d.Get("handle").(string)
@@ -145,7 +145,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 
 	envID := int32(d.Get("env_id").(int))
@@ -185,7 +185,7 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, meta
 		return diags
 	}
 
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 
 	handle := d.Get("handle").(string)
@@ -210,7 +210,7 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, meta
 func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	readDiags := resourceEnvironmentRead(ctx, d, meta)
 	if !readDiags.HasError() {
-		m := meta.(*providerMetadata)
+		m := meta.(*client)
 		client := m.APIClient
 		envID := int32(d.Get("env_id").(int))
 
@@ -274,7 +274,7 @@ func validateBackupRetentionPolicy(d *schema.ResourceData) diag.Diagnostics {
 }
 
 func createBackupRetentionPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	envId := int32(d.Get("env_id").(int))
 
@@ -317,7 +317,7 @@ func createBackupRetentionPolicy(ctx context.Context, d *schema.ResourceData, me
 }
 
 func readBackupRetentionPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	envId := int32(d.Get("env_id").(int))
 

@@ -133,7 +133,7 @@ func resourceLogDrain() *schema.Resource {
 }
 
 func resourceLogDrainCreateContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 
 	handle := d.Get("handle").(string)
@@ -221,7 +221,7 @@ func resourceLogDrainCreateContext(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceLogDrainReadContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 
 	logDrainID := int32(d.Get("log_drain_id").(int))
@@ -273,7 +273,7 @@ func resourceLogDrainReadContext(ctx context.Context, d *schema.ResourceData, me
 }
 
 func resourceLogDrainDeleteContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 
 	if diags := resourceLogDrainReadContext(ctx, d, meta); !diags.HasError() {
 		logDrainID := int32(d.Get("log_drain_id").(int))

@@ -349,7 +349,7 @@ func validatePrivateRegistrySettings(_ context.Context, d *schema.ResourceDiff, 
 }
 
 func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	envID := int32(d.Get("env_id").(int))
 	diags := diag.Diagnostics{}
@@ -479,7 +479,7 @@ func resourceAppImport(d *schema.ResourceData, meta interface{}) ([]*schema.Reso
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).APIClient
+	client := meta.(*client).APIClient
 	appID := int32(d.Get("app_id").(int))
 
 	log.Println("Getting App with ID: " + strconv.Itoa(int(appID)))
@@ -583,7 +583,7 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	appID := int32(d.Get("app_id").(int))
 
@@ -730,7 +730,7 @@ func resourceAppDeleteContext(ctx context.Context, d *schema.ResourceData, meta 
 		return readDiags
 	}
 
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	appID := int32(d.Get("app_id").(int))
 
 	deleted, err := m.DeleteApp(ctx, appID)
@@ -748,7 +748,7 @@ func resourceAppDeleteContext(ctx context.Context, d *schema.ResourceData, meta 
 }
 
 func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).APIClient
+	client := meta.(*client).APIClient
 	appID := int32(d.Get("app_id").(int))
 
 	// If there are no changes to services, there's no reason to update
@@ -841,7 +841,7 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 }
 
 func scaleServices(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	appID := int32(d.Get("app_id").(int))
 
@@ -936,7 +936,7 @@ func findApiServiceByName(services []aptibleapi.Service, serviceName string) *ap
 }
 
 func getServiceIdForAppByName(ctx context.Context, meta interface{}, appId int32, processType string) (int32, error) {
-	client := meta.(*providerMetadata).APIClient
+	client := meta.(*client).APIClient
 
 	serviceList, _, err := client.ServicesAPI.ListServicesForApp(ctx, appId).Execute()
 	if err != nil {
@@ -953,7 +953,7 @@ func getServiceIdForAppByName(ctx context.Context, meta interface{}, appId int32
 }
 
 func getServiceSizingPolicyForService(serviceId int32, ctx context.Context, meta interface{}) (*aptibleapi.ServiceSizingPolicy, error) {
-	client := meta.(*providerMetadata).APIClient
+	client := meta.(*client).APIClient
 	resp, _, err := client.ServiceSizingPoliciesAPI.ListServiceSizingPoliciesForService(ctx, serviceId).Execute()
 	if err != nil {
 		return nil, err
@@ -966,7 +966,7 @@ func getServiceSizingPolicyForService(serviceId int32, ctx context.Context, meta
 }
 
 func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).APIClient
+	client := meta.(*client).APIClient
 	appID := int32(d.Get("app_id").(int))
 
 	// If there are no changes to services, there's no reason to update

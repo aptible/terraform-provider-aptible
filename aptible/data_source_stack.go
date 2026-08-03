@@ -27,7 +27,7 @@ func dataSourceStack() *schema.Resource {
 }
 
 func dataSourceStackRead(d *schema.ResourceData, meta interface{}) error {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	ctx := context.Background()
 
 	name := d.Get("name").(string)

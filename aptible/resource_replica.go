@@ -87,7 +87,7 @@ func resourceReplica() *schema.Resource {
 }
 
 func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	diags := diag.Diagnostics{}
 
@@ -224,7 +224,7 @@ func resourceReplicaImport(d *schema.ResourceData, meta interface{}) ([]*schema.
 func resourceReplicaReadContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	databaseID := int32(d.Get("replica_id").(int))
 
-	client := meta.(*providerMetadata).APIClient
+	client := meta.(*client).APIClient
 
 	database, resp, err := client.DatabasesAPI.GetDatabase(ctx, databaseID).Execute()
 	if err != nil {
@@ -274,7 +274,7 @@ func resourceReplicaReadContext(ctx context.Context, d *schema.ResourceData, met
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	databaseID := int32(d.Get("replica_id").(int))
 	containerSize := int32(d.Get("container_size").(int))
@@ -388,7 +388,7 @@ func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func resourceReplicaDeleteContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	replicaID := int32(d.Get("replica_id").(int))
 	_, err := m.DeleteDatabase(ctx, replicaID)
 	if err != nil {

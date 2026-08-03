@@ -148,7 +148,7 @@ func resourceMetricDrainValidate(_ context.Context, diff *schema.ResourceDiff, _
 }
 
 func resourceMetricDrainCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 
 	handle := d.Get("handle").(string)
@@ -230,7 +230,7 @@ func resourceMetricDrainCreate(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func resourceMetricDrainRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 
 	metricDrainID := int32(d.Get("metric_drain_id").(int))
@@ -287,7 +287,7 @@ func resourceMetricDrainRead(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func resourceMetricDrainDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 
 	readDiags := resourceMetricDrainRead(ctx, d, meta)
 	if !readDiags.HasError() {

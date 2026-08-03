@@ -106,7 +106,7 @@ func resourceDatabase() *schema.Resource {
 }
 
 func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	diags := diag.Diagnostics{}
 
@@ -200,7 +200,7 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceDatabaseReadContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	databaseID := int32(d.Get("database_id").(int))
 
@@ -273,7 +273,7 @@ func resourceDatabaseImport(d *schema.ResourceData, meta interface{}) ([]*schema
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	client := m.APIClient
 	databaseID := int32(d.Get("database_id").(int))
 	containerSize := int32(d.Get("container_size").(int))
@@ -385,7 +385,7 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 }
 
 func resourceDatabaseDeleteContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
+	m := meta.(*client)
 	databaseID := int32(d.Get("database_id").(int))
 
 	_, err := m.DeleteDatabase(ctx, databaseID)

@@ -43,7 +43,7 @@ func TestAccStackDataSource_basic(t *testing.T) {
 		return
 	}
 
-	m := testAccProvider.Meta().(*providerMetadata)
+	m := testAccProvider.Meta().(*client)
 	ctx := context.Background()
 
 	stacksResp, _, err := m.StacksAPI.ListStacks(ctx).Execute()
