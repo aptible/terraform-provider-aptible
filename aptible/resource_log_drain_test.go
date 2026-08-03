@@ -297,8 +297,7 @@ func TestAccResourceLogDrain_solarwinds(t *testing.T) {
 
 func testAccCheckLogDrainDestroy(s *terraform.State) error {
 	m := testAccProvider.Meta().(*providerMetadata)
-	client := m.Client
-	ctx := m.APIContext(context.Background())
+	ctx := context.Background()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_log_drain" {
 			continue
@@ -309,7 +308,7 @@ func testAccCheckLogDrainDestroy(s *terraform.State) error {
 			return err
 		}
 
-		_, resp, err := client.LogDrainsAPI.GetLogDrain(ctx, int32(logDrainID)).Execute()
+		_, resp, err := m.LogDrainsAPI.GetLogDrain(ctx, int32(logDrainID)).Execute()
 		if err == nil {
 			return fmt.Errorf("log drain %v not removed", logDrainID)
 		}

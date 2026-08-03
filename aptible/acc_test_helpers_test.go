@@ -2,10 +2,12 @@ package aptible
 
 import (
 	"context"
+	"os"
 	"testing"
 
-	aptibleapi "github.com/aptible/aptible-api-go/aptibleapi"
+	"github.com/aptible/aptible-api-go/aptibleapi"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 // testEnvironment is a minimal struct to replace aptible.Environment from go-deploy.
@@ -18,10 +20,18 @@ type testEnvironment struct {
 // runs the provided test function, then cleans up.
 func WithTestAccEnvironment(t *testing.T, fn func(env testEnvironment)) {
 	t.Helper()
+	if os.Getenv("TF_ACC") != "1" {
+		t.Skip("Acceptance tests skipped unless TF_ACC=1")
+	}
+
+	diags := testAccProvider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
+	if diags.HasError() {
+		t.Fatalf("Failed to configure provider: %v", diags)
+		return
+	}
 
 	m := testAccProvider.Meta().(*providerMetadata)
-	client := m.Client
-	ctx := m.APIContext(context.Background())
+	ctx := context.Background()
 
 	handle := "tf-acc-" + acctest.RandString(10)
 
@@ -29,14 +39,14 @@ func WithTestAccEnvironment(t *testing.T, fn func(env testEnvironment)) {
 	req := aptibleapi.NewCreateAccountRequest("development", handle, testOrganizationId)
 	req.SetStackId(stackId)
 
-	env, _, err := client.AccountsAPI.CreateAccount(ctx).CreateAccountRequest(*req).Execute()
+	env, _, err := m.AccountsAPI.CreateAccount(ctx).CreateAccountRequest(*req).Execute()
 	if err != nil {
 		t.Fatalf("Unable to create test environment: %s", err.Error())
 		return
 	}
 
 	defer func() {
-		_, err := client.AccountsAPI.DeleteAccount(ctx, env.Id).Execute()
+		_, err := m.AccountsAPI.DeleteAccount(ctx, env.Id).Execute()
 		if err != nil {
 			t.Logf("Warning: failed to clean up test environment %d: %s", env.Id, err.Error())
 		}

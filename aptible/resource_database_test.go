@@ -327,8 +327,7 @@ func TestAccResourceDatabase_scale(t *testing.T) {
 
 func testAccCheckDatabaseDestroy(s *terraform.State) error {
 	m := testAccProvider.Meta().(*providerMetadata)
-	client := m.Client
-	ctx := m.APIContext(context.Background())
+	ctx := context.Background()
 	// Allow time for deprovision operation to complete.
 	// TODO: Replace this by waiting on the actual operation
 
@@ -344,7 +343,7 @@ func testAccCheckDatabaseDestroy(s *terraform.State) error {
 			return err
 		}
 
-		_, resp, err := client.DatabasesAPI.GetDatabase(ctx, int32(databaseId)).Execute()
+		_, resp, err := m.DatabasesAPI.GetDatabase(ctx, int32(databaseId)).Execute()
 		if err == nil {
 			return fmt.Errorf("database %v not removed", databaseId)
 		}

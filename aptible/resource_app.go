@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/aptible-api-go/helpers"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -351,9 +350,8 @@ func validatePrivateRegistrySettings(_ context.Context, d *schema.ResourceDiff, 
 
 func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
+	client := m.APIClient
 	envID := int32(d.Get("env_id").(int))
-	ctx = m.APIContext(ctx)
 	diags := diag.Diagnostics{}
 
 	handle := d.Get("handle").(string)
@@ -436,7 +434,7 @@ func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 
 		createCtx, createCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutCreate))
 		defer createCancel()
-		_, err = helpers.WaitForOperation(createCtx, client, operation.Id)
+		_, err = m.WaitForOperation(createCtx, operation.Id)
 		if err != nil {
 			// Do not return here so that the read method can hydrate the state
 			diags = append(diags, diag.Diagnostic{
@@ -481,9 +479,8 @@ func resourceAppImport(d *schema.ResourceData, meta interface{}) ([]*schema.Reso
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).Client
+	client := meta.(*providerMetadata).APIClient
 	appID := int32(d.Get("app_id").(int))
-	ctx = meta.(*providerMetadata).APIContext(ctx)
 
 	log.Println("Getting App with ID: " + strconv.Itoa(int(appID)))
 
@@ -587,8 +584,7 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 
 func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 	appID := int32(d.Get("app_id").(int))
 
 	var diags diag.Diagnostics
@@ -671,7 +667,7 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 		}
 		updateCtx, updateCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
 		defer updateCancel()
-		_, err = helpers.WaitForOperation(updateCtx, client, operation.Id)
+		_, err = m.WaitForOperation(updateCtx, operation.Id)
 		if err != nil {
 			// Do not return here so that the read method can hydrate the state
 			diags = append(diags, diag.Diagnostic{
@@ -735,11 +731,9 @@ func resourceAppDeleteContext(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
 	appID := int32(d.Get("app_id").(int))
 
-	deleted, err := helpers.DeleteApp(ctx, client, appID)
+	deleted, err := m.DeleteApp(ctx, appID)
 	if deleted {
 		d.SetId("")
 		return nil
@@ -754,8 +748,7 @@ func resourceAppDeleteContext(ctx context.Context, d *schema.ResourceData, meta 
 }
 
 func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).Client
-	ctx = meta.(*providerMetadata).APIContext(ctx)
+	client := meta.(*providerMetadata).APIClient
 	appID := int32(d.Get("app_id").(int))
 
 	// If there are no changes to services, there's no reason to update
@@ -847,10 +840,10 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 	return g.Wait()
 }
 
-func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).Client
+func scaleServices(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+	m := meta.(*providerMetadata)
+	client := m.APIClient
 	appID := int32(d.Get("app_id").(int))
-	ctx := meta.(*providerMetadata).APIContext(c)
 
 	// If there are no changes to services, there's no reason to scale
 	if !d.HasChange("service") {
@@ -925,7 +918,7 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 
 			scaleCtx, scaleCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
 			defer scaleCancel()
-			_, err = helpers.WaitForOperation(scaleCtx, client, resp.Id)
+			_, err = m.WaitForOperation(scaleCtx, resp.Id)
 			return err
 		})
 	}
@@ -943,8 +936,7 @@ func findApiServiceByName(services []aptibleapi.Service, serviceName string) *ap
 }
 
 func getServiceIdForAppByName(ctx context.Context, meta interface{}, appId int32, processType string) (int32, error) {
-	client := meta.(*providerMetadata).Client
-	ctx = meta.(*providerMetadata).APIContext(ctx)
+	client := meta.(*providerMetadata).APIClient
 
 	serviceList, _, err := client.ServicesAPI.ListServicesForApp(ctx, appId).Execute()
 	if err != nil {
@@ -961,8 +953,7 @@ func getServiceIdForAppByName(ctx context.Context, meta interface{}, appId int32
 }
 
 func getServiceSizingPolicyForService(serviceId int32, ctx context.Context, meta interface{}) (*aptibleapi.ServiceSizingPolicy, error) {
-	client := meta.(*providerMetadata).Client
-	ctx = meta.(*providerMetadata).APIContext(ctx)
+	client := meta.(*providerMetadata).APIClient
 	resp, _, err := client.ServiceSizingPoliciesAPI.ListServiceSizingPoliciesForService(ctx, serviceId).Execute()
 	if err != nil {
 		return nil, err
@@ -975,8 +966,7 @@ func getServiceSizingPolicyForService(serviceId int32, ctx context.Context, meta
 }
 
 func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).Client
-	ctx = meta.(*providerMetadata).APIContext(ctx)
+	client := meta.(*providerMetadata).APIClient
 	appID := int32(d.Get("app_id").(int))
 
 	// If there are no changes to services, there's no reason to update

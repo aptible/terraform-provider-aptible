@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/aptible-api-go/helpers"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -370,8 +369,7 @@ func applyEndpointSettingsToState(d *schema.ResourceData, settings map[string]in
 
 func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 	diags := diag.Diagnostics{}
 
 	processType := d.Get("process_type").(string)
@@ -436,7 +434,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 
 	var serviceID int32
 	if resourceType == "app" {
-		svc, svcErr := helpers.GetServiceForAppByName(ctx, client, int32(resourceID), processType)
+		svc, svcErr := m.GetServiceForAppByName(ctx, int32(resourceID), processType)
 		if svcErr != nil {
 			log.Println(svcErr)
 			return diag.FromErr(svcErr)
@@ -467,7 +465,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	humanReadableEndpointType := d.Get("endpoint_type").(string)
-	endpointType, err := helpers.GetEndpointType(humanReadableEndpointType)
+	endpointType, err := getEndpointType(humanReadableEndpointType)
 	if err != nil {
 		log.Println(err)
 		return diag.FromErr(err)
@@ -534,7 +532,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 
 	createCtx, createCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutCreate))
 	defer createCancel()
-	_, err = helpers.WaitForOperation(createCtx, client, operation.Id)
+	_, err = m.WaitForOperation(createCtx, operation.Id)
 	if err != nil {
 		// Do not return here so that the read method can hydrate the state
 		diags = append(diags, diag.Diagnostic{
@@ -556,8 +554,7 @@ func resourceEndpointImport(ctx context.Context, d *schema.ResourceData, meta in
 
 func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta interface{}) (diags diag.Diagnostics) {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 	diags = diag.Diagnostics{}
 	endpointID := int32(d.Get("endpoint_id").(int))
 
@@ -586,7 +583,7 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 		})
 	}
 
-	endpointType, err := helpers.GetHumanReadableEndpointType(endpoint.GetType())
+	endpointType, err := getHumanReadableEndpointType(endpoint.GetType())
 	if err != nil {
 		return append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -684,8 +681,7 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 	diags := diag.Diagnostics{}
 
 	endpointID := int32(d.Get("endpoint_id").(int))
@@ -817,7 +813,7 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 
 		updateCtx, updateCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
 		defer updateCancel()
-		_, err = helpers.WaitForOperation(updateCtx, client, operation.Id)
+		_, err = m.WaitForOperation(updateCtx, operation.Id)
 		if err != nil {
 			// Do not return here so that the read method can hydrate the state
 			diags = append(diags, diag.Diagnostic{
@@ -833,13 +829,11 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 
 func resourceEndpointDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
 	endpointID := int32(d.Get("endpoint_id").(int))
 
 	deleteCtx, deleteCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutDelete))
 	defer deleteCancel()
-	_, err := helpers.DeleteEndpoint(deleteCtx, client, endpointID)
+	_, err := m.DeleteEndpoint(deleteCtx, endpointID)
 	if err != nil {
 		log.Println(err)
 		return diag.FromErr(err)

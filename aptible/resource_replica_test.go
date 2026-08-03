@@ -191,8 +191,7 @@ func TestAccResourceReplica_expectError(t *testing.T) {
 
 func testAccCheckReplicaDestroy(s *terraform.State) error {
 	m := testAccProvider.Meta().(*providerMetadata)
-	client := m.Client
-	ctx := m.APIContext(context.Background())
+	ctx := context.Background()
 	// Allow time for deprovision operation to complete.
 	// TODO: Replace this by waiting on the actual operation
 
@@ -214,7 +213,7 @@ func testAccCheckReplicaDestroy(s *terraform.State) error {
 		}
 
 		// Check replica is deleted first, then the primary database
-		_, resp, err := client.DatabasesAPI.GetDatabase(ctx, int32(replicaID)).Execute()
+		_, resp, err := m.DatabasesAPI.GetDatabase(ctx, int32(replicaID)).Execute()
 		if err == nil {
 			return fmt.Errorf("replica %v not removed", replicaID)
 		}
@@ -223,7 +222,7 @@ func testAccCheckReplicaDestroy(s *terraform.State) error {
 		}
 		log.Println("Replica deleted (404): ", replicaID)
 
-		_, resp, err = client.DatabasesAPI.GetDatabase(ctx, int32(databaseID)).Execute()
+		_, resp, err = m.DatabasesAPI.GetDatabase(ctx, int32(databaseID)).Execute()
 		if err == nil {
 			return fmt.Errorf("database %v not removed", databaseID)
 		}

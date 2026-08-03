@@ -48,8 +48,7 @@ func dataSourceBackupRetentionPolicy() *schema.Resource {
 
 func dataSourceBackupRetentionPolicyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 
 	// Policies are identified by environment ID
 	envId := int32(d.Get("env_id").(int))

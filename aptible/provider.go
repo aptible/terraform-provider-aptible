@@ -2,10 +2,7 @@ package aptible
 
 import (
 	"context"
-	"log"
-	"os"
 
-	"github.com/aptible/aptible-api-go/aptibleapi"
 	"github.com/aptible/aptible-api-go/helpers"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -41,31 +38,5 @@ func providerConfigureWithContext(_ context.Context, _ *schema.ResourceData) (in
 		}}
 	}
 
-	return &providerMetadata{
-		Client: aptibleapi.NewAPIClient(aptibleapi.NewAPIConfiguration()),
-		Token:  token,
-	}, nil
-}
-
-type providerMetadata struct {
-	Client *aptibleapi.APIClient
-	Token  string
-}
-
-func (m *providerMetadata) APIContext(ctx context.Context) context.Context {
-	if url := os.Getenv("APTIBLE_API_ROOT_URL"); url != "" {
-		ctx = context.WithValue(ctx, aptibleapi.ContextServerVariables, map[string]string{"url": url})
-	}
-
-	if m.Token == "" {
-		log.Fatalln("Could not read token: Please run aptible login or set APTIBLE_ACCESS_TOKEN")
-		return ctx
-	}
-
-	return context.WithValue(ctx, aptibleapi.ContextAPIKeys, map[string]aptibleapi.APIKey{
-		"token": {
-			Prefix: "Bearer",
-			Key:    m.Token,
-		},
-	})
+	return newProviderMetadata(token, helpers.GetAPIRoot()), nil
 }

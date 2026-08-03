@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/aptible-api-go/helpers"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -150,8 +149,7 @@ func resourceMetricDrainValidate(_ context.Context, diff *schema.ResourceDiff, _
 
 func resourceMetricDrainCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 
 	handle := d.Get("handle").(string)
 	accountID := int32(d.Get("env_id").(int))
@@ -220,7 +218,7 @@ func resourceMetricDrainCreate(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	_, err = helpers.WaitForOperation(ctx, client, op.Id)
+	_, err = m.WaitForOperation(ctx, op.Id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -233,8 +231,7 @@ func resourceMetricDrainCreate(ctx context.Context, d *schema.ResourceData, meta
 
 func resourceMetricDrainRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 
 	metricDrainID := int32(d.Get("metric_drain_id").(int))
 	log.Println("Getting metric drain with ID: " + strconv.Itoa(int(metricDrainID)))
@@ -255,10 +252,10 @@ func resourceMetricDrainRead(ctx context.Context, d *schema.ResourceData, meta i
 
 	if metricDrain.Links != nil {
 		if metricDrain.Links.Account != nil && metricDrain.Links.Account.Href != nil {
-			_ = d.Set("env_id", int(helpers.ExtractIDFromHref(*metricDrain.Links.Account.Href)))
+			_ = d.Set("env_id", int(ExtractIdFromLink(*metricDrain.Links.Account.Href)))
 		}
 		if metricDrain.Links.Database != nil && metricDrain.Links.Database.Href != nil {
-			_ = d.Set("database_id", int(helpers.ExtractIDFromHref(*metricDrain.Links.Database.Href)))
+			_ = d.Set("database_id", int(ExtractIdFromLink(*metricDrain.Links.Database.Href)))
 		}
 	}
 
@@ -291,13 +288,11 @@ func resourceMetricDrainRead(ctx context.Context, d *schema.ResourceData, meta i
 
 func resourceMetricDrainDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
 
 	readDiags := resourceMetricDrainRead(ctx, d, meta)
 	if !readDiags.HasError() {
 		metricDrainID := int32(d.Get("metric_drain_id").(int))
-		deleted, err := helpers.DeleteMetricDrain(ctx, client, metricDrainID)
+		deleted, err := m.DeleteMetricDrain(ctx, metricDrainID)
 		if deleted {
 			d.SetId("")
 			return nil

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/aptible-api-go/helpers"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -135,8 +134,7 @@ func resourceLogDrain() *schema.Resource {
 
 func resourceLogDrainCreateContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 
 	handle := d.Get("handle").(string)
 	accountID := int32(d.Get("env_id").(int))
@@ -211,7 +209,7 @@ func resourceLogDrainCreateContext(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	_, err = helpers.WaitForOperation(ctx, client, op.Id)
+	_, err = m.WaitForOperation(ctx, op.Id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -224,8 +222,7 @@ func resourceLogDrainCreateContext(ctx context.Context, d *schema.ResourceData, 
 
 func resourceLogDrainReadContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 
 	logDrainID := int32(d.Get("log_drain_id").(int))
 	log.Println("Getting log drain with ID: " + strconv.Itoa(int(logDrainID)))
@@ -256,10 +253,10 @@ func resourceLogDrainReadContext(ctx context.Context, d *schema.ResourceData, me
 
 	if logDrain.Links != nil {
 		if logDrain.Links.Account != nil && logDrain.Links.Account.Href != nil {
-			_ = d.Set("env_id", int(helpers.ExtractIDFromHref(*logDrain.Links.Account.Href)))
+			_ = d.Set("env_id", int(ExtractIdFromLink(*logDrain.Links.Account.Href)))
 		}
 		if logDrain.Links.Database != nil && logDrain.Links.Database.Href != nil {
-			_ = d.Set("database_id", int(helpers.ExtractIDFromHref(*logDrain.Links.Database.Href)))
+			_ = d.Set("database_id", int(ExtractIdFromLink(*logDrain.Links.Database.Href)))
 		}
 	}
 
@@ -277,12 +274,10 @@ func resourceLogDrainReadContext(ctx context.Context, d *schema.ResourceData, me
 
 func resourceLogDrainDeleteContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
 
 	if diags := resourceLogDrainReadContext(ctx, d, meta); !diags.HasError() {
 		logDrainID := int32(d.Get("log_drain_id").(int))
-		deleted, err := helpers.DeleteLogDrain(ctx, client, logDrainID)
+		deleted, err := m.DeleteLogDrain(ctx, logDrainID)
 		if deleted {
 			d.SetId("")
 			return nil

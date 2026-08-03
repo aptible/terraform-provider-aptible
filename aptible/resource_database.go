@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/aptible-api-go/helpers"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -108,8 +107,7 @@ func resourceDatabase() *schema.Resource {
 
 func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 	diags := diag.Diagnostics{}
 
 	envID := int64(d.Get("env_id").(int))
@@ -135,7 +133,7 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	if version != "" {
-		image, err := helpers.GetDatabaseImageByTypeAndVersion(ctx, client, databaseType, version)
+		image, err := m.GetDatabaseImageByTypeAndVersion(ctx, databaseType, version)
 		if err != nil {
 			log.Println(err)
 			return diag.FromErr(err)
@@ -186,7 +184,7 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 	} else {
 		createCtx, createCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutCreate))
 		defer createCancel()
-		_, err = helpers.WaitForOperation(createCtx, client, op.Id)
+		_, err = m.WaitForOperation(createCtx, op.Id)
 		if err != nil {
 			// Do not return so that the read method can hydrate the state
 			diags = append(diags, diag.Diagnostic{
@@ -203,8 +201,7 @@ func resourceDatabaseCreate(ctx context.Context, d *schema.ResourceData, meta in
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceDatabaseReadContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 	databaseID := int32(d.Get("database_id").(int))
 
 	database, resp, err := client.DatabasesAPI.GetDatabase(ctx, databaseID).Execute()
@@ -276,7 +273,8 @@ func resourceDatabaseImport(d *schema.ResourceData, meta interface{}) ([]*schema
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).Client
+	m := meta.(*providerMetadata)
+	client := m.APIClient
 	databaseID := int32(d.Get("database_id").(int))
 	containerSize := int32(d.Get("container_size").(int))
 	profile := d.Get("container_profile").(string)
@@ -286,8 +284,6 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	enableBackups := d.Get("enable_backups").(bool)
 	needsOperation := false
 	var diags diag.Diagnostics
-
-	ctx = meta.(*providerMetadata).APIContext(ctx)
 	payload := aptibleapi.NewCreateOperationRequest("restart")
 
 	if d.HasChange("container_size") {
@@ -358,7 +354,7 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 
 		updateCtx, updateCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
 		defer updateCancel()
-		del, err := helpers.WaitForOperation(updateCtx, client, op.Id)
+		del, err := m.WaitForOperation(updateCtx, op.Id)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -390,11 +386,9 @@ func resourceDatabaseUpdate(ctx context.Context, d *schema.ResourceData, meta in
 
 func resourceDatabaseDeleteContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
 	databaseID := int32(d.Get("database_id").(int))
 
-	_, err := helpers.DeleteDatabase(ctx, client, databaseID)
+	_, err := m.DeleteDatabase(ctx, databaseID)
 	if err != nil {
 		log.Println(err)
 		return diag.FromErr(err)

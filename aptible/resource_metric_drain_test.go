@@ -352,8 +352,7 @@ func TestAccResourceMetricDrain_datadog(t *testing.T) {
 
 func testAccCheckMetricDrainDestroy(s *terraform.State) error {
 	m := testAccProvider.Meta().(*providerMetadata)
-	client := m.Client
-	ctx := m.APIContext(context.Background())
+	ctx := context.Background()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_metric_drain" {
 			continue
@@ -364,7 +363,7 @@ func testAccCheckMetricDrainDestroy(s *terraform.State) error {
 			return err
 		}
 
-		_, resp, err := client.MetricDrainsAPI.GetMetricDrain(ctx, int32(metricDrainID)).Execute()
+		_, resp, err := m.MetricDrainsAPI.GetMetricDrain(ctx, int32(metricDrainID)).Execute()
 		if err == nil {
 			return fmt.Errorf("metric drain %v not removed", metricDrainID)
 		}

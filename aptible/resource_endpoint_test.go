@@ -610,8 +610,7 @@ func TestAccResourceEndpoint_expectError(t *testing.T) {
 
 func testAccCheckEndpointDestroy(s *terraform.State) error {
 	m := testAccProvider.Meta().(*providerMetadata)
-	client := m.Client
-	ctx := m.APIContext(context.Background())
+	ctx := context.Background()
 	// Allow time for deprovision operation to complete.
 	// TODO: Replace this by waiting on the actual operation
 
@@ -630,7 +629,7 @@ func testAccCheckEndpointDestroy(s *terraform.State) error {
 		res_typ := rs.Primary.Attributes["resource_type"]
 
 		if res_typ == "app" {
-			_, resp, err := client.AppsAPI.GetApp(ctx, int32(res_id)).Execute()
+			_, resp, err := m.AppsAPI.GetApp(ctx, int32(res_id)).Execute()
 			if err == nil {
 				return fmt.Errorf("App %v not removed", res_id)
 			}
@@ -639,7 +638,7 @@ func testAccCheckEndpointDestroy(s *terraform.State) error {
 			}
 			log.Println("App deleted (404): ", res_id)
 		} else {
-			_, resp, err := client.DatabasesAPI.GetDatabase(ctx, int32(res_id)).Execute()
+			_, resp, err := m.DatabasesAPI.GetDatabase(ctx, int32(res_id)).Execute()
 			if err == nil {
 				return fmt.Errorf("Database %v not removed", res_id)
 			}

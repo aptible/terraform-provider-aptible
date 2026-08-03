@@ -24,8 +24,8 @@ func dataSourceEnvironment() *schema.Resource {
 
 func dataSourceEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx := m.APIContext(context.Background())
+	client := m.APIClient
+	ctx := context.Background()
 
 	handle := d.Get("handle").(string)
 	account, _, err := client.AccountsAPI.GetAccountByHandle(ctx).Handle(handle).Execute()

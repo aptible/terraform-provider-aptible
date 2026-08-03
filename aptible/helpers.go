@@ -5,6 +5,7 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 // makes a string slice out of a slice of type interface
@@ -58,4 +59,34 @@ func formatFloat32ToFloat64(val float32) float64 {
 	formatted := fmt.Sprintf("%.6f", val)
 	result, _ := strconv.ParseFloat(formatted, 64)
 	return result
+}
+
+func getEndpointType(t string) (string, error) {
+	switch strings.ToLower(t) {
+	case "https":
+		return "http", nil
+	case "tcp":
+		return "tcp", nil
+	case "tls":
+		return "tls", nil
+	case "grpc":
+		return "grpc", nil
+	default:
+		return "", fmt.Errorf("invalid endpoint type, please use HTTPS, TLS, GRPC, or TCP")
+	}
+}
+
+func getHumanReadableEndpointType(t string) (string, error) {
+	switch t {
+	case "http_proxy_protocol", "http":
+		return "https", nil
+	case "tcp":
+		return "tcp", nil
+	case "tls":
+		return "tls", nil
+	case "grpc":
+		return "grpc", nil
+	default:
+		return "", fmt.Errorf("invalid endpoint type - %s", t)
+	}
 }

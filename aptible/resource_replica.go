@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/aptible-api-go/helpers"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -89,8 +88,7 @@ func resourceReplica() *schema.Resource {
 
 func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 	diags := diag.Diagnostics{}
 
 	handle := d.Get("handle").(string)
@@ -133,7 +131,7 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 
 	createCtx, createCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutCreate))
 	defer createCancel()
-	deleted, err := helpers.WaitForOperation(createCtx, client, op.Id)
+	deleted, err := m.WaitForOperation(createCtx, op.Id)
 	if err != nil {
 		return append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -149,7 +147,7 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 		})
 	}
 
-	repl, err := helpers.GetReplicaByHandle(ctx, client, int32(databaseID), handle)
+	repl, err := m.GetReplicaByHandle(ctx, databaseID, handle)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -167,7 +165,7 @@ func resourceReplicaCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return append(diags, resourceReplicaReadContext(ctx, d, meta)...)
 	}
 	operationID := operation.Id
-	deleted, err = helpers.WaitForOperation(createCtx, client, operationID)
+	deleted, err = m.WaitForOperation(createCtx, operationID)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -226,8 +224,7 @@ func resourceReplicaImport(d *schema.ResourceData, meta interface{}) ([]*schema.
 func resourceReplicaReadContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	databaseID := int32(d.Get("replica_id").(int))
 
-	client := meta.(*providerMetadata).Client
-	ctx = meta.(*providerMetadata).APIContext(ctx)
+	client := meta.(*providerMetadata).APIClient
 
 	database, resp, err := client.DatabasesAPI.GetDatabase(ctx, databaseID).Execute()
 	if err != nil {
@@ -277,8 +274,8 @@ func resourceReplicaReadContext(ctx context.Context, d *schema.ResourceData, met
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).Client
-	ctx = meta.(*providerMetadata).APIContext(ctx)
+	m := meta.(*providerMetadata)
+	client := m.APIClient
 	databaseID := int32(d.Get("replica_id").(int))
 	containerSize := int32(d.Get("container_size").(int))
 	profile := d.Get("container_profile").(string)
@@ -360,7 +357,7 @@ func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta int
 
 		updateCtx, updateCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
 		defer updateCancel()
-		del, err := helpers.WaitForOperation(updateCtx, client, op.Id)
+		del, err := m.WaitForOperation(updateCtx, op.Id)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -392,10 +389,8 @@ func resourceReplicaUpdate(ctx context.Context, d *schema.ResourceData, meta int
 
 func resourceReplicaDeleteContext(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
 	replicaID := int32(d.Get("replica_id").(int))
-	_, err := helpers.DeleteDatabase(ctx, client, replicaID)
+	_, err := m.DeleteDatabase(ctx, replicaID)
 	if err != nil {
 		log.Println(err)
 		return diag.FromErr(err)

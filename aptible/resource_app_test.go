@@ -655,8 +655,7 @@ func TestAccResourceApp_updateRestartFreeScaling(t *testing.T) {
 
 func testAccCheckAppDestroy(s *terraform.State) error {
 	m := testAccProvider.Meta().(*providerMetadata)
-	client := m.Client
-	ctx := m.APIContext(context.Background())
+	ctx := context.Background()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_app" {
 			continue
@@ -667,7 +666,7 @@ func testAccCheckAppDestroy(s *terraform.State) error {
 			return err
 		}
 
-		_, resp, err := client.AppsAPI.GetApp(ctx, int32(appId)).Execute()
+		_, resp, err := m.AppsAPI.GetApp(ctx, int32(appId)).Execute()
 		if err == nil {
 			return fmt.Errorf("app %v not removed", appId)
 		}

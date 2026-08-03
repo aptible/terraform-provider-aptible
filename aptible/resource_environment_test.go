@@ -75,8 +75,7 @@ func TestAccResourceEnvironment_validation(t *testing.T) {
 
 func testAccCheckEnvironmentDestroy(s *terraform.State) error {
 	m := testAccProvider.Meta().(*providerMetadata)
-	client := m.Client
-	ctx := m.APIContext(context.Background())
+	ctx := context.Background()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_environment" {
 			continue
@@ -87,7 +86,7 @@ func testAccCheckEnvironmentDestroy(s *terraform.State) error {
 			return err
 		}
 
-		_, resp, err := client.AccountsAPI.GetAccount(ctx, int32(envID)).Execute()
+		_, resp, err := m.AccountsAPI.GetAccount(ctx, int32(envID)).Execute()
 		if err == nil {
 			return fmt.Errorf("environment %v not removed", envID)
 		}

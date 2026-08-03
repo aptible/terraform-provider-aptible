@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/aptible-api-go/helpers"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -93,8 +92,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 
 	handle := d.Get("handle").(string)
 	stackID := int32(d.Get("stack_id").(int))
@@ -102,7 +100,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta
 	orgID := d.Get("org_id").(string)
 	if orgID == "" {
 		// Look up org from auth API
-		orgID, _ = helpers.GetOrganizationFromAuthAPI(m.Token, helpers.GetAuthURL())
+		orgID, _ = m.GetOrganizationFromAuthAPI()
 	}
 
 	if orgID == "" {
@@ -148,8 +146,7 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta
 
 func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 
 	envID := int32(d.Get("env_id").(int))
 	log.Println("Getting environment with ID: " + strconv.Itoa(int(envID)))
@@ -169,7 +166,7 @@ func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, meta i
 
 	if account.Links != nil {
 		if account.Links.Stack != nil && account.Links.Stack.Href != nil {
-			_ = d.Set("stack_id", int(helpers.ExtractIDFromHref(*account.Links.Stack.Href)))
+			_ = d.Set("stack_id", int(ExtractIdFromLink(*account.Links.Stack.Href)))
 		}
 		if account.Links.Organization != nil && account.Links.Organization.Href != nil {
 			href := *account.Links.Organization.Href
@@ -189,8 +186,7 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 
 	handle := d.Get("handle").(string)
 	envID := int32(d.Get("env_id").(int))
@@ -215,8 +211,7 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta
 	readDiags := resourceEnvironmentRead(ctx, d, meta)
 	if !readDiags.HasError() {
 		m := meta.(*providerMetadata)
-		client := m.Client
-		ctx = m.APIContext(ctx)
+		client := m.APIClient
 		envID := int32(d.Get("env_id").(int))
 
 		// First deprovision any tail log drains
@@ -232,7 +227,7 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta
 
 		for _, drain := range drainResp.Embedded.LogDrains {
 			if drain.DrainType == "tail" {
-				_, drainErr := helpers.DeleteLogDrain(ctx, client, drain.Id)
+				_, drainErr := m.DeleteLogDrain(ctx, drain.Id)
 				if drainErr != nil {
 					log.Println("There was an error when completing the request to destroy the log drain.\n[ERROR] -", drainErr)
 					return diag.FromErr(drainErr)
@@ -280,8 +275,7 @@ func validateBackupRetentionPolicy(d *schema.ResourceData) diag.Diagnostics {
 
 func createBackupRetentionPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 	envId := int32(d.Get("env_id").(int))
 
 	if !d.HasChange("backup_retention_policy") {
@@ -324,8 +318,7 @@ func createBackupRetentionPolicy(ctx context.Context, d *schema.ResourceData, me
 
 func readBackupRetentionPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	client := m.APIClient
 	envId := int32(d.Get("env_id").(int))
 
 	log.Printf("Getting backup retention policy for environment with ID: %d\n", envId)
