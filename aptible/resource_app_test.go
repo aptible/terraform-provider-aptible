@@ -1,14 +1,15 @@
 package aptible
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"regexp"
 	"strconv"
 	"testing"
 
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -17,7 +18,7 @@ import (
 func TestAccResourceApp_basic(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -50,7 +51,7 @@ func TestAccResourceApp_basic(t *testing.T) {
 func TestAccResourceApp_deploy(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -90,7 +91,7 @@ func TestAccResourceApp_deploy(t *testing.T) {
 func TestAccResourceApp_multiple_services(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -125,7 +126,7 @@ func TestAccResourceApp_multiple_services(t *testing.T) {
 func TestAccResourceApp_updateConfig(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -183,7 +184,7 @@ func TestAccResourceApp_updateConfig(t *testing.T) {
 func TestAccResourceApp_scaleDown(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -230,7 +231,7 @@ func TestAccResourceApp_scaleDown(t *testing.T) {
 func TestAccResourceApp_autoscalingDisabledThenEnabled(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -286,7 +287,7 @@ func TestAccResourceApp_autoscalingDisabledThenEnabled(t *testing.T) {
 func TestAccResourceApp_autoscalingPolicy(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -317,7 +318,7 @@ func TestAccResourceApp_autoscalingPolicy(t *testing.T) {
 func TestAccResourceApp_updateautoscalingPolicy(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -362,7 +363,7 @@ func TestAccResourceApp_updateautoscalingPolicy(t *testing.T) {
 func TestAccResourceApp_removeautoscalingPolicy(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -409,7 +410,7 @@ func TestAccResourceApp_removeautoscalingPolicy(t *testing.T) {
 func TestAccResourceApp_autoscalingTypeHorizontalMissingAttributes(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -427,7 +428,7 @@ func TestAccResourceApp_autoscalingTypeHorizontalMissingAttributes(t *testing.T)
 func TestAccResourceApp_autoscalingOldAndNewAttributeUsage(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -445,7 +446,7 @@ func TestAccResourceApp_autoscalingOldAndNewAttributeUsage(t *testing.T) {
 func TestAccResourceApp_autoscalingTypeVerticalInvalidAttributes(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -463,7 +464,7 @@ func TestAccResourceApp_autoscalingTypeVerticalInvalidAttributes(t *testing.T) {
 func TestAccResourceApp_moreThanOnePolicy(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -481,7 +482,7 @@ func TestAccResourceApp_moreThanOnePolicy(t *testing.T) {
 func TestAccResourceApp_invalidAutoscalingType(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -499,7 +500,7 @@ func TestAccResourceApp_invalidAutoscalingType(t *testing.T) {
 func TestAccResourceApp_stopTimeout(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -539,7 +540,7 @@ func TestAccResourceApp_stopTimeout(t *testing.T) {
 func TestAccResourceApp_multipleServicesWithPartialAutoscaling(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -583,7 +584,7 @@ func TestAccResourceApp_multipleServicesWithPartialAutoscaling(t *testing.T) {
 func TestAccResourceApp_updateRestartFreeScaling(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -653,7 +654,8 @@ func TestAccResourceApp_updateRestartFreeScaling(t *testing.T) {
 }
 
 func testAccCheckAppDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
+	m := testAccProvider.Meta().(*client)
+	ctx := context.Background()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_app" {
 			continue
@@ -664,15 +666,14 @@ func testAccCheckAppDestroy(s *terraform.State) error {
 			return err
 		}
 
-		app, err := client.GetApp(int64(appId))
-		log.Println("Deleted? ", app.Deleted)
-		if !app.Deleted {
+		_, resp, err := m.AppsAPI.GetApp(ctx, int32(appId)).Execute()
+		if err == nil {
 			return fmt.Errorf("app %v not removed", appId)
 		}
-
-		if err != nil {
-			return err
+		if resp != nil && resp.StatusCode != http.StatusNotFound {
+			return fmt.Errorf("unexpected error checking app %v: %v", appId, err)
 		}
+		log.Println("App deleted (404): ", appId)
 	}
 	return nil
 }
@@ -1139,7 +1140,7 @@ func testAccAptibleAppMultipleServicesWithPartialAutoscaling(handle string) stri
 func TestAccResourceApp_createTimeout(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -1157,7 +1158,7 @@ func TestAccResourceApp_createTimeout(t *testing.T) {
 func TestAccResourceApp_usernameWithoutPassword(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -1175,7 +1176,7 @@ func TestAccResourceApp_usernameWithoutPassword(t *testing.T) {
 func TestAccResourceApp_passwordWithoutUsername(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -1193,7 +1194,7 @@ func TestAccResourceApp_passwordWithoutUsername(t *testing.T) {
 func TestAccResourceApp_registryCredsWithoutDockerImage(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -1291,7 +1292,7 @@ func TestAccResourceApp_updateAndRemovePrivateRegistry(t *testing.T) {
 
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,

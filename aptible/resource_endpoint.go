@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/go-deploy/aptible"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -230,7 +229,7 @@ var endpointSettingCategories = map[string][]string{
 func resourceEndpointValidate(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
 	d := ResourceDiff{ResourceDiff: diff}
 	interfaceContainerPortsSlice := d.Get("container_ports").([]interface{})
-	containerPorts, _ := aptible.MakeInt64Slice(interfaceContainerPortsSlice)
+	containerPorts, _ := makeInt32Slice(interfaceContainerPortsSlice)
 	containerPort, _ := (d.Get("container_port").(int))
 	endpointType := d.Get("endpoint_type").(string)
 	resourceType := d.Get("resource_type").(string)
@@ -369,11 +368,8 @@ func applyEndpointSettingsToState(d *schema.ResourceData, settings map[string]in
 }
 
 func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
-	legacy := m.LegacyClient
-	client := m.Client
-	ctx = m.APIContext(ctx)
-	service := aptible.Service{}
+	m := meta.(*client)
+	client := m.APIClient
 	diags := diag.Diagnostics{}
 
 	processType := d.Get("process_type").(string)
@@ -436,29 +432,31 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 		})
 	}
 
+	var serviceID int32
 	if resourceType == "app" {
-		service, err = legacy.GetServiceForAppByName(resourceID, processType)
-		if err != nil {
-			log.Println(err)
-			return generateDiagnosticsFromClientError(err)
+		svc, svcErr := m.GetServiceForAppByName(ctx, int32(resourceID), processType)
+		if svcErr != nil {
+			log.Println(svcErr)
+			return diag.FromErr(svcErr)
 		}
+		serviceID = svc.Id
 	} else {
-		database, err := legacy.GetDatabase(resourceID)
-		if err != nil {
-			log.Println(err)
-			return generateDiagnosticsFromClientError(err)
+		db, _, dbErr := client.DatabasesAPI.GetDatabase(ctx, int32(resourceID)).Execute()
+		if dbErr != nil {
+			log.Println(dbErr)
+			return diag.FromErr(dbErr)
 		}
-		service = database.Service
+		serviceID = ExtractIdFromLink(db.Links.Service.GetHref())
 	}
 
-	if service.ResourceType == "database" && defaultDomain {
+	if resourceType == "database" && defaultDomain {
 		return append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Validation Error",
 			Detail:   "Cannot use Default Domain on Databases",
 		})
 	}
-	if service.ResourceType == "database" && domain != "" {
+	if resourceType == "database" && domain != "" {
 		return append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "Validation Error",
@@ -467,10 +465,10 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	humanReadableEndpointType := d.Get("endpoint_type").(string)
-	endpointType, err := aptible.GetEndpointType(humanReadableEndpointType)
+	endpointType, err := getEndpointType(humanReadableEndpointType)
 	if err != nil {
 		log.Println(err)
-		return generateDiagnosticsFromClientError(err)
+		return diag.FromErr(err)
 	}
 
 	attrs := aptibleapi.NewCreateVhostRequest(endpointType)
@@ -500,7 +498,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	endpoint, _, err := client.VhostsAPI.
-		CreateVhost(ctx, int32(service.ID)).
+		CreateVhost(ctx, serviceID).
 		CreateVhostRequest(*attrs).
 		Execute()
 	if err != nil {
@@ -534,7 +532,7 @@ func resourceEndpointCreate(ctx context.Context, d *schema.ResourceData, meta in
 
 	createCtx, createCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutCreate))
 	defer createCancel()
-	_, err = waitForOperationWithContext(createCtx, legacy, int64(operation.Id))
+	_, err = m.WaitForOperation(createCtx, operation.Id)
 	if err != nil {
 		// Do not return here so that the read method can hydrate the state
 		diags = append(diags, diag.Diagnostic{
@@ -555,9 +553,8 @@ func resourceEndpointImport(ctx context.Context, d *schema.ResourceData, meta in
 }
 
 func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta interface{}) (diags diag.Diagnostics) {
-	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	m := meta.(*client)
+	client := m.APIClient
 	diags = diag.Diagnostics{}
 	endpointID := int32(d.Get("endpoint_id").(int))
 
@@ -586,7 +583,7 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 		})
 	}
 
-	endpointType, err := aptible.GetHumanReadableEndpointType(endpoint.GetType())
+	endpointType, err := getHumanReadableEndpointType(endpoint.GetType())
 	if err != nil {
 		return append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -683,10 +680,8 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 
 // changes state of actual resource based on changes made in a Terraform config file
 func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
-	client := m.Client
-	legacy := m.LegacyClient
-	ctx = m.APIContext(ctx)
+	m := meta.(*client)
+	client := m.APIClient
 	diags := diag.Diagnostics{}
 
 	endpointID := int32(d.Get("endpoint_id").(int))
@@ -818,7 +813,7 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 
 		updateCtx, updateCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
 		defer updateCancel()
-		_, err = waitForOperationWithContext(updateCtx, legacy, int64(operation.Id))
+		_, err = m.WaitForOperation(updateCtx, operation.Id)
 		if err != nil {
 			// Do not return here so that the read method can hydrate the state
 			diags = append(diags, diag.Diagnostic{
@@ -832,13 +827,16 @@ func resourceEndpointUpdate(ctx context.Context, d *schema.ResourceData, meta in
 	return append(diags, resourceEndpointRead(ctx, d, meta)...)
 }
 
-func resourceEndpointDelete(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).LegacyClient
-	endpointID := int64(d.Get("endpoint_id").(int))
-	err := client.DeleteEndpoint(endpointID)
+func resourceEndpointDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	m := meta.(*client)
+	endpointID := int32(d.Get("endpoint_id").(int))
+
+	deleteCtx, deleteCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutDelete))
+	defer deleteCancel()
+	_, err := m.DeleteEndpoint(deleteCtx, endpointID)
 	if err != nil {
 		log.Println(err)
-		return generateDiagnosticsFromClientError(err)
+		return diag.FromErr(err)
 	}
 
 	d.SetId("")

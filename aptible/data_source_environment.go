@@ -1,6 +1,8 @@
 package aptible
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -21,14 +23,17 @@ func dataSourceEnvironment() *schema.Resource {
 }
 
 func dataSourceEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).LegacyClient
+	m := meta.(*client)
+	client := m.APIClient
+	ctx := context.Background()
+
 	handle := d.Get("handle").(string)
-	id, err := client.GetEnvironmentIDFromHandle(handle)
+	account, _, err := client.AccountsAPI.GetAccountByHandle(ctx).Handle(handle).Execute()
 	if err != nil {
-		return generateErrorFromClientError(err)
+		return err
 	}
 
-	_ = d.Set("env_id", id)
+	_ = d.Set("env_id", int(account.Id))
 	d.SetId("handle")
 	return nil
 }

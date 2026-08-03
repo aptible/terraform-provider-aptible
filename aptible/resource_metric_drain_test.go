@@ -1,13 +1,14 @@
 package aptible
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"regexp"
 	"strconv"
 	"testing"
 
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -108,7 +109,7 @@ func TestAccResourceMetricDrain_influxdb_database_validation(t *testing.T) {
 func TestAccResourceMetricDrain_influxdb_database(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:          func() { testAccPreCheck(t) },
 			ProviderFactories: testAccProviderFactories,
@@ -350,7 +351,8 @@ func TestAccResourceMetricDrain_datadog(t *testing.T) {
 }
 
 func testAccCheckMetricDrainDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
+	m := testAccProvider.Meta().(*client)
+	ctx := context.Background()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_metric_drain" {
 			continue
@@ -361,15 +363,14 @@ func testAccCheckMetricDrainDestroy(s *terraform.State) error {
 			return err
 		}
 
-		metricDrain, err := client.GetMetricDrain(int64(metricDrainID))
-		log.Println("Deleted? ", metricDrain.Deleted)
-		if !metricDrain.Deleted {
+		_, resp, err := m.MetricDrainsAPI.GetMetricDrain(ctx, int32(metricDrainID)).Execute()
+		if err == nil {
 			return fmt.Errorf("metric drain %v not removed", metricDrainID)
 		}
-
-		if err != nil {
-			return err
+		if resp != nil && resp.StatusCode != http.StatusNotFound {
+			return fmt.Errorf("unexpected error checking metric drain %v: %v", metricDrainID, err)
 		}
+		log.Println("Metric drain deleted (404): ", metricDrainID)
 	}
 	return nil
 }

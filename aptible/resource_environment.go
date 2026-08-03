@@ -2,13 +2,13 @@ package aptible
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/go-deploy/aptible"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -87,60 +87,55 @@ func resourceEnvironment() *schema.Resource {
 }
 
 func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) (diags diag.Diagnostics) {
-	// Sets don't support validation functions at this time so validate on apply
 	if diags := validateBackupRetentionPolicy(d); diags != nil {
 		return diags
 	}
 
-	client := meta.(*providerMetadata).LegacyClient
+	m := meta.(*client)
+	client := m.APIClient
+
 	handle := d.Get("handle").(string)
-	stackID := int64(d.Get("stack_id").(int))
+	stackID := int32(d.Get("stack_id").(int))
 
-	// there are a few  scenarios where org_id can be fully gathered from the data provided above
-	// 1. If it is provided explicitly
-	// 2. It is using a dedicated stack, and so when creating an environment, use the stack id to get stack
-	//    and check that stack's org id and use it
-	// 3. The user only belongs to one organization, so fall back to that. If they belong to multiple organizations
-	// 	  they will have to specify it explicitly at this point (if these points no longer work for inference.)
-	orgID := d.Get("org_id").(string) // scenario #1 outlined above
+	orgID := d.Get("org_id").(string)
 	if orgID == "" {
-		stack, err := client.GetStack(stackID) // scenario #2 outlined above
-		if err != nil {
-			log.Println("There was an error trying to retrieve the stack with the stack id provided to determine"+
-				"an organization id.\n[ERROR] - ", err)
-			return generateDiagnosticsFromClientError(err)
-		}
-		orgID = stack.OrganizationID
-		if orgID == "" {
-			org, err := client.GetOrganization() // scenario #3 outlined above
-			if err != nil {
-				log.Println("There was an error trying to retrieve an organization id (org_id). You can "+
-					"either specify it explicitly or review the error message to attempt to fix the issue. "+
-					"\n[ERROR] - ", err)
-				return generateDiagnosticsFromClientError(err)
-			}
-			orgID = org.ID
-		}
+		// Look up org from auth API
+		orgID, _ = m.GetOrganizationFromAuthAPI()
 	}
 
 	if orgID == "" {
-		errorMessage := "[ERROR] - Unable to infer organization ID from stack or user. You may have to specify it explicitly"
-		log.Println(errorMessage)
-		return generateDiagnosticsFromClientError(errors.New(errorMessage))
+		return diag.Diagnostics{{
+			Severity: diag.Error,
+			Summary:  "Unable to determine organization ID",
+			Detail:   "Unable to infer organization ID. You may have to specify org_id explicitly.",
+		}}
 	}
 
-	data := aptible.EnvironmentCreateAttrs{
-		Handle: handle,
+	// Determine environment type based on whether stack is shared (public)
+	stack, _, err := client.StacksAPI.GetStack(ctx, stackID).Execute()
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("error fetching stack: %w", err))
 	}
 
-	environment, err := client.CreateEnvironment(orgID, stackID, data)
+	envType := "production"
+	if stack.Public {
+		envType = "development"
+	}
+
+	account, _, err := client.AccountsAPI.CreateAccount(ctx).
+		CreateAccountRequest(aptibleapi.CreateAccountRequest{
+			Type:           envType,
+			Handle:         handle,
+			OrganizationId: orgID,
+			StackId:        &stackID,
+		}).Execute()
 	if err != nil {
 		log.Println("There was an error when completing the request to create the environment.\n[ERROR] -", err)
-		return generateDiagnosticsFromClientError(err)
+		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.Itoa(int(environment.ID)))
-	_ = d.Set("env_id", environment.ID)
+	d.SetId(strconv.Itoa(int(account.Id)))
+	_ = d.Set("env_id", int(account.Id))
 
 	if diags := createBackupRetentionPolicy(ctx, d, meta); diags != nil {
 		return diags
@@ -150,48 +145,61 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).LegacyClient
-	envID := int64(d.Get("env_id").(int))
+	m := meta.(*client)
+	client := m.APIClient
 
+	envID := int32(d.Get("env_id").(int))
 	log.Println("Getting environment with ID: " + strconv.Itoa(int(envID)))
 
-	environment, err := client.GetEnvironment(envID)
+	account, resp, err := client.AccountsAPI.GetAccount(ctx, envID).Execute()
 	if err != nil {
+		if resp != nil && resp.StatusCode == 404 {
+			d.SetId("")
+			return nil
+		}
 		log.Println(err)
-		return generateDiagnosticsFromClientError(err)
-	}
-	if environment.Deleted {
-		d.SetId("")
-		return nil
+		return diag.FromErr(err)
 	}
 
-	_ = d.Set("handle", environment.Handle)
-	_ = d.Set("env_id", int(environment.ID))
-	_ = d.Set("stack_id", environment.StackID)
-	_ = d.Set("org_id", environment.OrganizationID)
+	_ = d.Set("handle", account.Handle)
+	_ = d.Set("env_id", int(account.Id))
+
+	if account.Links != nil {
+		if account.Links.Stack != nil && account.Links.Stack.Href != nil {
+			_ = d.Set("stack_id", int(ExtractIdFromLink(*account.Links.Stack.Href)))
+		}
+		if account.Links.Organization != nil && account.Links.Organization.Href != nil {
+			href := *account.Links.Organization.Href
+			segments := strings.Split(href, "/")
+			if len(segments) > 0 {
+				_ = d.Set("org_id", segments[len(segments)-1])
+			}
+		}
+	}
 
 	return readBackupRetentionPolicy(ctx, d, meta)
 }
 
 func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// Sets don't support validation functions at this time so validate on apply
 	if diags := validateBackupRetentionPolicy(d); diags != nil {
 		return diags
 	}
 
-	client := meta.(*providerMetadata).LegacyClient
+	m := meta.(*client)
+	client := m.APIClient
+
 	handle := d.Get("handle").(string)
-	envId := int64(d.Get("env_id").(int))
-	environmentUpdates := aptible.EnvironmentUpdates{
-		Handle: handle,
-	}
+	envID := int32(d.Get("env_id").(int))
 
-	if err := client.UpdateEnvironment(envId, environmentUpdates); err != nil {
+	_, err := client.AccountsAPI.UpdateAccount(ctx, envID).
+		UpdateAccountRequest(aptibleapi.UpdateAccountRequest{
+			Handle: &handle,
+		}).Execute()
+	if err != nil {
 		log.Println("There was an error when completing the request to update the environment.\n[ERROR] -", err)
-		return generateDiagnosticsFromClientError(err)
+		return diag.FromErr(err)
 	}
 
-	// Creating a new backup retention policy replaces the existing one
 	if diags := createBackupRetentionPolicy(ctx, d, meta); diags != nil {
 		return diags
 	}
@@ -202,45 +210,36 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, meta
 func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	readDiags := resourceEnvironmentRead(ctx, d, meta)
 	if !readDiags.HasError() {
-		envID := int64(d.Get("env_id").(int))
-		legacy := meta.(*providerMetadata).LegacyClient // go-delpoy
-		client := meta.(*providerMetadata).Client       // aptible-api-go
+		m := meta.(*client)
+		client := m.APIClient
+		envID := int32(d.Get("env_id").(int))
 
-		// First we need to run deprovision operations on any tail drains
-		log.Println("Checking for an tail type log drain for environment ID: ", envID)
-
-		ctx = meta.(*providerMetadata).APIContext(ctx)
-		resp, _, listErr := client.LogDrainsAPI.ListLogDrainsForAccount(ctx, int32(envID)).Execute()
-
+		// First deprovision any tail log drains
+		log.Println("Checking for tail type log drains for environment ID: ", envID)
+		drainResp, _, listErr := client.LogDrainsAPI.ListLogDrainsForAccount(ctx, envID).Execute()
 		if listErr != nil {
-			return diag.Diagnostics{
-				diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Error fetching log drains",
-					Detail:   listErr.Error(),
-				},
-			}
+			return diag.Diagnostics{{
+				Severity: diag.Error,
+				Summary:  "Error fetching log drains",
+				Detail:   listErr.Error(),
+			}}
 		}
 
-		drains := resp.Embedded.LogDrains
-		if len(drains) != 0 {
-			for _, drain := range drains {
-				if drain.DrainType == "tail" {
-					_, drainErr := legacy.DeleteLogDrain(int64(drain.Id))
-
-					if drainErr != nil {
-						log.Println("There was an error when completing the request to destroy the log drain.\n[ERROR] -", drainErr)
-						return generateDiagnosticsFromClientError(drainErr)
-					}
+		for _, drain := range drainResp.Embedded.LogDrains {
+			if drain.DrainType == "tail" {
+				_, drainErr := m.DeleteLogDrain(ctx, drain.Id)
+				if drainErr != nil {
+					log.Println("There was an error when completing the request to destroy the log drain.\n[ERROR] -", drainErr)
+					return diag.FromErr(drainErr)
 				}
 			}
 		}
 
-		// Now we should be okay to delete the environment.
-		err := legacy.DeleteEnvironment(envID)
+		// Delete the environment
+		_, err := client.AccountsAPI.DeleteAccount(ctx, envID).Execute()
 		if err != nil {
 			log.Println("There was an error when completing the request to destroy the environment.\n[ERROR] -", err)
-			return generateDiagnosticsFromClientError(err)
+			return diag.FromErr(err)
 		}
 
 		d.SetId("")
@@ -275,12 +274,10 @@ func validateBackupRetentionPolicy(d *schema.ResourceData) diag.Diagnostics {
 }
 
 func createBackupRetentionPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	m := meta.(*client)
+	client := m.APIClient
 	envId := int32(d.Get("env_id").(int))
 
-	// Only modify the policy if it has changed
 	if !d.HasChange("backup_retention_policy") {
 		log.Println("No change in retention policy detected")
 		return nil
@@ -309,22 +306,19 @@ func createBackupRetentionPolicy(ctx context.Context, d *schema.ResourceData, me
 		}).
 		Execute()
 	if err != nil {
-		return diag.Diagnostics{
-			diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Error creating backup retention policy",
-				Detail:   err.Error(),
-			},
-		}
+		return diag.Diagnostics{{
+			Severity: diag.Error,
+			Summary:  "Error creating backup retention policy",
+			Detail:   err.Error(),
+		}}
 	}
 
 	return nil
 }
 
 func readBackupRetentionPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	met := meta.(*providerMetadata)
-	client := met.Client
-	ctx = met.APIContext(ctx)
+	m := meta.(*client)
+	client := m.APIClient
 	envId := int32(d.Get("env_id").(int))
 
 	log.Printf("Getting backup retention policy for environment with ID: %d\n", envId)
@@ -333,18 +327,15 @@ func readBackupRetentionPolicy(ctx context.Context, d *schema.ResourceData, meta
 		ListBackupRetentionPoliciesForAccount(ctx, envId).
 		Execute()
 	if err != nil {
-		return diag.Diagnostics{
-			diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Error fetching backup retention policy",
-				Detail:   err.Error(),
-			},
-		}
+		return diag.Diagnostics{{
+			Severity: diag.Error,
+			Summary:  "Error fetching backup retention policy",
+			Detail:   err.Error(),
+		}}
 	}
 
 	policies := resp.Embedded.BackupRetentionPolicies
 	if len(policies) == 0 {
-		// No results, the environment's policy must have been deleted
 		return nil
 	}
 
