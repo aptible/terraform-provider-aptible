@@ -79,12 +79,18 @@ var validContainerProfiles = []string{
 }
 var validateContainerProfile = validation.StringInSlice(validContainerProfiles, false)
 
-// normalizeContainerProfile strips trailing generation digits from an instance
-// class name (e.g. "m5" → "m", "c6" → "c"). The backend may still return
-// old-style values; normalizing them prevents spurious state diffs.
-// Satisfies schema.SchemaStateFunc so it can be used directly as StateFunc.
+// normalizeContainerProfile strips the generation number and any trailing
+// generation suffix letters from an instance class name (e.g. "m5" → "m",
+// "c6" → "c", "m8a" → "m", "r8g" → "r"). The backend may still return
+// old-style or newer-generation values; normalizing them prevents spurious
+// state diffs. Satisfies schema.SchemaStateFunc so it can be used directly
+// as StateFunc.
 func normalizeContainerProfile(v interface{}) string {
-	return strings.TrimRight(v.(string), "0123456789")
+	s := v.(string)
+	if idx := strings.IndexAny(s, "0123456789"); idx != -1 {
+		return s[:idx]
+	}
+	return s
 }
 
 var validateDiskSize = validation.IntBetween(1, 16000)
