@@ -63,6 +63,28 @@ func TestValidateURL(t *testing.T) {
 	}
 }
 
+func Test_normalizeContainerProfile(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{name: "old-style generation", in: "m5", want: "m"},
+		{name: "old-style generation, r family", in: "r6", want: "r"},
+		{name: "AMD suffix", in: "m8a", want: "m"},
+		{name: "Graviton suffix", in: "r8g", want: "r"},
+		{name: "multiple suffix letters", in: "c6gd", want: "c"},
+		{name: "already normalized", in: "m", want: "m"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := normalizeContainerProfile(tt.in); got != tt.want {
+				t.Errorf("normalizeContainerProfile(%q) = %v, want %v", tt.in, got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_errorsToWarnings(t *testing.T) {
 	type args struct {
 		// nolint:staticcheck
