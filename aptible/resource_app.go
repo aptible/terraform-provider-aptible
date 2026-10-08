@@ -76,6 +76,16 @@ func resourceApp() *schema.Resource {
 				Optional:  true,
 				Sensitive: true,
 			},
+			  "deploy_trigger": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Description: "Arbitrary value that, when changed, forces a deploy " +
+					"(a re-pull of the current docker_image tag) without changing " +
+					"docker_image itself. Useful for redeploying a mutable tag whose " +
+					"digest has updated. The value is used only for change detection; it " +
+					"is not sent in the deploy command and does not affect which image is pulled.",
+			},
+
 		},
 		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
 			if err := validateServiceSizingPolicy(ctx, d, meta); err != nil {
@@ -635,6 +645,13 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 		settingsMap["APTIBLE_DOCKER_IMAGE"] = d.Get("docker_image").(string)
 	}
 
+	if d.HasChange("deploy_trigger") {
+		needsDeploy = true
+		settingsMap["APTIBLE_DOCKER_IMAGE"] = d.Get("docker_image").(string)
+
+	}
+
+
 	if d.HasChanges("private_registry_username", "private_registry_password") {
 		needsDeploy = true
 		sensitiveSettingsMap["APTIBLE_PRIVATE_REGISTRY_USERNAME"] = d.Get("private_registry_username").(string)
@@ -643,6 +660,10 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 
 	if needsDeploy {
 		operationType = "deploy"
+		// Always re-pull/set the current image/tag,
+		if v := d.Get("docker_image").(string); v != "" {
+				settingsMap["APTIBLE_DOCKER_IMAGE"] = v
+		}
 	} else if needsConfigure {
 		operationType = "configure"
 	}
@@ -653,8 +674,8 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 		if d.HasChange("config") {
 			payload.SetEnv(envMap)
 		}
-		if d.HasChange("docker_image") {
-			payload.SetSettings(settingsMap)
+		if d.HasChanges("docker_image", "deploy_trigger") {
+				payload.SetSettings(settingsMap)
 		}
 		if d.HasChanges("private_registry_username", "private_registry_password") {
 			payload.SetSensitiveSettings(sensitiveSettingsMap)
