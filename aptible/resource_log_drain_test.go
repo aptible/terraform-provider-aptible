@@ -1,12 +1,13 @@
 package aptible
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 	"testing"
 
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -15,7 +16,7 @@ import (
 func TestAccResourceLogDrain_elasticsearch(t *testing.T) {
 	rHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -295,7 +296,8 @@ func TestAccResourceLogDrain_solarwinds(t *testing.T) {
 }
 
 func testAccCheckLogDrainDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
+	m := testAccProvider.Meta().(*client)
+	ctx := context.Background()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aptible_log_drain" {
 			continue
@@ -306,15 +308,14 @@ func testAccCheckLogDrainDestroy(s *terraform.State) error {
 			return err
 		}
 
-		logDrain, err := client.GetLogDrain(int64(logDrainID))
-		log.Println("Deleted? ", logDrain.Deleted)
-		if !logDrain.Deleted {
+		_, resp, err := m.LogDrainsAPI.GetLogDrain(ctx, int32(logDrainID)).Execute()
+		if err == nil {
 			return fmt.Errorf("log drain %v not removed", logDrainID)
 		}
-
-		if err != nil {
-			return err
+		if resp != nil && resp.StatusCode != http.StatusNotFound {
+			return fmt.Errorf("unexpected error checking log drain %v: %v", logDrainID, err)
 		}
+		log.Println("Log drain deleted (404): ", logDrainID)
 	}
 	return nil
 }

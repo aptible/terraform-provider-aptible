@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/aptible/aptible-api-go/aptibleapi"
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -350,11 +349,9 @@ func validatePrivateRegistrySettings(_ context.Context, d *schema.ResourceDiff, 
 }
 
 func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
-	client := m.Client
-	legacy := m.LegacyClient
+	m := meta.(*client)
+	client := m.APIClient
 	envID := int32(d.Get("env_id").(int))
-	ctx = m.APIContext(ctx)
 	diags := diag.Diagnostics{}
 
 	handle := d.Get("handle").(string)
@@ -437,7 +434,7 @@ func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 
 		createCtx, createCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutCreate))
 		defer createCancel()
-		_, err = waitForOperationWithContext(createCtx, legacy, int64(operation.Id))
+		_, err = m.WaitForOperation(createCtx, operation.Id)
 		if err != nil {
 			// Do not return here so that the read method can hydrate the state
 			diags = append(diags, diag.Diagnostic{
@@ -482,9 +479,8 @@ func resourceAppImport(d *schema.ResourceData, meta interface{}) ([]*schema.Reso
 
 // syncs Terraform state with changes made via the API outside of Terraform
 func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*providerMetadata).Client
+	client := meta.(*client).APIClient
 	appID := int32(d.Get("app_id").(int))
-	ctx = meta.(*providerMetadata).APIContext(ctx)
 
 	log.Println("Getting App with ID: " + strconv.Itoa(int(appID)))
 
@@ -587,10 +583,8 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	m := meta.(*providerMetadata)
-	legacy := meta.(*providerMetadata).LegacyClient
-	client := m.Client
-	ctx = m.APIContext(ctx)
+	m := meta.(*client)
+	client := m.APIClient
 	appID := int32(d.Get("app_id").(int))
 
 	var diags diag.Diagnostics
@@ -673,7 +667,7 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 		}
 		updateCtx, updateCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
 		defer updateCancel()
-		_, err = waitForOperationWithContext(updateCtx, legacy, int64(operation.Id))
+		_, err = m.WaitForOperation(updateCtx, operation.Id)
 		if err != nil {
 			// Do not return here so that the read method can hydrate the state
 			diags = append(diags, diag.Diagnostic{
@@ -707,15 +701,15 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 
 	handle := d.Get("handle").(string)
 	if d.HasChange("handle") {
-		updates := aptible.AppUpdates{
-			Handle: handle,
-		}
 		log.Printf("[INFO] Updating handle to %s\n", handle)
-		if err := legacy.UpdateApp(int64(appID), updates); err != nil {
+		_, err := client.AppsAPI.PatchApp(ctx, appID).UpdateAppRequest(aptibleapi.UpdateAppRequest{
+			Handle: &handle,
+		}).Execute()
+		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "There was an error when trying to update the handle.",
-				Detail:   generateErrorFromClientError(err).Error(),
+				Detail:   err.Error(),
 			})
 			return diags
 		}
@@ -736,16 +730,17 @@ func resourceAppDeleteContext(ctx context.Context, d *schema.ResourceData, meta 
 		return readDiags
 	}
 
-	appID := int64(d.Get("app_id").(int))
-	client := meta.(*providerMetadata).LegacyClient
-	deleted, err := client.DeleteApp(appID)
+	m := meta.(*client)
+	appID := int32(d.Get("app_id").(int))
+
+	deleted, err := m.DeleteApp(ctx, appID)
 	if deleted {
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
 		log.Println("There was an error when completing the request to destroy the app.\n[ERROR] -", err)
-		return diag.FromErr(generateErrorFromClientError(err))
+		return diag.FromErr(err)
 	}
 
 	d.SetId("")
@@ -753,8 +748,7 @@ func resourceAppDeleteContext(ctx context.Context, d *schema.ResourceData, meta 
 }
 
 func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).Client
-	ctx = meta.(*providerMetadata).APIContext(ctx)
+	client := meta.(*client).APIClient
 	appID := int32(d.Get("app_id").(int))
 
 	// If there are no changes to services, there's no reason to update
@@ -846,11 +840,10 @@ func updateServices(ctx context.Context, d *schema.ResourceData, meta interface{
 	return g.Wait()
 }
 
-func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).Client
-	legacy := meta.(*providerMetadata).LegacyClient
+func scaleServices(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+	m := meta.(*client)
+	client := m.APIClient
 	appID := int32(d.Get("app_id").(int))
-	ctx := meta.(*providerMetadata).APIContext(c)
 
 	// If there are no changes to services, there's no reason to scale
 	if !d.HasChange("service") {
@@ -925,7 +918,7 @@ func scaleServices(c context.Context, d *schema.ResourceData, meta interface{}) 
 
 			scaleCtx, scaleCancel := context.WithTimeout(ctx, d.Timeout(schema.TimeoutUpdate))
 			defer scaleCancel()
-			_, err = waitForOperationWithContext(scaleCtx, legacy, int64(resp.Id))
+			_, err = m.WaitForOperation(scaleCtx, resp.Id)
 			return err
 		})
 	}
@@ -943,8 +936,7 @@ func findApiServiceByName(services []aptibleapi.Service, serviceName string) *ap
 }
 
 func getServiceIdForAppByName(ctx context.Context, meta interface{}, appId int32, processType string) (int32, error) {
-	client := meta.(*providerMetadata).Client
-	ctx = meta.(*providerMetadata).APIContext(ctx)
+	client := meta.(*client).APIClient
 
 	serviceList, _, err := client.ServicesAPI.ListServicesForApp(ctx, appId).Execute()
 	if err != nil {
@@ -961,8 +953,7 @@ func getServiceIdForAppByName(ctx context.Context, meta interface{}, appId int32
 }
 
 func getServiceSizingPolicyForService(serviceId int32, ctx context.Context, meta interface{}) (*aptibleapi.ServiceSizingPolicy, error) {
-	client := meta.(*providerMetadata).Client
-	ctx = meta.(*providerMetadata).APIContext(ctx)
+	client := meta.(*client).APIClient
 	resp, _, err := client.ServiceSizingPoliciesAPI.ListServiceSizingPoliciesForService(ctx, serviceId).Execute()
 	if err != nil {
 		return nil, err
@@ -975,8 +966,7 @@ func getServiceSizingPolicyForService(serviceId int32, ctx context.Context, meta
 }
 
 func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*providerMetadata).Client
-	ctx = meta.(*providerMetadata).APIContext(ctx)
+	client := meta.(*client).APIClient
 	appID := int32(d.Get("app_id").(int))
 
 	// If there are no changes to services, there's no reason to update
@@ -1058,14 +1048,14 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 		}
 
 		if policy == nil {
-			payload := aptibleapi.NewCreateServiceSizingPolicyRequest()
+			payload := aptibleapi.NewUpdateServiceSizingPolicyRequest()
 			jsonData, _ := json.Marshal(serviceSizingPolicyMap)
 			_ = json.Unmarshal(jsonData, &payload)
 			payload.Autoscaling = &autoscaling
 
 			_, err = client.ServiceSizingPoliciesAPI.
 				CreateServiceSizingPolicy(ctx, serviceId).
-				CreateServiceSizingPolicyRequest(*payload).
+				UpdateServiceSizingPolicyRequest(*payload).
 				Execute()
 		} else {
 			payload := aptibleapi.NewUpdateServiceSizingPolicyRequest()

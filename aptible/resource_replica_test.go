@@ -1,14 +1,15 @@
 package aptible
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"regexp"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/aptible/go-deploy/aptible"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -18,7 +19,7 @@ func TestAccResourceReplica_basic(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 	replicaHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -63,7 +64,7 @@ func TestAccResourceReplica_withoutBackups(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 	replicaHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -111,7 +112,7 @@ func TestAccResourceReplica_update(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 	replicaHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -169,7 +170,7 @@ func TestAccResourceReplica_update(t *testing.T) {
 func TestAccResourceReplica_expectError(t *testing.T) {
 	replicaHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,
@@ -189,7 +190,8 @@ func TestAccResourceReplica_expectError(t *testing.T) {
 }
 
 func testAccCheckReplicaDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*providerMetadata).LegacyClient
+	m := testAccProvider.Meta().(*client)
+	ctx := context.Background()
 	// Allow time for deprovision operation to complete.
 	// TODO: Replace this by waiting on the actual operation
 
@@ -211,23 +213,23 @@ func testAccCheckReplicaDestroy(s *terraform.State) error {
 		}
 
 		// Check replica is deleted first, then the primary database
-		database, err := client.GetReplica(int64(replicaID))
-		log.Println("Deleted? ", database.Deleted)
-		if !database.Deleted {
+		_, resp, err := m.DatabasesAPI.GetDatabase(ctx, int32(replicaID)).Execute()
+		if err == nil {
 			return fmt.Errorf("replica %v not removed", replicaID)
 		}
-		if err != nil {
-			return err
+		if resp != nil && resp.StatusCode != http.StatusNotFound {
+			return fmt.Errorf("unexpected error checking replica %v: %v", replicaID, err)
 		}
+		log.Println("Replica deleted (404): ", replicaID)
 
-		database, err = client.GetDatabase(int64(databaseID))
-		log.Println("Deleted? ", database.Deleted)
-		if !database.Deleted {
+		_, resp, err = m.DatabasesAPI.GetDatabase(ctx, int32(databaseID)).Execute()
+		if err == nil {
 			return fmt.Errorf("database %v not removed", databaseID)
 		}
-		if err != nil {
-			return err
+		if resp != nil && resp.StatusCode != http.StatusNotFound {
+			return fmt.Errorf("unexpected error checking database %v: %v", databaseID, err)
 		}
+		log.Println("Database deleted (404): ", databaseID)
 	}
 	return nil
 }
@@ -236,7 +238,7 @@ func TestAccResourceReplica_scale(t *testing.T) {
 	dbHandle := acctest.RandString(10)
 	replicaHandle := acctest.RandString(10)
 
-	WithTestAccEnvironment(t, func(env aptible.Environment) {
+	WithTestAccEnvironment(t, func(env testEnvironment) {
 		resource.ParallelTest(t, resource.TestCase{
 			PreCheck:     func() { testAccPreCheck(t) },
 			Providers:    testAccProviders,

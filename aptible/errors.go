@@ -18,14 +18,3 @@ func diagnosticsToError(ds diag.Diagnostics) error {
 
 	return err
 }
-
-func errorToDiagnostic(err error) diag.Diagnostic {
-	return diag.Diagnostic{
-		Severity: diag.Error,
-		Summary:  err.Error(),
-	}
-}
-
-func errorToDiagnostics(err error) diag.Diagnostics {
-	return diag.Diagnostics{errorToDiagnostic(err)}
-}
