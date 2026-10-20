@@ -220,7 +220,7 @@ func resourceDatabaseReadContext(ctx context.Context, d *schema.ResourceData, me
 	urls := []string{}
 	creds := database.Embedded.GetDatabaseCredentials()
 	for _, cred := range creds {
-		urls = append(urls, cred.ConnectionUrl)
+		urls = append(urls, cred.GetConnectionUrl())
 	}
 
 	imageID := ExtractIdFromLink(database.Links.DatabaseImage.GetHref())

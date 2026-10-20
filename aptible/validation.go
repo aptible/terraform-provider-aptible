@@ -3,6 +3,7 @@ package aptible
 import (
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -94,3 +95,20 @@ func normalizeContainerProfile(v interface{}) string {
 }
 
 var validateDiskSize = validation.IntBetween(1, 16000)
+
+var startTimeUTCPattern = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9]$`)
+
+// validateStartTimeUTC checks that a maintenance window start time is in 24-hour "HH:MM" format.
+func validateStartTimeUTC(i interface{}, k string) (warnings []string, errors []error) {
+	v, ok := i.(string)
+	if !ok {
+		errors = append(errors, fmt.Errorf("expected type of %q to be string", k))
+		return
+	}
+
+	if !startTimeUTCPattern.MatchString(v) {
+		errors = append(errors, fmt.Errorf("expected %q to be in 24-hour UTC \"HH:MM\" format (e.g. \"22:00\"), got %v", k, v))
+	}
+
+	return
+}

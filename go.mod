@@ -3,7 +3,7 @@ module github.com/aptible/terraform-provider-aptible
 go 1.25.9
 
 require (
-	github.com/aptible/aptible-api-go v0.15.0
+	github.com/aptible/aptible-api-go v0.19.1
 	github.com/aptible/go-deploy v0.5.5
 	github.com/bflad/tfproviderdocs v0.12.1
 	github.com/bflad/tfproviderlint v0.31.0

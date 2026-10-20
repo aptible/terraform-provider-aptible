@@ -76,6 +76,12 @@ func resourceApp() *schema.Resource {
 				Optional:  true,
 				Sensitive: true,
 			},
+			"maintenance_window": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem:     resourceMaintenanceWindow(),
+			},
 		},
 		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
 			if err := validateServiceSizingPolicy(ctx, d, meta); err != nil {
@@ -262,6 +268,32 @@ func resourceServiceSizingPolicy() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Whether to use restart-free scaling for this service.",
+			},
+		},
+	}
+}
+
+func resourceMaintenanceWindow() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"day_of_week": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      0,
+				ValidateFunc: validation.IntBetween(0, 6),
+				Description:  "Day of week the window applies to (0 = Sunday .. 6 = Saturday). Defaults to 0 (Sunday).",
+			},
+			"duration_hours": {
+				Type:         schema.TypeInt,
+				Required:     true,
+				ValidateFunc: validation.IntBetween(2, 24),
+				Description:  "Length of the maintenance window in hours (2-24).",
+			},
+			"start_time_utc": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateStartTimeUTC,
+				Description:  "Start of the maintenance window, in UTC, as HH:MM (e.g. \"22:00\").",
 			},
 		},
 	}
@@ -468,6 +500,10 @@ func resourceAppCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 		return diag.FromErr(err)
 	}
 
+	if err := updateMaintenanceWindow(ctx, d, meta); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return append(diags, resourceAppRead(ctx, d, meta)...)
 }
 
@@ -526,6 +562,23 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 
 		privRegPass, _ := currSetting.SensitiveSettings["APTIBLE_PRIVATE_REGISTRY_PASSWORD"].(string)
 		_ = d.Set("private_registry_password", privRegPass)
+	}
+
+	maintenanceWindow, err := getMaintenanceWindowForApp(ctx, meta, appID)
+	if err != nil {
+		log.Println(err)
+		return diag.FromErr(err)
+	}
+	if maintenanceWindow != nil {
+		_ = d.Set("maintenance_window", []map[string]interface{}{
+			{
+				"day_of_week":    maintenanceWindow.GetDayOfWeek(),
+				"duration_hours": maintenanceWindow.GetDurationHours(),
+				"start_time_utc": maintenanceWindow.GetStartTimeUtc(),
+			},
+		})
+	} else {
+		_ = d.Set("maintenance_window", []interface{}{})
 	}
 
 	var services = make([]map[string]interface{}, len(app.Embedded.Services))
@@ -700,6 +753,16 @@ func resourceAppUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "There was an error when trying to update autoscaling_policy.",
+			Detail:   err.Error(),
+		})
+		return diags
+	}
+
+	err = updateMaintenanceWindow(ctx, d, meta)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "There was an error when trying to update maintenance_window.",
 			Detail:   err.Error(),
 		})
 		return diags
@@ -1058,14 +1121,14 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 		}
 
 		if policy == nil {
-			payload := aptibleapi.NewCreateServiceSizingPolicyRequest()
+			payload := aptibleapi.NewUpdateServiceSizingPolicyRequest()
 			jsonData, _ := json.Marshal(serviceSizingPolicyMap)
 			_ = json.Unmarshal(jsonData, &payload)
 			payload.Autoscaling = &autoscaling
 
 			_, err = client.ServiceSizingPoliciesAPI.
 				CreateServiceSizingPolicy(ctx, serviceId).
-				CreateServiceSizingPolicyRequest(*payload).
+				UpdateServiceSizingPolicyRequest(*payload).
 				Execute()
 		} else {
 			payload := aptibleapi.NewUpdateServiceSizingPolicyRequest()
@@ -1083,6 +1146,76 @@ func updateServiceSizingPolicy(ctx context.Context, d *schema.ResourceData, meta
 		if err != nil {
 			return fmt.Errorf("failed to create autoscaling policy for service %s: %w", serviceName, err)
 		}
+	}
+	return nil
+}
+
+// getMaintenanceWindowForApp returns the app's maintenance window, or nil if none is configured.
+func getMaintenanceWindowForApp(ctx context.Context, meta interface{}, appID int32) (*aptibleapi.MaintenanceWindow, error) {
+	client := meta.(*providerMetadata).Client
+	ctx = meta.(*providerMetadata).APIContext(ctx)
+
+	window, resp, err := client.MaintenanceWindowsAPI.GetMaintenanceWindowForApp(ctx, appID).Execute()
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return window, nil
+}
+
+func updateMaintenanceWindow(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*providerMetadata).Client
+	ctx = meta.(*providerMetadata).APIContext(ctx)
+	appID := int32(d.Get("app_id").(int))
+
+	if !d.HasChange("maintenance_window") {
+		return nil
+	}
+
+	windows := d.Get("maintenance_window").([]interface{})
+
+	existing, err := getMaintenanceWindowForApp(ctx, meta, appID)
+	if err != nil {
+		return fmt.Errorf("failed to look up maintenance window for app: %w", err)
+	}
+
+	if len(windows) == 0 {
+		if existing == nil {
+			return nil
+		}
+		if _, err := client.MaintenanceWindowsAPI.DeleteMaintenanceWindowForApp(ctx, appID).Execute(); err != nil {
+			return fmt.Errorf("failed to delete maintenance window for app: %w", err)
+		}
+		return nil
+	}
+
+	windowMap := windows[0].(map[string]interface{})
+	dayOfWeek := int32(windowMap["day_of_week"].(int))
+	durationHours := int32(windowMap["duration_hours"].(int))
+	startTimeUtc := windowMap["start_time_utc"].(string)
+
+	if existing == nil {
+		payload := aptibleapi.NewCreateMaintenanceWindowForAppRequest(startTimeUtc, durationHours)
+		payload.SetDayOfWeek(dayOfWeek)
+		_, _, err = client.MaintenanceWindowsAPI.
+			CreateMaintenanceWindowForApp(ctx, appID).
+			CreateMaintenanceWindowForAppRequest(*payload).
+			Execute()
+	} else {
+		payload := aptibleapi.NewUpdateMaintenanceWindowForAppRequest()
+		payload.SetStartTimeUtc(startTimeUtc)
+		payload.SetDurationHours(durationHours)
+		payload.SetDayOfWeek(dayOfWeek)
+		_, _, err = client.MaintenanceWindowsAPI.
+			UpdateMaintenanceWindowForApp(ctx, appID).
+			UpdateMaintenanceWindowForAppRequest(*payload).
+			Execute()
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to update maintenance window for app: %w", err)
 	}
 	return nil
 }

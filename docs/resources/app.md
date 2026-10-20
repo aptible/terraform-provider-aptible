@@ -59,6 +59,20 @@ resource "aptible_app" "APP" {
 }
 ```
 
+Application with a scheduled maintenance window
+
+```hcl
+resource "aptible_app" "APP" {
+    env_id = ENVIRONMENT_ID
+    handle = "APP_HANDLE"
+    maintenance_window {
+        day_of_week    = 0
+        start_time_utc = "22:00"
+        duration_hours = 4
+    }
+}
+```
+
 ## Argument Reference
 
 - `env_id` - The ID of the environment you would like to deploy your
@@ -75,6 +89,8 @@ resource "aptible_app" "APP" {
   Docker registry. Requires `docker_image` and `private_registry_username`.
 - `service` - (Optional) A block to manage scaling for services. See the main
   provider docs for additional details.
+- `maintenance_window` - (Optional) A block to schedule a recurring maintenance
+  window for the App. See below for details.
 
 The `service` block supports:
 
@@ -141,6 +157,12 @@ The `autoscaling_policy` block supports:
 - `scale_down_step` - (Default: 1) Horizontal autoscaling only - Sets the amount of containers to remove when
   autoscaling (ex: a value of 2 will go from 4->2->1). Container count will never exceed the configured minimum.
 - `use_horizontal_scale` - Horizontal autoscaling only. Sets the autoscaling to use a restart-free scale type so containers are only added and removed without restarting all currently running containers.
+
+The `maintenance_window` block supports:
+
+- `day_of_week` - (Default: `0`) Day of week the window applies to (`0` = Sunday .. `6` = Saturday).
+- `duration_hours` - Length of the maintenance window, in hours (2-24).
+- `start_time_utc` - Start of the maintenance window, in UTC, as `HH:MM` (e.g. `"22:00"`).
 
 ## Attribute Reference
 
