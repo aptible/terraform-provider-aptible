@@ -1,6 +1,6 @@
 module github.com/aptible/terraform-provider-aptible
 
-go 1.25.9
+go 1.26.10
 
 require (
 	github.com/aptible/aptible-api-go v0.15.0
