@@ -73,7 +73,7 @@ type providerMetadata struct {
 func (m *providerMetadata) APIContext(ctx context.Context) context.Context {
 	// Override the default API url with APTIBLE_API_ROOT_URL, if non-empty
 	if url := os.Getenv("APTIBLE_API_ROOT_URL"); url != "" {
-		ctx = context.WithValue(ctx, aptibleapi.ContextServerVariables, map[string]string{"url": url})
+		ctx = context.WithValue(ctx, aptibleapi.ContextServerVariables, map[string]string{"baseUrl": url})
 	}
 
 	if m.Token == "" {
