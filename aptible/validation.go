@@ -3,6 +3,7 @@ package aptible
 import (
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -94,3 +95,6 @@ func normalizeContainerProfile(v interface{}) string {
 }
 
 var validateDiskSize = validation.IntBetween(1, 16000)
+
+var startTimeUTCPattern = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9]$`)
+var validateStartTimeUTC = validation.StringMatch(startTimeUTCPattern, `expected a 24-hour UTC "HH:MM" time (e.g. "22:00")`)
