@@ -208,13 +208,13 @@ func resourceDatabaseReadContext(ctx context.Context, d *schema.ResourceData, me
 	databaseID := int32(d.Get("database_id").(int))
 
 	database, resp, err := client.DatabasesAPI.GetDatabase(ctx, databaseID).Execute()
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		log.Println("Database with ID: " + strconv.Itoa(int(databaseID)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
 		return nil
+	}
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	urls := []string{}
