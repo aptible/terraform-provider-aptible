@@ -525,14 +525,14 @@ func resourceAppRead(ctx context.Context, d *schema.ResourceData, meta interface
 	log.Println("Getting App with ID: " + strconv.Itoa(int(appID)))
 
 	app, resp, err := client.AppsAPI.GetApp(ctx, appID).Execute()
-	if err != nil {
-		log.Println(err)
-		return diag.FromErr(err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		log.Println("App with ID: " + strconv.Itoa(int(appID)) + " was deleted outside of Terraform. Now removing it from Terraform state.")
 		return nil
+	}
+	if err != nil {
+		log.Println(err)
+		return diag.FromErr(err)
 	}
 
 	_ = d.Set("app_id", int(app.Id))

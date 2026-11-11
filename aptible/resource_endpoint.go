@@ -562,17 +562,17 @@ func resourceEndpointRead(ctx context.Context, d *schema.ResourceData, meta inte
 	endpointID := int32(d.Get("endpoint_id").(int))
 
 	endpoint, resp, err := client.VhostsAPI.GetVhost(ctx, endpointID).Execute()
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		d.SetId("")
+		log.Printf("Endpoint with ID: %d was deleted outside of Terraform. Removing it from Terraform state.", endpointID)
+		return nil
+	}
 	if err != nil {
 		return append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  fmt.Sprintf("Failed to fetch endpoint with ID %d", endpointID),
 			Detail:   err.Error(),
 		})
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		log.Printf("Endpoint with ID: %d was deleted outside of Terraform. Removing it from Terraform state.", endpointID)
-		return nil
 	}
 
 	serviceID := ExtractIdFromLink(endpoint.Links.Service.GetHref())
